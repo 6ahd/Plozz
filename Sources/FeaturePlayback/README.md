@@ -260,15 +260,28 @@ pinned engine's ceiling of 2,700 segments (about 3 hours). These are approximate
 targets, not guaranteed durations or an extra startup wait.
 
 Aether retains its free-space budget, process-wide retention claims and producer
-backpressure. Maximum relaxes the ordinary 2 GiB retention cap, but is not
-unlimited and does not reserve a fixed number of bytes. Storage and network use
-depend on bitrate and playback path, and may include unwatched material.
+backpressure. Automatic leaves the byte policy unset. Explicit durations and
+Maximum request `Int.max`; the engine clamps this to its safe temporary-volume
+allowance (a quarter of available space, or 2 GiB when capacity is unknown).
+This removes the ordinary 2 GiB cap as an early limit on a requested duration,
+but does not reserve space or promise unlimited buffering. It can also retain
+more already-played segments for backward seeks. The protected playback window
+may exceed the nominal budget rather than evict media the player still needs.
+Storage and network use depend on bitrate and playback path, and may include unwatched material.
 The cache remains temporary; this does not implement downloads or next-episode
 preloading. Changing the preference does not reload active playback.
 
-Direct engine constructors used by previews and Live TV retain Automatic;
-scheduled library-channel requests and local downloaded files also keep the
-default. Native AVPlayer buffering and Live TV/DVR options are unchanged.
+Direct preview constructors, scheduled library-channel requests and local
+downloaded files keep Automatic. `softwarePacketCacheStorage` stays automatic:
+tvOS software playback retains its separate purgeable-memory policy, not the
+larger loopback disk allowance. Native AVPlayer/server HLS buffers are not
+governed by the segment-cache byte budget.
+
+Playback diagnostics display resident bytes and the effective budget only for
+an active loopback cache. They consume the engine's already-published status,
+not a synchronous cache scan. Unsupported routes, cleanup, missing telemetry
+and replacement sessions clear the row. This is temporary cache usage, not
+download progress or a guaranteed duration.
 
 `PlaybackReadAheadBufferingHostedTests` uses the real engine with synthetic
 H.264/AAC media and a range-serving loopback source. It compares Automatic with
@@ -278,6 +291,28 @@ source-byte growth and cancellation before server teardown. This is a controlled
 simulator regression, not a reproduction of a particular rclone installation.
 A buffer can absorb temporary shortfalls after it fills; it cannot make a source
 whose sustained throughput is below the media bitrate keep up indefinitely.
+
+## Live TV buffer
+
+The separate device-local `LivePlaybackBuffer` defaults to Automatic and offers
+10, 20, 30 and 45 seconds. Both app shells sample it for each real stream load.
+`liveEdgeCushionSeconds` requests a minimum safe distance behind live; it never
+moves playback closer than the source's normal holdback. Automatic preserves
+the existing route policy. The option works across native HLS, loopback and
+software routes without enabling DVR or changing on-demand read-ahead.
+
+A raw transport stream can take real time to fill the cushion. HLS with retained
+segments can fill at source speed. More buffering therefore trades broadcast
+delay and potentially slower channel changes for resilience to short outages;
+it cannot repair a sustained bandwidth deficit. Plozz allows the sampled
+cushion in addition to its 30-second startup watchdog, bounded at 75 seconds.
+Settings changes cannot alter an in-progress load's allowance. Scheduled
+library playback does not inherit this stream-startup allowance.
+
+For explicit cushions, the live indicator and Return to Live affordance use the
+engine's safe-edge verdict so the deliberate delay does not look like a rewind.
+Automatic retains the existing time-shift presentation. Returning to Live
+respects the selected cushion rather than bypassing it.
 
 ## On-demand player clock
 
@@ -585,8 +620,12 @@ presentation state and detaches the old player.
 Plozzigen's Audio **Processing** row samples Aether's active audio pipeline
 label, independently of source-video probe availability. `TRUEHD → FLAC
 bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing.
-The optional height-conversion features and their setting are removed; Plozz
-does not request APAC conversion, including for legacy enabled profiles.
+On tvOS 26+, the profile's default-on **Spatial audio** choice requests a 7.1.4
+APAC intermediate bed for supported on-demand playback. This is lossy conversion,
+not a speaker inventory or bitstream passthrough. Saved Off choices survive.
+`PlayerViewModel` captures the active preference for initial and handoff loads;
+live streams, shared players, muted previews and other platforms stay off.
+The engine owns source eligibility and fallback; FEL uses channel PCM.
 Stream-copy and software-decoding routes retain the engine's own labels.
 The row is unknown until the engine publishes a pipeline and follows track
 changes, fallbacks, and teardown. Do not infer it from the Atmos source badge,

@@ -67,9 +67,10 @@ final class PlaybackReadAheadRemoteTests: XCTestCase {
         XCTAssertTrue(row.hasFocus)
         XCTAssertTrue(row.label.contains("Video buffer"))
         XCUIRemote.shared.press(.right)
-        XCTAssertTrue(app.staticTexts[
-            "Larger buffers use more storage. Unavailable with Apple’s native player."
-        ].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
+            format: "label == %@",
+            "Larger buffers use more temporary storage. Duration depends on the video and available space. Unavailable with Apple’s native player."
+        )).firstMatch.exists)
         let choices = ["Automatic", "1 minute", "5 minutes", "10 minutes", "Maximum available"]
         XCTAssertTrue(waitUntil { choices.contains { app.buttons[$0].hasFocus } })
         // Directional entry follows native geometry; walk to the first choice.
@@ -105,8 +106,75 @@ final class PlaybackReadAheadRemoteTests: XCTestCase {
         ], timeout: 5) == .completed
     }
 
+    func testLiveBufferOnlyPersistsOnSelectAndKeepsVideoBufferIndependent() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--read-ahead-settings-fixture", "--reset-read-ahead"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["live-buffer-saved"].waitForExistence(timeout: 10))
+        let row = app.buttons["settings-master-live-buffer"]
+        for _ in 0..<40 {
+            if row.hasFocus { break }
+            XCUIRemote.shared.press(.down)
+        }
+        XCTAssertTrue(row.hasFocus)
+        XCUIRemote.shared.press(.right)
+        let choices = ["Automatic", "10 seconds", "20 seconds", "30 seconds", "45 seconds"]
+        XCTAssertTrue(waitUntil { choices.contains { app.buttons[$0].hasFocus } })
+        for _ in 0..<choices.count {
+            if app.buttons["Automatic"].hasFocus { break }
+            XCUIRemote.shared.press(.up)
+        }
+        XCTAssertTrue(waitUntil { app.buttons["Automatic"].hasFocus })
+        for title in choices.dropFirst() {
+            XCUIRemote.shared.press(.down)
+            XCTAssertTrue(waitUntil { app.buttons[title].hasFocus })
+            XCTAssertEqual(app.staticTexts["live-buffer-saved"].label, "automatic")
+        }
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(waitUntil { app.staticTexts["live-buffer-saved"].label == "fortyFiveSeconds" })
+        XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "automatic")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Live TV buffer selection"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCUIRemote.shared.press(.left)
+        XCTAssertTrue(waitUntil { row.hasFocus })
+        app.terminate()
+        app.launchArguments = ["--read-ahead-settings-fixture"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["live-buffer-saved"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["live-buffer-saved"].label, "fortyFiveSeconds")
+        XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "automatic")
+    }
+
     private func hasFocus(_ element: XCUIElement) -> Bool {
         element.exists && (element.hasFocus || element.descendants(matching: .any)
             .matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists)
+    }
+
+    func testSpatialAudioDefaultsOnAndSavedOffSurvivesRelaunch() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--read-ahead-settings-fixture", "--reset-spatial-audio"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["spatial-audio-saved"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["spatial-audio-saved"].label, "on")
+        let row = app.buttons["settings-master-truehd-atmos"]
+        for _ in 0..<40 {
+            if row.hasFocus { break }
+            XCUIRemote.shared.press(.down)
+        }
+        XCTAssertTrue(row.hasFocus)
+        XCUIRemote.shared.press(.right)
+        let toggle = app.descendants(matching: .any).matching(identifier: "spatial-audio-toggle").firstMatch
+        XCTAssertTrue(waitUntil { self.hasFocus(toggle) })
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(waitUntil { app.staticTexts["spatial-audio-saved"].label == "off" })
+        app.terminate()
+        app.launchArguments = ["--read-ahead-settings-fixture"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["spatial-audio-saved"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["spatial-audio-saved"].label, "off")
     }
 }

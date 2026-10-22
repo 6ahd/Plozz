@@ -135,6 +135,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         bypassAudio.tracks.isEmpty ? engine.activeAudioTrackIndex : bypassAudio.selectedID
     }
     public var bufferedPosition: TimeInterval { engine.clock.bufferedPosition }
+    public private(set) var liveStartupBuffer: LivePlaybackBuffer = .default
 
     public var liveSnapshot: LiveChannelEngineSnapshot {
         let phase: LiveChannelEnginePhase
@@ -163,7 +164,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             behindLiveSeconds: liveAttemptGate.activeGeneration != nil || engine.isLive
                 ? engine.clock.behindLiveSeconds
                 : nil,
-            route: Self.liveRoute(engine.videoRoute)
+            route: Self.liveRoute(engine.videoRoute),
+            isAtLiveEdge: engine.isLive && engine.isSessionReady ? engine.clock.isAtLiveEdge : nil
         )
     }
 
@@ -176,13 +178,24 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         let bufferAhead: TimeInterval? = engine.isSessionReady && buffered.isFinite && position.isFinite
             ? max(0, buffered - position) : nil
         let audioPipeline = engine.activeAudioDecoder
-        guard t != nil || bufferAhead != nil || audioPipeline != nil else { return nil }
+        let cache = engine.isSessionReady
+            ? Self.sessionCacheTelemetry(engine.diagnostics.sessionCacheStatus) : nil
+        guard t != nil || bufferAhead != nil || audioPipeline != nil || cache != nil else { return nil }
         return EngineLiveTelemetry(
             droppedFrameCount: t?.droppedFrameCount,
             observedFps: t?.observedFps,
             observedBitrate: t?.instantBitrateMbps.map { $0 * 1_000_000 },
             bufferedSecondsAhead: bufferAhead,
-            audioPipelineDescription: audioPipeline
+            audioPipelineDescription: audioPipeline,
+            sessionCache: cache
+        )
+    }
+
+    nonisolated static func sessionCacheTelemetry(_ status: SessionCacheStatus) -> EngineSessionCache? {
+        guard status.capability == .active, status.cleanupReason == nil else { return nil }
+        return EngineSessionCache(
+            residentBytes: Int64(status.currentResidentBytes),
+            effectiveBudgetBytes: Int64(status.effectiveBudgetBytes)
         )
     }
 
@@ -300,6 +313,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     private let networkFileResolver: (any MediaTransportNetworkFileResolving)?
     private let authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)?
     private let readAheadPreference: @MainActor () -> PlaybackReadAhead
+    private let liveBufferPreference: @MainActor () -> LivePlaybackBuffer
     private var liveOutputPolicy = LiveChannelOutputPolicy()
     private var outputPolicyReload: Task<Void, Never>?
     private var outputLoadGeneration = UUID()
@@ -329,7 +343,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     public init(
         networkFileResolver: (any MediaTransportNetworkFileResolving)? = nil,
         authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)? = nil,
-        readAheadPreference: @escaping @MainActor () -> PlaybackReadAhead = { .default }
+        readAheadPreference: @escaping @MainActor () -> PlaybackReadAhead = { .default },
+        liveBufferPreference: @escaping @MainActor () -> LivePlaybackBuffer = { .default }
     ) throws {
         self.engine = try AEEngine()
         // Plozz owns its audio session, and on an E-AC-3/Atmos bitstream-passthrough route the HDMI sink
@@ -340,6 +355,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         self.networkFileResolver = networkFileResolver
         self.authenticatedHTTPResolver = authenticatedHTTPResolver
         self.readAheadPreference = readAheadPreference
+        self.liveBufferPreference = liveBufferPreference
         #if canImport(UIKit)
         let surface = AetherPlayerView()
         engine.bind(view: surface)
@@ -603,7 +619,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
                 guard liveAttemptGate.accepts(liveGeneration), !Task.isCancelled else { return }
                 stage = .load
             }
-            var options = Self.liveLoadOptions(httpHeaders: httpHeaders, url: url, sourceFormat: sourceFormat)
+            var options = liveLoadOptions(httpHeaders: httpHeaders, url: url, sourceFormat: sourceFormat)
             Self.applyLiveOutputPolicy(outputPolicy, to: &options)
             try await engine.load(url: url, options: options)
             guard liveAttemptGate.accepts(liveGeneration) else { return }
@@ -750,6 +766,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         return Self.onDemandLoadOptions(
             audioChannels: request.localRemuxSource?.sourceMetadata.audio?.channels
                 ?? request.sourceMetadata?.audio?.channels ?? 0,
+            trueHDAtmosEnabled: request.trueHDAtmosEnabled,
             dolbyVisionFELEnabled: request.dolbyVisionFELEnabled,
             outputPolicy: outputPolicy,
             readAhead: isLocalFile || request.suppressOrdinaryWatchReporting
@@ -759,6 +776,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     nonisolated static func onDemandLoadOptions(
         audioChannels: Int,
+        trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled,
         dolbyVisionFELEnabled: Bool = PlaybackSettings.default.dolbyVisionFELEnabled,
         outputPolicy: LiveChannelOutputPolicy = .init(),
         readAhead: PlaybackReadAhead = .default
@@ -781,13 +799,37 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         case .tenMinutes: options.forwardBufferSegments = 150
         case .maximumAvailable: options.forwardBufferSegments = 2_700
         }
+        // Explicit durations may exceed the automatic 2 GiB cap. The engine still
+        // clamps this request to its available-space limit and shared retention ledger.
+        options.sessionCacheByteBudget = readAhead == .automatic ? nil : Int.max
+        #if os(tvOS)
+        if #available(tvOS 26.0, *), trueHDAtmosEnabled,
+           outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
+            // Intermediate spatial bed, not a detected speaker inventory.
+            // The engine checks source/route eligibility and retains channel fallback.
+            options.objectAudioRendering = .apac(.l714)
+        }
+        #endif
         applyLiveOutputPolicy(outputPolicy, to: &options)
         return options
     }
 
-    nonisolated static func liveLoadOptions(
+    func liveLoadOptions(
         httpHeaders: [String: String], url: URL? = nil,
         sourceFormat: PlozzigenLiveSourceProbe.Format? = nil
+    ) -> LoadOptions {
+        let buffer = liveBufferPreference()
+        liveStartupBuffer = buffer
+        return Self.liveLoadOptions(
+            httpHeaders: httpHeaders, url: url, sourceFormat: sourceFormat,
+            buffer: buffer
+        )
+    }
+
+    nonisolated static func liveLoadOptions(
+        httpHeaders: [String: String], url: URL? = nil,
+        sourceFormat: PlozzigenLiveSourceProbe.Format? = nil,
+        buffer: LivePlaybackBuffer = .default
     ) -> LoadOptions {
         let suffix = url?.pathExtension.lowercased() ?? ""
         let format = sourceFormat ?? (["ts", "m2ts", "mts"].contains(suffix)
@@ -802,6 +844,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             // Raw live sources have no existing HLS window to fill the initial
             // holdback; long GOPs can otherwise outlast AVPlayer's playlist timeout.
             liveJoinProfile: format == .transportStream ? .fastZap : .standard,
+            liveEdgeCushionSeconds: buffer.seconds,
             nativeRemoteHLS: format == .hls,
             nativeRemoteHLSIngestFallback: true
         )
@@ -863,6 +906,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func beginLiveAttempt() -> UInt64 {
+        liveStartupBuffer = .default
         liveSourceProbe?.cancel()
         liveSourceProbe = nil
         liveFailureCaptureTask?.cancel()
@@ -885,6 +929,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func endLiveAttempt() {
+        liveStartupBuffer = .default
         liveSourceProbe?.cancel()
         liveSourceProbe = nil
         liveFailureCaptureTask?.cancel()
@@ -1939,7 +1984,8 @@ public enum PlozzigenVideoEngineFactory {
         try? PlozzigenVideoEngine(
             networkFileResolver: networkFileResolver,
             authenticatedHTTPResolver: authenticatedHTTPResolver,
-            readAheadPreference: { PlaybackReadAheadStore().load() }
+            readAheadPreference: { PlaybackReadAheadStore().load() },
+            liveBufferPreference: { LivePlaybackBufferStore().load() }
         )
     }
 }

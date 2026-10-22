@@ -638,6 +638,9 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(id: "read-ahead", title: "Video buffer") {
                 PlaybackReadAheadControl()
+            },
+            SettingsSplitRow(id: "live-buffer", title: "Live TV buffer") {
+                LivePlaybackBufferControl()
             }
         ]
     }
@@ -758,7 +761,7 @@ struct PlaybackDetailView: View {
     }
 
     private var audioRows: [SettingsSplitRow] {
-        [
+        var rows = [
             SettingsSplitRow(
                 id: "audio-defaults",
                 title: "Audio defaults",
@@ -792,6 +795,19 @@ struct PlaybackDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         ]
+        #if os(tvOS)
+        if #available(tvOS 26.0, *) {
+            rows.append(SettingsSplitRow(
+                id: "truehd-atmos",
+                title: "Spatial audio",
+                description: "Adds overhead sound to supported tracks on compatible equipment using lossy conversion. Turn off if playback stutters or seeking is slow. Applies to new playback sessions."
+            ) {
+                Toggle("Spatial audio", isOn: $playback.settings.trueHDAtmosEnabled)
+                    .accessibilityIdentifier("spatial-audio-toggle")
+            })
+        }
+        #endif
+        return rows
     }
 
     private var skipIntroRows: [SettingsSplitRow] {

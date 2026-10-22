@@ -196,15 +196,26 @@ headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
 Plozz pins the playback-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/86af70ddfe7bcde27e06356dc7aa81e8997d43c4)
-at commit `86af70ddfe7bcde27e06356dc7aa81e8997d43c4`, integrating upstream
-**7.44.0** (`e5ea8dac56a6962d7f6793fc80b7c84caa61b7af`).
-Playback diagnostics show `AetherEngine v7.44.0`, read from the linked engine
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/32f5c5b24c6c1e63c8f036020af8a49dc9d76570)
+at commit `32f5c5b24c6c1e63c8f036020af8a49dc9d76570`, integrating upstream
+**7.45.0** and subsequent fixes through `98cd7cc29809dbbd71bb8e44fb7cd5c8466713f9`.
+Playback diagnostics show `AetherEngine v7.45.0`, read from the linked engine
 rather than a duplicated version constant. The exact fork commit remains in
 attributions because the upstream version does not identify Plozz's patches.
-The update overlaps eligible VOD segment preparation with HDR display switching.
-Upstream moved DTS:X height decoding to FFmpegBuild 3.9.0, but Plozz does not
-enable that optional conversion path.
+The update retains overlapped VOD/HDR preparation and adds the upstream
+subtitle, HLG, chapter-timing, bounded-loading and cache fixes. Bitmap subtitle
+OCR is armed only for a native rendition used by PiP, AirPlay or an external
+display, avoiding its extra fullscreen read-ahead. Native subtitle readiness
+can still wait for OCR. Live startup waits for the requested first buffered
+window before attaching AVPlayer, rather than spending its playlist timeout
+filling a large cushion.
+
+Plozz uses the new session-cache byte budget with its existing Video buffer
+presets and exposes a separate Live TV buffer, both defaulting to Automatic.
+See [buffering contracts](../Sources/FeaturePlayback/README.md#on-demand-read-ahead)
+for route limits, temporary storage, safe-edge semantics and startup tradeoffs.
+Upstream moved DTS:X height decoding to FFmpegBuild 3.9.0; Plozz enables its
+production optional conversion component with runtime eligibility gates.
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
 other subtitle codecs retain their established fallback. This upstream snapshot
@@ -229,11 +240,10 @@ Upstream 7.44.0 replaced LibDTSX with FFmpeg's patched `dca` decoder.
 `DTSX.framework` and the retired LibDTSX notices are no longer shipped;
 existing FFmpeg notices remain.
 
-Plozz enables only `DualLayerDolbyVision` and `DolbyVisionStillReshaping` on its
-Swift package dependency. `TrueHDObjectAudio`, `DTSXObjectAudio` and the
-measurement-only `TrueHDReferenceRender` are excluded. The optional height
-renderers are not compiled and LibTrueHD is not linked. Ordinary FFmpeg audio
-decoding is unchanged. Both apps consume this same local package, so no
+Plozz enables `TrueHDObjectAudio`, `DTSXObjectAudio`, `DualLayerDolbyVision` and
+`DolbyVisionStillReshaping` on its Swift package dependency. The measurement-only
+`TrueHDReferenceRender` remains excluded. LibTrueHD is linked; ordinary FFmpeg
+audio decoding is unchanged. Both apps consume this same local package, so no
 generated-project trait patch is needed. Engine integration tests inspect the
 linked engine's `OptionalComponent.isBuiltIn` flags, not just its load options.
 Upstream's patent-licensing warning still applies; enabling a trait does not
@@ -251,35 +261,45 @@ spatial speaker positions and a tvOS spatial-output activator for receivers that
 It also includes live-replay recovery, software-video recovery after a screen lock,
 and the intervening 7.35.x playback fixes; these are upstream changes, not new
 Plozz-specific implementations. The current pin uses FFmpegBuild **3.9.0**
-and LibDovi **2.1.x**; its optional LibTrueHD **3.0.0** dependency is disabled
-in Plozz, and LibDTSX is removed. It also includes
+and LibDovi **2.1.x**, with LibTrueHD **3.0.0** enabled in Plozz and LibDTSX
+removed. It also includes
 single-connection spatial-audio probe safeguards and system-composited Dolby Vision
 held pictures. The fork retains the persistent HTTP body-reader isolation
 correction from its previous integration.
 
 ### Spatial audio
 
-**Height-channel conversion is disabled on every platform.** On-demand load
-options explicitly use `objectAudioRendering = .off`, and the engine's two
-optional conversion traits are excluded at build time. The former
-**Spatial audio** conversion switch and request property have been removed.
-Decoding an older or transferred profile ignores its `trueHDAtmosEnabled` key;
-subsequent settings saves omit it without resetting other preferences.
+**Spatial audio defaults on for supported on-demand playback on tvOS 26+.**
+The profile-scoped `trueHDAtmosEnabled` key preserves existing Off choices and
+profile transfers; missing or malformed values use the central default. A build
+that previously omitted the preference cannot recover an Off value already
+discarded by an intervening settings save.
 
-TrueHD and DTS/DTS-HD tracks retain the ordinary compatible channel presentation,
-without original height positioning: on-demand playback uses FLAC for source
-layouts above six channels, otherwise the E-AC-3 compatibility bridge.
-Dolby Digital Plus (E-AC-3/JOC) stream-copy is unaffected. Live playback, muted
-previews and software-video playback retain their existing audio paths. Explicit
-track selections and language preferences remain authoritative; Plozz no longer
-requests the engine's object-audio track preference. Dolby Vision features and
-the separate FEL setting are unchanged. Progressive segment delivery remains off.
+The adapter requests `objectAudioRendering = .apac(.l714)` only for an audible,
+non-shared on-demand session with the preference enabled. The 7.1.4 layout is an
+intermediate spatial bed, not the detected speaker inventory. The engine checks
+48 kHz TrueHD Atmos/DTS:X source eligibility and the native route, with ordinary
+channel fallback. APAC is lossy conversion, not lossless bitstream passthrough;
+actual overhead output requires compatible equipment.
 
-Both apps retain the unmodified LibTrueHD MIT/Apache-2.0 license and NOTICE
-resources from earlier integrations, with a historical in-app credit; these do
-not indicate that the library is linked or its conversion feature is enabled.
-Disabling these optional features does not itself establish licensing compliance
-or guarantee App Store approval.
+The pinned production TrueHD implementation uses `BedSplitter`: decoded objects
+estimate how channel-presentation energy is divided between floor and overhead
+speakers. Object signals do not directly reach output, matrix interpolation is
+disabled, and size/snap/zone/screen/elevation metadata controls are excluded.
+The fuller reference renderer remains measurement-only and is not enabled.
+This implementation description is not patent clearance: upstream explicitly
+leaves third-party patent licensing to integrators. Other apps enabling the
+feature does not establish licensing compliance or guarantee App Store approval.
+
+Off and unsupported paths retain the ordinary compatible channel presentation:
+FLAC above six channels, otherwise the E-AC-3 compatibility bridge. Live streams,
+shared players, muted previews and iOS/iPadOS do not request conversion. FEL and
+other software-video routes retain channel audio. Dolby Digital Plus (E-AC-3/JOC)
+stream-copy is unaffected. Explicit track selections and language preferences
+remain authoritative. Progressive segment delivery remains off.
+
+Both apps bundle the unmodified LibTrueHD MIT/Apache-2.0 license and NOTICE
+resources and identify the linked decoder in the in-app credits.
 
 The retained 7.23.0 audio-output
 flush epoch prevents a buffer decoded before a software seek from entering
@@ -383,8 +403,8 @@ It adds GPU/memory work and uses the sample-buffer playback path, not AVPlayer.
 Audio still plays as decoded channel-based PCM, including TrueHD and DTS tracks.
 The FEL route also reduces an E-AC-3/JOC soundtrack to its channel presentation,
 without the spatial information preserved by native playback. That remaining
-tradeoff is why the helper still says FEL turns off overhead sound, even though
-optional height-channel conversion is now disabled app-wide. Non-FEL titles keep
+tradeoff is why the helper still says FEL turns off overhead sound, even when
+Spatial audio is on. Non-FEL titles keep
 their ordinary audio paths, including native E-AC-3/JOC spatial playback.
 
 Upstream documents measured Dolby Vision metadata consumption on tvOS, but not
@@ -546,7 +566,7 @@ Plozzigen accepts content when ALL of these are true:
 - **Container:** MKV / Matroska
 - **Video codec:** HEVC, H.264, VP9, or AV1
 - **Audio codec:** Any (fMP4-legal codecs are stream-copied; incompatible audio
-  uses the existing FLAC/E-AC-3 channel bridge, without height conversion)
+  uses spatial conversion when eligible, otherwise the FLAC/E-AC-3 channel bridge)
 - **Byte-range readable:** HTTP range requests or local file access
 - **NOT Dolby Vision Profile 7** (dual-layer BL+EL+RPU — unsupported everywhere)
 
@@ -580,7 +600,7 @@ Native handles content the server has already prepared:
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| Spatial audio conversion with heights | ❌ (optional engine features excluded) | ❌ |
+| Spatial audio conversion with heights | ✅ (supported native-path tracks on tvOS 26+, lossy; not FEL) | ❌ |
 | DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 

@@ -180,16 +180,18 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 if offset >= bottom { break }
             }
             for label in [
-                "Spatial audio", "supported tracks", "compatible equipment", "Turn off if playback stutters",
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
                 "Skip intros, credits", "Set each marker separately", "Use community markers",
-                "Video buffer", "1 minute", "5 minutes", "10 minutes", "Maximum available"
+                "Video buffer", "1 minute", "5 minutes", "10 minutes", "Maximum available",
+                "Live TV buffer", "10 seconds", "20 seconds", "30 seconds", "45 seconds",
+                "adds live delay", "Spatial audio", "lossy conversion"
             ] {
                 XCTAssertTrue(visible.contains(label), "Missing inline control \(label): \(visible)")
             }
             XCTAssertFalse(visible.contains("TrueHD Atmos"), visible)
             XCTAssertFalse(visible.contains("DTS:X"), visible)
+            XCTAssertTrue(playback.settings.trueHDAtmosEnabled)
             if separate {
                 for label in ["Intros", "Credits", "Recaps", "Previews", "Commercials"] {
                     XCTAssertTrue(visible.contains(label), "Missing inline per-kind control \(label)")

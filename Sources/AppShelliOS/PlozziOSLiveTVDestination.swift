@@ -120,7 +120,10 @@ struct PlozziOSLiveTVDestination: View {
                 logoURL: playback.channel.logoURL,
                 makeEngine: {
                     runtime.makeEngine(
-                        engine: try PlozzigenVideoEngine(authenticatedHTTPResolver: playback.authenticatedHTTPResolver),
+                        engine: try PlozzigenVideoEngine(
+                            authenticatedHTTPResolver: playback.authenticatedHTTPResolver,
+                            liveBufferPreference: { LivePlaybackBufferStore().load() }
+                        ),
                         onCompleted: { [profiles, profileID, preferencesNamespace,
                                         completeLibraryChannelPlayback, weak runtime] item, token in
                             try Task.checkCancellation()
