@@ -1231,7 +1231,8 @@ private struct FocusHeroColumn: View {
                 maxWidth: FocusHeroLayout.logoBox.width,
                 maxHeight: FocusHeroLayout.logoBox.height,
                 constrainsToBounds: true,
-                presentationPolicy: FocusHeroLayout.logoPresentationPolicy
+                presentationPolicy: FocusHeroLayout.logoPresentationPolicy,
+                haloStyle: .showcase
             ) {
                 title(for: item, hideText: hideText)
                     .font(.system(size: 64, weight: .bold))

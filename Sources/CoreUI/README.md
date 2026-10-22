@@ -797,6 +797,14 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Text appears only after resolution finds no usable logo (or there are no logo
   sources); cached logos still paint immediately. Completion is request-scoped,
   so a cancelled or missing logo for one title cannot reveal text for the next.
+- **Showcase logo contrast** — tvOS Showcase can lift dark coloured lettering
+  without changing white highlights or transparency. The shared background
+  preparation pass measures dark ink separately and caches an optional corrected
+  bitmap alongside the original in the existing bounded logo caches. View updates
+  only select a bitmap against the leading page/ambient colour; there is no
+  per-frame pixel analysis, new artwork request, filter, or compositing layer.
+  Already-readable, bright, monochrome, strongly highlighted, and boxed logos
+  keep their existing treatment. Light mode, other heroes, and mobile are unchanged.
 - **Series artwork identity** — episode-backed cards normalize through
   `MetadataQuery.seriesScoped` before creating a series artwork subject. Child
   IDs and Plex episode GUIDs must not become show IDs. Explicit series IDs,

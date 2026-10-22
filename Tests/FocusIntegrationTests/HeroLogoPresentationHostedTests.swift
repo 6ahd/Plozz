@@ -9,6 +9,68 @@ import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testSelectiveLiftPaintsOnlyInDarkShowcase() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 140), format: format).image { context in
+            ("NIGHT" as NSString).draw(at: CGPoint(x: 10, y: 25), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 76),
+                .foregroundColor: UIColor(red: 0.04, green: 0.05, blue: 0.18, alpha: 1)
+            ])
+            ("SIGNAL" as NSString).draw(at: CGPoint(x: 275, y: 25), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 76),
+                .foregroundColor: UIColor(red: 0.45, green: 0.03, blue: 0.04, alpha: 1)
+            ])
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 22, y: 55, width: 6, height: 6))
+        }
+        let url = try cacheLogo(image)
+        defer { removeSeededLogo(url) }
+        for (name, style, scheme) in [
+            ("original", HeroLogoHaloStyle.standard, ColorScheme.dark),
+            ("showcase", .showcase, .dark),
+            ("light", .showcase, .light)
+        ] {
+            var resolved = false
+            let palette: ThemePalette = scheme == .dark ? .dark : .light
+            fixture.window.rootViewController = UIHostingController(rootView:
+                palette.backgroundBase.overlay {
+                    HeroLogoArtwork(
+                        primaryURL: url, maxWidth: 600, maxHeight: 140,
+                        constrainsToBounds: true, haloStyle: style,
+                        onResolve: { _ in resolved = true }
+                    ) { Color.clear }
+                }
+                .environment(\.colorScheme, scheme)
+                .environment(\.themePalette, palette)
+                .environment(\.gradientBackgroundsEnabled, false)
+                .ignoresSafeArea()
+            )
+            try await waitUntil { resolved }
+            try await Task.sleep(for: .milliseconds(300))
+            let blue = try colorBounds(in: fixture.window, channel: 2, minimumChannel: 200, maximumOtherChannel: 150)
+            let red = try colorBounds(in: fixture.window, channel: 0, minimumChannel: 200, maximumOtherChannel: 150)
+            if name == "showcase" {
+                XCTAssertNotNil(blue, "Dark blue lettering must actually paint brighter, not only exist in the cache.")
+                XCTAssertNotNil(red, "Dark red lettering needs independent separation too.")
+            } else {
+                XCTAssertNil(blue, "The new correction must not alter other heroes or Light mode.")
+                XCTAssertNil(red)
+            }
+            let screenshot = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+            }
+            let attachment = XCTAttachment(image: screenshot)
+            attachment.name = "showcase-logo-contrast-\(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
     func testColdShowcaseLogoAppearsWithoutLeavingAndReturningToTheTitle() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -195,7 +257,6 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
     }
 
     private func seedLogo(size: CGSize, color: UIColor = .red) throws -> URL {
-        let url = try XCTUnwrap(URL(string: "https://logo-fixture.example.test/\(UUID()).png"))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
@@ -206,6 +267,11 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
             color.setFill()
             context.fill(CGRect(origin: CGPoint(x: 10, y: 10), size: size))
         }
+        return try cacheLogo(image)
+    }
+
+    private func cacheLogo(_ image: UIImage) throws -> URL {
+        let url = try XCTUnwrap(URL(string: "https://logo-fixture.example.test/\(UUID()).png"))
         let response = try XCTUnwrap(HTTPURLResponse(
             url: url, statusCode: 200, httpVersion: nil,
             headerFields: ["Content-Type": "image/png", "Cache-Control": "max-age=3600"]
@@ -226,7 +292,9 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         try colorBounds(in: window, channel: 0)
     }
 
-    private func colorBounds(in window: UIWindow, channel: Int) throws -> CGRect? {
+    private func colorBounds(
+        in window: UIWindow, channel: Int, minimumChannel: UInt8 = 150, maximumOtherChannel: UInt8 = 80
+    ) throws -> CGRect? {
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -248,9 +316,9 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         for y in 0..<height {
             for x in 0..<width {
                 let offset = (y * width + x) * 4
-                if pixels[offset + channel] > 150
-                    && pixels[offset + (channel + 1) % 3] < 80
-                    && pixels[offset + (channel + 2) % 3] < 80 {
+                if pixels[offset + channel] > minimumChannel
+                    && pixels[offset + (channel + 1) % 3] < maximumOtherChannel
+                    && pixels[offset + (channel + 2) % 3] < maximumOtherChannel {
                     bounds = bounds.union(CGRect(x: x, y: y, width: 1, height: 1))
                 }
             }
