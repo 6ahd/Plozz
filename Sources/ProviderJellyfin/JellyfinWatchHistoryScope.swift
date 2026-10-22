@@ -2,7 +2,7 @@ import CoreModels
 import CoreNetworking
 
 struct JellyfinWatchHistoryInfo: Decodable {
-    struct AIOStreams: Decodable {
+    struct HistoryExtension: Decodable {
         struct Features: Decodable {
             let history: Int?
         }
@@ -11,7 +11,12 @@ struct JellyfinWatchHistoryInfo: Decodable {
     }
 
     let Id: String?
-    let aiostreams: AIOStreams?
+    let historyExtension: HistoryExtension?
+
+    private enum CodingKeys: String, CodingKey {
+        case Id
+        case historyExtension = "aiostreams"
+    }
 }
 
 /// Capability lifetime is one provider/account session, never a host-name guess
@@ -35,11 +40,11 @@ actor JellyfinWatchHistoryScope {
             return false
         }
         try Task.checkCancellation()
-        let result = (info.aiostreams?.features?.history ?? 0) > 0
+        let result = (info.historyExtension?.features?.history ?? 0) > 0
         if result {
             guard !serverID.isEmpty, info.Id == serverID else { throw AppError.conflict }
             PlozzLog.networking.info(
-                "AIOStreams account-wide watch history enabled; catalog visibility does not filter history"
+                "MediaBrowser account-wide watch history enabled; catalog visibility does not filter history"
             )
         }
         accountWide = result

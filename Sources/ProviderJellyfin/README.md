@@ -91,6 +91,8 @@ minimum-resume thresholds.
 Some compatible servers explicitly declare account-wide watch state through the
 `/System/Info/Public` extension `aiostreams.features.history`. This nonstandard
 capability identifies history that cannot be attributed to virtual catalogs.
+The decoder calls it `historyExtension` internally and preserves the exact server
+field through `CodingKeys`; this is not a standard Jellyfin/Emby capability.
 For that verified server identity, combined Continue Watching, resume-only Home,
 and account-wide native Resume/Next Up rows stay unfiltered even when some or all
 catalogs are disabled. Returned history is not stamped with an invented library.
@@ -100,6 +102,8 @@ Ordinary Jellyfin/Emby retain library filtering. Empty feeds, display names,
 URLs, and advertised Jellyfin version numbers never enable this exception.
 Capability results are kept only for the current provider session; a missing
 endpoint retains ordinary scoping, while other failures and cancellation propagate.
+`JellyfinWatchHistoryScopeTests` covers the wire-key mapping, identity checks,
+library filtering, and provider-session capability lifetime.
 
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not

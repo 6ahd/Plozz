@@ -3,7 +3,7 @@ import CoreNetworking
 import XCTest
 @testable import ProviderJellyfin
 
-final class AIOStreamsWatchHistoryTests: XCTestCase {
+final class JellyfinWatchHistoryScopeTests: XCTestCase {
     private let bridgeInfo = #"{"Id":"server","aiostreams":{"features":{"history":1}}}"#
     private let resume = """
     {"Items":[{"Id":"movie","Type":"Movie",
@@ -42,6 +42,20 @@ final class AIOStreamsWatchHistoryTests: XCTestCase {
         zip(http.sentPaths, http.sentQueryItems).compactMap { path, query in
             path.hasSuffix("/Items/Resume") || path.hasSuffix("/Shows/NextUp") ? query : nil
         }
+    }
+
+    func testHistoryExtensionDecodesOnlyTheServerWireKey() throws {
+        let info = try JSONDecoder.plozz.decode(
+            JellyfinWatchHistoryInfo.self, from: Data(bridgeInfo.utf8)
+        )
+        XCTAssertEqual(info.Id, "server")
+        XCTAssertEqual(info.historyExtension?.features?.history, 1)
+
+        let unrelated = #"{"Id":"server","historyExtension":{"features":{"history":1}}}"#
+        let missing = try JSONDecoder.plozz.decode(
+            JellyfinWatchHistoryInfo.self, from: Data(unrelated.utf8)
+        )
+        XCTAssertNil(missing.historyExtension)
     }
 
     func testCombinedHistoryIgnoresCatalogRestrictionsWithoutInventingLibraryOwnership() async throws {
@@ -111,7 +125,7 @@ final class AIOStreamsWatchHistoryTests: XCTestCase {
         XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/Items/Latest") })
     }
 
-    func testNormalServersRetainLibraryRestrictionsEvenWithAIOStreamsBranding() async throws {
+    func testDisplayNameAndVersionDoNotEnableAccountWideHistory() async throws {
         for kind: ProviderKind in [.jellyfin, .emby] {
             let http = http(info: #"{"Id":"server","ServerName":"AIOStreams","Version":"12.0.0"}"#)
             let provider = provider(http, kind: kind)
