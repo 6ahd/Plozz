@@ -15,9 +15,13 @@ The previously stored portrait-only preference is retained.
 Continue Watching portrait cards reuse `PosterCardView` at ordinary 2:3 poster
 dimensions. Detailed fits the complete poster above a bottom reflection 10% of
 the fitted picture's height, filling the narrow left/right gaps with mirrored
-poster edges rather than cropping or stretching the artwork. Only the bottom
-band gradually blurs as it darkens; the poster stays sharp. Native TV caches the
-finished reflection, including the reserved band and blur treatment in the cache
+poster edges rather than cropping or stretching the artwork. The side reflections
+gradually soften outward; the bottom band retains its progressive blur as it
+darkens. The complete original poster stays sharp. Blur input is bounded to each
+reflection band plus its filter margin instead of filtering full-size posters.
+Native TV fits only reflection copies to display resolution before rendering,
+leaving the sharp central poster's original source untouched. It caches the
+finished artwork, including the reserved band and blur treatment in the cache
 identity; Reduce Transparency retains the unblurred fallback. Landscape reflection
 is unchanged.
 Progress only uses the ordinary 2:3 poster and existing

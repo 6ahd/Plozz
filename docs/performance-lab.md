@@ -116,6 +116,15 @@ badges, and changing playback progress. Each sample uses cold geometry. The
 distinct-bitmap counter exposes redundant synchronous rendering separately from
 wall/CPU time; `native-poster-composition` covers source artwork, not this path.
 
+`portrait-reflection-cold` prepares twelve Detailed portrait reflections through
+the native coordinator using the production 960-pixel poster cap and fresh
+geometry in every sample. It measures completed
+bitmap preparation and the longest synchronous preparation, not frame pacing.
+`portrait-reflection-warm` recreates 288 coordinators and requires all requests to
+reuse the same twelve finished bitmaps. These isolate first-seen artwork cost
+from reuse; neither establishes physical Apple TV smoothness or cache behavior
+under unrelated memory pressure.
+
 `poster-preview-admission` exercises the shared preview gate used by media rows
 and mobile Home. It visits overlapping 16-item look-ahead windows three times per
 position, traversing 181 posters forward and backward for each of Jellyfin,

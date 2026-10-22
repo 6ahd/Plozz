@@ -250,8 +250,18 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         let referencePixels = try pixels(XCTUnwrap(reference.uiImage))
         XCTAssertEqual(rendered.count, referencePixels.count)
         let differences = zip(rendered, referencePixels).map { abs(Int($0) - Int($1)) }
-        XCTAssertLessThanOrEqual(try XCTUnwrap(differences.prefix(220 * 296 * 4).max()), 1,
+        let centerDifferences = (0..<296).flatMap { row in
+            differences[(row * 220 + 10) * 4..<(row * 220 + 210) * 4]
+        }
+        XCTAssertLessThanOrEqual(try XCTUnwrap(centerDifferences.max()), 1,
                                 "The sharp poster must remain identical across renderers.")
+        var sideDifferences: [Int] = []
+        for row in 0..<296 {
+            let start = row * 220 * 4
+            sideDifferences.append(contentsOf: differences[start..<(start + 40)])
+            sideDifferences.append(contentsOf: differences[(start + 840)..<(start + 880)])
+        }
+        XCTAssertLessThanOrEqual(Double(sideDifferences.reduce(0, +)) / Double(sideDifferences.count), 0.8)
         let reflectionDifferences = differences.dropFirst(220 * 300 * 4)
         let reflectionMean = Double(reflectionDifferences.reduce(0, +)) / Double(reflectionDifferences.count)
         if reflectionMean > 0.8 {
@@ -298,6 +308,34 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         }
     }
 
+    func testLargePosterKeepsItsOriginalCenterWhenReflectionsUseDisplayResolution() throws {
+        let source = fixture(size: CGSize(width: 800, height: 1200))
+        let size = CGSize(width: 220, height: 330)
+        let actual = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+            progressivelyBlursReflection: true
+        ))
+        let reference = ImageRenderer(content:
+            ExtendedArtworkFill(
+                image: Image(uiImage: source), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+                progressivelyBlursReflection: true
+            )
+            .frame(width: size.width, height: size.height)
+        )
+        reference.scale = 1
+        reference.isOpaque = true
+        let expected = try pixels(XCTUnwrap(reference.uiImage))
+        let result = try pixels(actual)
+        XCTAssertEqual(actual.size, size)
+        for row in 0..<296 {
+            let center = (row * 220 + 10) * 4..<(row * 220 + 210) * 4
+            let difference = zip(expected[center], result[center]).map { abs(Int($0) - Int($1)) }.max()
+            XCTAssertLessThanOrEqual(try XCTUnwrap(difference), 1, "Only reflections may use the fitted source.")
+        }
+    }
+
     func testPortraitSideJoinsStaySolidAtFractionalWidthsAndFocusScales() throws {
         for width: CGFloat in [132, 224, 280] {
             for focusScale: CGFloat in [1, 1.08] {
@@ -305,7 +343,8 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
                 let renderer = ImageRenderer(content:
                     ExtendedArtworkFill(
                         picture: Color.white, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
-                        minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare
+                        minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+                        progressivelyBlursReflection: true
                     )
                     .frame(width: size.width, height: size.height)
                     .scaleEffect(focusScale)
@@ -337,7 +376,10 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
             minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
             progressivelyBlursReflection: true
         )))
-        XCTAssertEqual(Array(soft.prefix(220 * 296 * 4)), Array(sharp.prefix(220 * 296 * 4)))
+        for row in 0..<296 {
+            let center = (row * 220 + 10) * 4..<(row * 220 + 210) * 4
+            XCTAssertEqual(Array(soft[center]), Array(sharp[center]))
+        }
         func edge(_ data: [UInt8], row: Int) -> Double {
             Double((50..<110).map { x in
                 abs(Int(data[(row * 220 + x + 1) * 4]) - Int(data[(row * 220 + x) * 4]))
@@ -347,6 +389,47 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         XCTAssertGreaterThan(ratios[0], 0.8, "The join should start clear: \(ratios)")
         XCTAssertLessThan(ratios[1], ratios[0] * 0.8, "The middle should be softer: \(ratios)")
         XCTAssertLessThan(ratios[2], ratios[1] * 0.6, "The bottom should be softest: \(ratios)")
+    }
+
+    func testPortraitSideBlurIncreasesOutwardWithoutTouchingThePoster() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 300), format: format).image { context in
+            for row in 0..<300 {
+                (row % 8 < 4 ? UIColor.white : .black).setFill()
+                context.fill(CGRect(x: 0, y: row, width: 200, height: 1))
+            }
+        }
+        let size = CGSize(width: 220, height: 330)
+        let sharpImage = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 2, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare
+        ))
+        let blurredImage = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 2, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+            progressivelyBlursReflection: true
+        ))
+        let sharp = try pixels(sharpImage), soft = try pixels(blurredImage)
+        for row in 0..<592 {
+            let center = (row * 440 + 20) * 4..<(row * 440 + 420) * 4
+            XCTAssertEqual(Array(soft[center]), Array(sharp[center]), "The original poster must remain sharp.")
+        }
+        func detail(_ data: [UInt8], column: Int) -> Double {
+            let values = (160..<176).map { Double(data[($0 * 440 + column) * 4]) }
+            return (values.max() ?? 0) - (values.min() ?? 0)
+        }
+        for columns in [[19, 10, 0], [420, 429, 439]] {
+            let contrast = columns.map { detail(soft, column: $0) / max(1, detail(sharp, column: $0)) }
+            XCTAssertGreaterThan(contrast[0], 0.95, "The side join starts sharp: \(contrast)")
+            XCTAssertLessThan(contrast[1], contrast[0] * 0.9, "The middle gradually softens: \(contrast)")
+            XCTAssertLessThan(contrast[2], contrast[1] * 0.6, "Only the outer edge reaches medium blur: \(contrast)")
+        }
+        let attachment = XCTAttachment(image: blurredImage)
+        attachment.name = "Progressive horizontal reflection"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testBitmapCacheSeparatesArtworkAspectAndCrop() throws {

@@ -80,7 +80,7 @@ public struct ExtendedArtworkGeometry: Equatable, Sendable {
 /// Portrait cards can progressively blur only the mirrored band, leaving the
 /// complete original picture sharp. Landscape retains its unblurred reflection.
 /// Reserving bottom space within a fixed portrait slot mirrors its left/right
-/// edges into the narrow side gaps using the same decoded picture.
+/// edges into narrow side gaps, gradually softening only those gaps outward.
 ///
 /// Takes the picture as a ready-made view rather than loading one, so the card
 /// and its reflections are layers over ONE decode (see ``FallbackAsyncImage``,
@@ -93,6 +93,7 @@ public struct ExtendedArtworkFill<Picture: View>: View {
     private let sideCrop: CGFloat
     private let minimumReflectionShare: CGFloat
     private let progressivelyBlursReflection: Bool
+    private var reflectionPicture: Picture?
 
     /// - Parameters:
     ///   - picture: the image to lay in, sized by this view. Callers with a
@@ -114,6 +115,12 @@ public struct ExtendedArtworkFill<Picture: View>: View {
         self.progressivelyBlursReflection = progressivelyBlursReflection
     }
 
+    fileprivate func reflectionSource(_ picture: Picture) -> Self {
+        var copy = self
+        copy.reflectionPicture = picture
+        return copy
+    }
+
     public var body: some View {
         GeometryReader { geo in
             let geometry = ExtendedArtworkGeometry(
@@ -122,7 +129,7 @@ public struct ExtendedArtworkFill<Picture: View>: View {
                 sideCrop: sideCrop,
                 minimumReflectionShare: minimumReflectionShare
             )
-            // ONE clip, on the outside, and none within.
+            // Sharp layers share ONE outer clip.
             //
             // Every `.clipped()` is a rasterisation boundary, and a boundary is
             // resampled independently when an ancestor scales the card on focus.
@@ -131,11 +138,19 @@ public struct ExtendedArtworkFill<Picture: View>: View {
             // and looked perfect, while any scale resampled both and let a
             // hairline show between them. Overlapping the layers alone did not
             // fix it, because the edges were still there to be resampled; they
-            // have to not exist. Nothing here needs its own clip: the picture may
+            // have to not exist. The sharp picture may
             // overrun into the band because the opaque reflection covers it, and
             // the reflection may overrun past the card because this clip cuts it.
             ZStack(alignment: .top) {
                 sizedPicture(geometry)
+                if progressivelyBlursReflection, geometry.sideReflectionWidth > 0 {
+                    HStack(spacing: 0) {
+                        sideReflectionBlur(geometry, leading: true)
+                        Spacer(minLength: 0)
+                        sideReflectionBlur(geometry, leading: false)
+                    }
+                    .frame(width: geo.size.width, height: geometry.pictureHeight)
+                }
                 if geometry.reflectionHeight > 0 {
                     reflection(geometry, width: geo.size.width)
                         .offset(y: geometry.pictureHeight - ExtendedArtworkWash.seamOverlap)
@@ -146,15 +161,41 @@ public struct ExtendedArtworkFill<Picture: View>: View {
         }
     }
 
+    private func sideReflectionBlur(_ geometry: ExtendedArtworkGeometry, leading: Bool) -> some View {
+        let radius = geometry.sideReflectionWidth * 0.35
+        let halo = ceil(radius * 3)
+        return Color.clear
+            .frame(width: geometry.sideReflectionWidth, height: geometry.pictureHeight)
+            .overlay(alignment: leading ? .trailing : .leading) {
+                (reflectionPicture ?? picture)
+                    .frame(width: geometry.renderedWidth, height: geometry.pictureHeight)
+                    .scaleEffect(x: -1, y: 1)
+                    .offset(x: leading ? ExtendedArtworkWash.sideSeamOverlap : -ExtendedArtworkWash.sideSeamOverlap)
+            }
+            .padding(halo)
+            .clipped()
+            .blur(radius: radius)
+            .padding(-halo)
+            .mask {
+                LinearGradient(
+                    stops: ArtworkGradientRamp.stops(peak: 1, from: 0, to: 1),
+                    startPoint: leading ? .trailing : .leading,
+                    endPoint: leading ? .leading : .trailing
+                )
+            }
+    }
+
     /// Preserve the picture's shape, mirroring its edges only when it is narrower than the slot.
-    private func sizedPicture(_ geometry: ExtendedArtworkGeometry) -> some View {
-        let sized = picture
+    private func sizedPicture(_ geometry: ExtendedArtworkGeometry, reflected: Bool = false) -> some View {
+        let sized = (reflected ? reflectionPicture ?? picture : picture)
+            .frame(width: geometry.renderedWidth, height: geometry.pictureHeight)
+        let mirror = (reflectionPicture ?? picture)
             .frame(width: geometry.renderedWidth, height: geometry.pictureHeight)
         return ZStack {
             if geometry.sideReflectionWidth > 0 {
                 let offset = max(0, geometry.renderedWidth - ExtendedArtworkWash.sideSeamOverlap)
-                sized.scaleEffect(x: -1, y: 1).offset(x: -offset)
-                sized.scaleEffect(x: -1, y: 1).offset(x: offset)
+                mirror.scaleEffect(x: -1, y: 1).offset(x: -offset)
+                mirror.scaleEffect(x: -1, y: 1).offset(x: offset)
             }
             sized
         }
@@ -176,7 +217,7 @@ public struct ExtendedArtworkFill<Picture: View>: View {
         Color.clear
             .frame(width: width, height: geometry.reflectionHeight + ExtendedArtworkWash.seamOverlap)
             .overlay(alignment: .top) {
-                sizedPicture(geometry)
+                sizedPicture(geometry, reflected: true)
                     .scaleEffect(x: 1, y: -1)
             }
             .overlay {
@@ -199,10 +240,16 @@ public struct ExtendedArtworkFill<Picture: View>: View {
     ) -> some View {
         // Crossfade increasing blur levels only inside the reflection. Both masks
         // start transparent, preserving the sharp poster and its seamless join.
-        Color.clear
+        let halo = ceil(radius * 3)
+        return Color.clear
             .overlay(alignment: .top) {
-                sizedPicture(geometry).scaleEffect(x: 1, y: -1).blur(radius: radius)
+                sizedPicture(geometry, reflected: true).scaleEffect(x: 1, y: -1)
             }
+            // Bound filtering to the visible band plus its kernel, not three full posters.
+            .padding(halo)
+            .clipped()
+            .blur(radius: radius)
+            .padding(-halo)
             .mask {
                 LinearGradient(
                     stops: ArtworkGradientRamp.stops(peak: 1, from: start, to: end),
@@ -297,6 +344,7 @@ enum ExtendedArtworkBitmap {
 
     private struct Content: View {
         let image: UIImage
+        let reflectionImage: UIImage
         let size: CGSize
         let artworkAspectRatio: CGFloat
         let sideCrop: CGFloat
@@ -309,6 +357,7 @@ enum ExtendedArtworkBitmap {
                 minimumReflectionShare: minimumReflectionShare,
                 progressivelyBlursReflection: progressivelyBlursReflection
             )
+                .reflectionSource(ArtworkFillImage(Image(uiImage: reflectionImage)))
                 .frame(width: size.width, height: size.height)
                 .clipped()
         }
@@ -340,8 +389,30 @@ enum ExtendedArtworkBitmap {
         if let cached = cache.object(forKey: key), cached.source === image {
             return cached.bitmap
         }
+        var reflectionImage = image
+        #if os(tvOS)
+        if minimumReflectionShare > 0 {
+            let geometry = ExtendedArtworkGeometry(
+                slot: size, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
+                minimumReflectionShare: minimumReflectionShare
+            )
+            let reflectionSize = CGSize(width: geometry.renderedWidth, height: geometry.pictureHeight)
+            if image.size.width * image.scale > ceil(reflectionSize.width * scale)
+                || image.size.height * image.scale > ceil(reflectionSize.height * scale) {
+                // Filter reflection copies at their displayed resolution, preserving
+                // the original source for the sharp central poster.
+                guard let fitted = autoreleasepool(invoking: {
+                    NativePosterArtworkBitmap.image(
+                        source: image, size: reflectionSize, scale: scale, clipsToArtwork: false
+                    )
+                }) else { return nil }
+                reflectionImage = fitted
+            }
+        }
+        #endif
         let content = Content(
-            image: image, size: size, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
+            image: image, reflectionImage: reflectionImage, size: size,
+            artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
             minimumReflectionShare: minimumReflectionShare,
             progressivelyBlursReflection: progressivelyBlursReflection
         )

@@ -294,6 +294,20 @@ SCENARIOS = {
         "description": "Render 72 native poster foregrounds with three visible badges and changing playback progress.",
         "counters": ["completedOverlays", "distinctBitmaps"],
     },
+    "portrait-reflection-cold": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformancePortraitReflectionPreparation",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Prepare twelve Detailed portrait reflections through the native coordinator with cold geometry.",
+        "counters": ["completedPosters", "maxPreparationMicroseconds"],
+    },
+    "portrait-reflection-warm": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformancePortraitReflectionReuse",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Recreate 288 native portrait coordinators and require reuse of their twelve prepared reflection bitmaps.",
+        "counters": ["requests", "reusedBitmaps"],
+    },
     "runtime-matrix": {
         "suite": "matrix", "target": "AppRuntimeTests",
         "test": "LiveTVAutomaticChannelsRuntimeTests/testPerformanceConfigurationMatrix",
