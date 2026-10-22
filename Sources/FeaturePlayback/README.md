@@ -108,7 +108,10 @@ without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. Mobile Live TV's top presentation
 group contains only available Picture in Picture and AirPlay controls, with no
 separate Stop button. Pause/resume, player dismissal, and session cleanup retain
-their existing behavior. The controls scrim dims the video
+their existing behavior. Playback options, track selection, and multiview sit
+at the bottom trailing edge above the timeline. Portrait keeps the title on its
+own row above those actions; track menus open upward without covering the seek
+bar. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
 without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now/Guide
 cards use that same native media (`clear`) material, without a colored backing or an added border;
