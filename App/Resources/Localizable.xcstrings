@@ -182452,6 +182452,7 @@
       }
     },
     "Channel history is separate from movie and episode progress. Jellyfin and Emby can play channels from a configured Live TV server. Plex currently supports channels and guide listings, not playback." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -182667,6 +182668,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "頻道觀看紀錄與電影及單集進度分開。Jellyfin 和 Emby 可播放已設定直播電視伺服器中的頻道。Plex 目前支援頻道與節目表，但不支援播放。"
+          }
+        }
+      }
+    },
+    "Channel history is separate from movie and episode progress. Jellyfin, Emby, and Plex can play channels from a configured Live TV server." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سجل القنوات منفصل عن تقدّم مشاهدة الأفلام والحلقات. يمكن لـ Jellyfin وEmby وPlex تشغيل القنوات من خادم بث تلفزيوني مباشر تم إعداده."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Историята на каналите е отделна от напредъка при гледане на филми и епизоди. Jellyfin, Emby и Plex могат да възпроизвеждат канали от конфигуриран сървър за телевизия на живо."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L'historial de canals és independent del progrés de visualització de pel·lícules i episodis. Jellyfin, Emby i Plex poden reproduir canals d'un servidor de televisió en directe configurat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Historie kanálů je oddělená od průběhu sledování filmů a epizod. Jellyfin, Emby a Plex mohou přehrávat kanály z nakonfigurovaného serveru živého televizního vysílání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistorikken er adskilt fra afspilningsstatus for film og episoder. Jellyfin, Emby og Plex kan afspille kanaler fra en konfigureret live-tv-server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Kanalverlauf ist vom Wiedergabefortschritt bei Filmen und Folgen getrennt. Jellyfin, Emby und Plex können Kanäle von einem eingerichteten Live-TV-Server wiedergeben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το ιστορικό καναλιών είναι ξεχωριστό από την πρόοδο παρακολούθησης ταινιών και επεισοδίων. Τα Jellyfin, Emby και Plex μπορούν να αναπαράγουν κανάλια από έναν διαμορφωμένο διακομιστή ζωντανής τηλεόρασης."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El historial de canales es independiente del progreso de reproducción de películas y episodios. Jellyfin, Emby y Plex pueden reproducir canales de un servidor de televisión en directo configurado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سابقهٔ کانال‌ها از پیشرفت تماشای فیلم‌ها و قسمت‌ها جداست. Jellyfin، Emby و Plex می‌توانند کانال‌های یک سرور پخش زندهٔ تلویزیونیِ پیکربندی‌شده را پخش کنند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanavahistoria on erillään elokuvien ja jaksojen katselun etenemisestä. Jellyfin, Emby ja Plex voivat toistaa kanavia määritetyltä live-TV-palvelimelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L'historique des chaînes est distinct de la progression de lecture des films et épisodes. Jellyfin, Emby et Plex peuvent lire les chaînes d'un serveur de télévision en direct configuré."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "היסטוריית הערוצים נפרדת מהתקדמות הצפייה בסרטים ובפרקים. Jellyfin, Emby ו-Plex יכולים להפעיל ערוצים משרת טלוויזיה בשידור חי שהוגדר."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "चैनलों का इतिहास फ़िल्मों और एपिसोड को देखने की प्रगति से अलग है। Jellyfin, Emby और Plex कॉन्फ़िगर किए गए लाइव टीवी सर्वर से चैनल चला सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povijest kanala odvojena je od napretka gledanja filmova i epizoda. Jellyfin, Emby i Plex mogu reproducirati kanale s konfiguriranog poslužitelja za TV uživo."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A csatornaelőzmények elkülönülnek a filmek és epizódok lejátszási előrehaladásától. A Jellyfin, az Emby és a Plex egy beállított élőtévé-kiszolgálóról tud csatornákat lejátszani."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riwayat saluran terpisah dari progres pemutaran film dan episode. Jellyfin, Emby, dan Plex dapat memutar saluran dari server siaran TV langsung yang telah dikonfigurasi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La cronologia dei canali è separata dall'avanzamento di riproduzione di film ed episodi. Jellyfin, Emby e Plex possono riprodurre canali da un server TV in diretta configurato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "チャンネルの履歴は、映画やエピソードの視聴の進行状況とは別に保存されます。Jellyfin、Emby、Plexでは、設定済みのライブテレビサーバーからチャンネルを再生できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "채널 기록은 영화 및 에피소드의 시청 진행 상황과 별도로 저장됩니다. Jellyfin, Emby, Plex는 설정된 라이브 TV 서버의 채널을 재생할 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sejarah saluran berasingan daripada kemajuan tontonan filem dan episod. Jellyfin, Emby dan Plex boleh memainkan saluran daripada pelayan TV langsung yang telah dikonfigurasikan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistorikken er atskilt fra avspillingsfremdriften for filmer og episoder. Jellyfin, Emby og Plex kan spille av kanaler fra en konfigurert server for direktesendt TV."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De kanaalgeschiedenis staat los van de kijkvoortgang van films en afleveringen. Jellyfin, Emby en Plex kunnen kanalen afspelen vanaf een ingestelde server voor live-tv."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Historia kanałów jest niezależna od postępu oglądania filmów i odcinków. Jellyfin, Emby i Plex mogą odtwarzać kanały ze skonfigurowanego serwera telewizji na żywo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O histórico de canais é separado do progresso de reprodução de filmes e episódios. Jellyfin, Emby e Plex podem reproduzir canais de um servidor de TV ao vivo configurado."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istoricul canalelor este separat de progresul vizionării filmelor și episoadelor. Jellyfin, Emby și Plex pot reda canale de pe un server de televiziune în direct configurat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "История каналов хранится отдельно от прогресса просмотра фильмов и серий. Jellyfin, Emby и Plex могут воспроизводить каналы с настроенного сервера прямого телевещания."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "História kanálov je oddelená od priebehu sledovania filmov a epizód. Jellyfin, Emby a Plex môžu prehrávať kanály z nakonfigurovaného servera živého televízneho vysielania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zgodovina kanalov je ločena od napredka pri ogledu filmov in epizod. Jellyfin, Emby in Plex lahko predvajajo kanale iz nastavljenega strežnika za televizijo v živo."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istorija kanala je odvojena od napretka gledanja filmova i epizoda. Jellyfin, Emby i Plex mogu da reprodukuju kanale sa podešenog servera za TV uživo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistoriken är separat från uppspelningsförloppet för filmer och avsnitt. Jellyfin, Emby och Plex kan spela upp kanaler från en konfigurerad server för direktsänd TV."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ประวัติช่องแยกจากความคืบหน้าในการรับชมภาพยนตร์และตอนต่าง ๆ Jellyfin, Emby และ Plex สามารถเล่นช่องจากเซิร์ฟเวอร์ทีวีสดที่ตั้งค่าไว้ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanal geçmişi, film ve bölüm izleme ilerlemesinden ayrıdır. Jellyfin, Emby ve Plex, yapılandırılmış bir canlı TV sunucusundaki kanalları oynatabilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Історія каналів зберігається окремо від прогресу перегляду фільмів і серій. Jellyfin, Emby та Plex можуть відтворювати канали з налаштованого сервера прямого телемовлення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lịch sử kênh được lưu tách biệt với tiến độ xem phim và tập phim. Jellyfin, Emby và Plex có thể phát các kênh từ máy chủ truyền hình trực tiếp đã được cấu hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "频道历史记录与电影和各集节目的观看进度分开保存。Jellyfin、Emby 和 Plex 可以播放已配置的电视直播服务器上的频道。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "頻道歷史記錄與電影和各集節目的觀看進度分開儲存。Jellyfin、Emby 和 Plex 可以播放已設定的電視直播伺服器上的頻道。"
           }
         }
       }
@@ -408212,6 +408433,227 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "電視直播會依照各個個人檔案的「iCloud 同步」設定運作。播放清單網址、節目指南網址、匯入的播放清單、頻道設定，以及以媒體庫內容編排的節目表，都會在使用同一個個人檔案的裝置間同步。網址和匯入的檔案使用加密的 iCloud 儲存空間。家長核准的存取權限僅保留在各自的裝置上。"
+          }
+        }
+      }
+    },
+    "Live TV from Jellyfin, Emby, or Plex." : {
+      "comment" : "Media-server setup choice for live channels from a configured server. Separate from generated channels using the user's media library.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بث تلفزيوني مباشر من Jellyfin أو Emby أو Plex."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Телевизия на живо от Jellyfin, Emby или Plex."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televisió en directe de Jellyfin, Emby o Plex."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Živé televizní vysílání přes Jellyfin, Emby nebo Plex."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-tv fra Jellyfin, Emby eller Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-TV über Jellyfin, Emby oder Plex."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ζωντανή τηλεόραση από Jellyfin, Emby ή Plex."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televisión en directo de Jellyfin, Emby o Plex."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تلویزیون زنده از Jellyfin، Emby یا Plex."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-TV:tä Jellyfinin, Embyn tai Plexin kautta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Télévision en direct via Jellyfin, Emby ou Plex."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "טלוויזיה בשידור חי מ-Jellyfin, מ-Emby או מ-Plex."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby या Plex से लाइव टीवी।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV uživo putem Jellyfina, Embyja ili Plexa."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Élő tévé a Jellyfin, az Emby vagy a Plex használatával."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Siaran TV langsung dari Jellyfin, Emby, atau Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV in diretta da Jellyfin, Emby o Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin、Emby、Plexからライブテレビを視聴。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby 또는 Plex의 라이브 TV."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV langsung daripada Jellyfin, Emby atau Plex."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direktesendt TV fra Jellyfin, Emby eller Plex."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-tv via Jellyfin, Emby of Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Telewizja na żywo z serwera Jellyfin, Emby lub Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV ao vivo do Jellyfin, Emby ou Plex."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televiziune în direct de la Jellyfin, Emby sau Plex."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прямой телеэфир через Jellyfin, Emby или Plex."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Živé televízne vysielanie z Jellyfin, Emby alebo Plex."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televizija v živo prek strežnika Jellyfin, Emby ali Plex."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV uživo preko servera Jellyfin, Emby ili Plex."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direktsänd TV från Jellyfin, Emby eller Plex."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ทีวีสดจาก Jellyfin, Emby หรือ Plex"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby veya Plex üzerinden canlı TV."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прямий телеефір через Jellyfin, Emby або Plex."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Truyền hình trực tiếp từ Jellyfin, Emby hoặc Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通过 Jellyfin、Emby 或 Plex 观看电视直播。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "透過 Jellyfin、Emby 或 Plex 觀看電視直播。"
           }
         }
       }
@@ -957114,7 +957556,7 @@
     },
     "liveTV.setup.server.detail" : {
       "comment" : "Media-server setup choice. Plex Live TV currently supplies guide listings, not live playback; this is separate from generated channels using a Plex media library.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

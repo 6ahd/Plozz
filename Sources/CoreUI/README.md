@@ -366,6 +366,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   clipping and text remain TVUIKit-owned.
   Text stays opaque and native focus geometry is unchanged. Gradient Off or
   Reduce Transparency restores both the solid band and solid card fills.
+- **Episode loading preview** — the tvOS entry overlay leaves gutters and caption
+  spacing transparent to the owning page, including artwork-tinted gradients.
+  Only the real cards' drawing is hidden while their lazy layout realizes the
+  entry target; no opaque rail-wide cover or second gradient is painted.
+  Detail entrance gates restrict focus, not preview alignment. Loaded episodes
+  replace the placeholder while Play retains focus, and a focused placeholder
+  still hands off only to its measured, on-screen target.
 - **App-owned dialogs** — `plozzSheet` owns one opaque, theme-aware surface:
   the native presentation background on iPhone/iPad, and the existing rounded
   overlay card over `PlozzDialogBackdrop` on tvOS. TV uses a clear native

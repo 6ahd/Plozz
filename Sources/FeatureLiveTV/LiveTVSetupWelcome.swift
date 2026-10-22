@@ -49,9 +49,8 @@ struct LiveTVSetupWelcome: View {
                         LiveTVSetupChoice(
                             title: "Media server",
                             detail: LocalizedStringResource(
-                                "liveTV.setup.server.detail",
-                                defaultValue: "Jellyfin or Emby. Plex guide only.",
-                                comment: "Media-server setup choice. Plex Live TV currently supplies guide listings, not live playback; this is separate from generated channels using a Plex media library."
+                                "Live TV from Jellyfin, Emby, or Plex.",
+                                comment: "Media-server setup choice for live channels from a configured server. Separate from generated channels using the user's media library."
                             ),
                             actionTitle: "Choose server",
                             symbol: "server.rack",
@@ -102,9 +101,6 @@ struct LiveTVSetupWelcome: View {
             }
             .scrollIndicators(.hidden)
         }
-        #if os(tvOS)
-        .background { SettingsPageBackground() }
-        #endif
         .foregroundStyle(palette.primaryText)
         .accessibilityIdentifier("live-tv-source-welcome")
     }
@@ -244,7 +240,14 @@ private struct LiveTVSetupChoice: View {
             .padding(PlozzTheme.Spacing.large)
             #endif
         }
+        #if os(tvOS)
+        .plozzCardButton(
+            cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius,
+            focusedScale: PlozzTheme.Metrics.readOnlyFocusedCardScale
+        )
+        #else
         .buttonStyle(SettingsCardButtonStyle())
+        #endif
         .accessibilityLabel(actionTitle)
         .accessibilityHint(detail)
     }

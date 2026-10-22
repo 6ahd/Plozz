@@ -571,7 +571,7 @@ private struct PrototypeSourcesForm: View {
                 Text("Repeats the imported channels into labeled copies; it does not add stations. Favorites and recently watched channels are saved separately for each profile.")
             }
             Section {
-                Text("Channel history is separate from movie and episode progress. Jellyfin and Emby can play channels from a configured Live TV server. Plex currently supports channels and guide listings, not playback.")
+                Text("Channel history is separate from movie and episode progress. Jellyfin, Emby, and Plex can play channels from a configured Live TV server.")
             }
             #endif
         }
