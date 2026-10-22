@@ -89,12 +89,12 @@ private struct HeroCollectionSources: View {
 
     var body: some View {
         HeroCollectionSection(title: "Source") {
-            #if os(tvOS)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(sources) { source in
                     SettingsCheckableRow(
                         title: source.libraryTitle.map { Text(verbatim: $0) } ?? Text("Personal collections"),
                         subtitle: Text(verbatim: "\(source.serverName) / \(source.accountName)"),
+                        subtitleProvider: source.providerKind,
                         titleLineLimit: nil, subtitleLineLimit: nil,
                         isChecked: source.id == selection,
                         flushLeading: false,
@@ -104,22 +104,6 @@ private struct HeroCollectionSources: View {
                     .modifier(ViewCustomizationRowFocus(id: source.id.focusID))
                 }
             }
-            #else
-            Picker("Source", selection: $selection) {
-                ForEach(sources) { source in
-                    VStack(alignment: .leading) {
-                        if let title = source.libraryTitle {
-                            Text(verbatim: title)
-                        } else {
-                            Text("Personal collections")
-                        }
-                        Text(verbatim: "\(source.serverName) / \(source.accountName)")
-                            .font(.caption)
-                    }
-                    .tag(source.id)
-                }
-            }
-            #endif
         }
     }
 }

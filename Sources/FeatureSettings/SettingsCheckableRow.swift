@@ -1,6 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
 import CoreUI
+import CoreModels
 
 /// One focusable, checkable row for the Settings detail pane — a leading optional
 /// icon, a title, and a trailing checkmark shown when `isChecked`.
@@ -17,6 +18,7 @@ import CoreUI
 struct SettingsCheckableRow: View {
     let title: Text
     var subtitle: Text? = nil
+    var subtitleProvider: ProviderKind? = nil
     var titleLineLimit: Int? = 1
     var subtitleLineLimit: Int? = 2
     var icon: String? = nil
@@ -34,6 +36,7 @@ struct SettingsCheckableRow: View {
     var flushLeading: Bool = true
     let action: () -> Void
     @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
+    @ScaledMetric(relativeTo: .footnote) private var sourceMarkSize: CGFloat = 20
 
     // ``SettingsRowLabel`` insets content horizontally; cancel the leading inset
     // (unless `flushLeading` is off) so titles line up flush-left with the pane
@@ -67,10 +70,16 @@ struct SettingsCheckableRow: View {
                         .font(titleFont)
                         .lineLimit(titleLineLimit)
                     if let subtitle {
-                        subtitle
-                            .font(SettingsRowMetrics.descriptionFont)
-                            .settingsRowSecondary()
-                            .lineLimit(subtitleLineLimit)
+                        HStack(spacing: 6) {
+                            if let subtitleProvider {
+                                ProviderBrandMark(provider: subtitleProvider, size: sourceMarkSize, showsBackground: false)
+                                    .accessibilityHidden(true)
+                            }
+                            subtitle
+                                .font(SettingsRowMetrics.descriptionFont)
+                                .settingsRowSecondary()
+                                .lineLimit(subtitleLineLimit)
+                        }
                     }
                 }
                 Spacer(minLength: rowSpacing)

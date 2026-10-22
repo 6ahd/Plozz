@@ -38,6 +38,7 @@ public struct HomeLibrarySectionGroup: Identifiable, Equatable, Sendable {
         public let failure: AppError?
         public var browseItem: MediaItem? = nil
         public var issue: HomeSectionIssue? = nil
+        public var collectionCardStyle: CollectionSection.CardStyle? = nil
         public var id: String { section.id }
     }
 

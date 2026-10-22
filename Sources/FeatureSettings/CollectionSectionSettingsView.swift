@@ -173,22 +173,36 @@ struct CollectionSectionSettingsView: View {
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(items, id: \.stablePresentationID) { item in
-                        PosterCardView(
-                            item: item, style: draft.cardStyle == .poster ? .poster : .landscape,
-                            spoilerSettings: spoilerSettings,
-                            showsActionsMenu: false, action: {}
-                        )
-                        .frame(width: metrics.cardSlotWidth(
-                            for: draft.cardStyle == .poster ? .poster : .landscape,
-                            cardStyle: cards.style
-                        ))
-                        .disabled(true)
+                        if draft.cardStyle == .featured {
+                            FeaturedCardArtwork(
+                                item: item, size: featuredPreviewSize, spoilerSettings: spoilerSettings
+                            )
+                        } else {
+                            PosterCardView(
+                                item: item, style: draft.cardStyle == .poster ? .poster : .landscape,
+                                spoilerSettings: spoilerSettings,
+                                showsActionsMenu: false, action: {}
+                            )
+                            .frame(width: metrics.cardSlotWidth(
+                                for: draft.cardStyle == .poster ? .poster : .landscape,
+                                cardStyle: cards.style
+                            ))
+                            .disabled(true)
+                        }
                     }
                 }
                 .padding(8)
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    private var featuredPreviewSize: CGSize {
+        #if os(tvOS)
+        CGSize(width: 300, height: 375)
+        #else
+        CGSize(width: 260, height: 292.5)
+        #endif
     }
 
     private func loadPreview() async {

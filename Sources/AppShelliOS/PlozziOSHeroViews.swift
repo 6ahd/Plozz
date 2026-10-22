@@ -663,7 +663,8 @@ struct PlozziOSHeroStage<Foreground: View>: View {
         .task(
             id: PlozziOSHeroPlaybackID(
                 itemID: item.id,
-                isActive: isActive && !trailerController.isPlaybackSuppressed,
+                isActive: isActive && !trailerController.isPlaybackSuppressed
+                    && (surfaceRole != .home || !trailerController.isFeaturedReserved),
                 trailerEnabled: surfaceTrailerEnabled,
                 role: surfaceRole
             )
@@ -676,12 +677,14 @@ struct PlozziOSHeroStage<Foreground: View>: View {
 
     private func updateTrailerPlayback() async {
         guard !trailerController.isPlaybackSuppressed else { return }
+        guard surfaceRole != .home || !trailerController.isFeaturedReserved else { return }
         guard isActive, surfaceTrailerEnabled else {
             trailerController.stop(ifShowing: item.id)
             return
         }
         if !trailerController.isShowing(item.id) {
-            trailerController.stop()
+            if surfaceRole == .home { trailerController.stopHero() }
+            else { trailerController.stop() }
         }
         trailerController.claimSurface(surfaceRole, itemID: item.id)
         if surfaceRole == .detail {

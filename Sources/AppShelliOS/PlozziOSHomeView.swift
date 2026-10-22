@@ -97,6 +97,8 @@ struct PlozziOSHomeView: View {
     @Environment(HeroTrailerController.self) private var trailerController
     private let viewModel: HomeViewModel
     @State private var featuredItems: [MediaItem] = []
+    @State private var featuredTrailers = FeaturedTrailerCoordinator()
+    @State private var homeIsScrolling = false
     @State private var featuredConfiguration: HeroConfigurationKey?
     @State private var featuredDisabledLibraryKeys: Set<String> = []
     @State private var heroItems: [MediaItem] = []
@@ -602,6 +604,12 @@ struct PlozziOSHomeView: View {
                                 style: section.style == .landscape ? .landscape : .poster,
                                 showsCaption: appModel.settings.cardStyle.captions.showsLabels(in: .home)
                             )
+                        } else if row.collectionCardStyle == .featured {
+                            PlozziOSFeaturedCollectionRail(
+                                row: row, appModel: appModel, scope: ObjectIdentifier(viewModel),
+                                coordinator: featuredTrailers, controller: trailerController,
+                                isActive: homeIsFrontmost && homeHasAppeared && !homeIsScrolling
+                            )
                         } else {
                             PlozziOSHomeMediaRail(
                                 title: section.displayName,
@@ -620,6 +628,7 @@ struct PlozziOSHomeView: View {
         }
         return scroll
             .scrollClipDisabled()
+            .onScrollPhaseChange { _, phase in homeIsScrolling = phase != .idle }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y > trailerPauseThreshold
             } action: { _, isPastHalfHero in
@@ -2448,6 +2457,37 @@ private struct PlozziOSHomeRowView: View {
         .plozziOSMediaRailClearance()
     }
 
+}
+
+private struct PlozziOSFeaturedCollectionRail: View {
+    let row: HomeLibrarySectionGroup.Row
+    let appModel: PlozziOSAppModel
+    let scope: ObjectIdentifier
+    let coordinator: FeaturedTrailerCoordinator
+    let controller: HeroTrailerController
+    let isActive: Bool
+    @State private var selection: MediaItem?
+
+    var body: some View {
+        FeaturedMediaRow(
+            title: row.section.displayName, items: row.section.items, scope: scope,
+            coordinator: coordinator, controller: controller,
+            settings: appModel.settings.heroBackground.settings,
+            resolver: appModel.heroTrailerResolver(),
+            isActive: isActive && selection == nil,
+            spoilers: appModel.settings.spoilers.settings,
+            onSeeAll: row.browseItem.map { item in { selection = item } },
+            onSelect: { selection = $0 }
+        )
+        .navigationDestination(item: $selection) { item in
+            PlozziOSHomeCardDetail(
+                item: item,
+                fallbackProvider: item.sourceAccountID.flatMap {
+                    appModel.accountsProviders.provider(forAccountID: $0)
+                }
+            )
+        }
+    }
 }
 
 struct PlozziOSHomeMediaRail: View {

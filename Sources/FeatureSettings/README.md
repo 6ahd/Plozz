@@ -167,7 +167,7 @@ watch history and planning-list behavior are documented in
   Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown and a **Collection**
   creation flow. Choose a source collection first, then edit its name and
-  poster/landscape presentation with the style control immediately above a real-title
+  Posters, Landscape or Featured presentation with the style control immediately above a real-title
   preview. The preview uses the existing artwork preferences and spoiler protection.
   Save places a new independently configured row before Libraries; the ordinary
   arranger can move it anywhere among the movable rows. Editing never changes
@@ -178,7 +178,10 @@ watch history and planning-list behavior are documented in
   selected section as the movement target: TV lifts and focuses it immediately;
   mobile exposes native drag handles without losing its position. Collection
   subtitles resolve their server mark from the current account even without a
-  discovered library. Reorder menus include Move to top
+  discovered library. The collection chooser also shows the active account's
+  provider mark beside each library's second-line server label, including personal
+  collection sources. Featured previews share the live card's artwork, logo and
+  metadata layout without starting playback in Settings. Reorder menus include Move to top
   and Move to bottom within the movable sections, never above Home layout.
   On TV, picked-up rows retain native focus during rapid directional presses
   and held Up/Down; reaching an edge does not move focus out of the list.

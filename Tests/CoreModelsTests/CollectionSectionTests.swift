@@ -25,6 +25,18 @@ final class CollectionSectionTests: XCTestCase {
         XCTAssertEqual(edited.title, "Server collection")
     }
 
+    func testFeaturedRoundTripPreservesSourceAndOlderStyles() throws {
+        XCTAssertEqual(section.cardStyle, .poster)
+        for style in CollectionSection.CardStyle.allCases {
+            var edited = section
+            edited.cardStyle = style
+            let restored = try JSONDecoder().decode(CollectionSection.self, from: JSONEncoder().encode(edited))
+            XCTAssertEqual(restored, edited)
+            XCTAssertEqual(restored.source, section.source)
+            XCTAssertEqual(restored.rowID, section.rowID)
+        }
+    }
+
     @MainActor
     func testAddingAndEditingPreserveArrangementAndDefaultProfileIsolation() throws {
         let suite = "CollectionSectionTests.\(UUID())"

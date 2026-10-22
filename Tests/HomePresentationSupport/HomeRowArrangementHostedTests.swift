@@ -1,6 +1,8 @@
 import CoreImage
 import CoreModels
 import CoreUI
+import FeatureHomeCore
+import HeroUI
 #if os(tvOS)
 @testable import FeatureHome
 #elseif os(iOS)
@@ -15,6 +17,86 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testCollectionChooserShowsBrandedLibrarySourceLines() async throws {
+        let accounts = [ProviderKind.plex, .jellyfin].map { kind in
+            let provider = HomeSettingsLibraryProvider(
+                name: kind == .plex ? "Plex server" : "Jellyfin server", kind: kind,
+                capabilities: [.video, .libraryCollections]
+            )
+            return ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        }
+        let libraries = accounts.map { account in
+            AggregatedLibrary(
+                accountID: account.account.id, accountName: "Viewer",
+                serverName: account.account.server.name, providerKind: account.account.server.provider,
+                library: MediaLibrary(id: "movies", title: "Movies", kind: .movie)
+            )
+        }
+        try await withWindow {
+            NavigationStack {
+                HeroCollectionPickerView(selections: .constant([]), libraries: libraries, accounts: accounts) { _ in }
+            }
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Collection chooser source marks")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Plex server"), text)
+            XCTAssertTrue(text.contains("Jellyfin server"), text)
+            XCTAssertTrue(text.contains("Movies"), text)
+        }
+    }
+
+    func testFeaturedRailShowsRealMetadataAndNativeCardFocus() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        let items = ["Orbit", "Voyage", "Horizon", "Arrival"].enumerated().map {
+            MediaItem(id: "featured-\($0.offset)", title: $0.element, kind: .movie,
+                      productionYear: 2024, officialRating: "PG", genres: ["Adventure"])
+        }
+        let phone = FeaturedCardLayout.size(viewportWidth: 393, television: false)
+        XCTAssertEqual(phone.width, 345)
+        XCTAssertEqual(phone.height / phone.width, 1.125)
+        let tv = FeaturedCardLayout.size(viewportWidth: 1920, television: true)
+        XCTAssertEqual(tv.height / tv.width, 1.25)
+        XCTAssertLessThan(tv.width * 3 + 64, 1920, "The next card should peek into the rail.")
+        try await withWindow {
+            ScrollView {
+                FeaturedMediaRow(
+                    title: Text("Weekend picks"), items: items, scope: ObjectIdentifier(controller),
+                    coordinator: coordinator, controller: controller, settings: .default,
+                    resolver: { _ in nil }, isActive: true, onSelect: { _ in }
+                )
+            }
+            .environment(\.scenePhase, .active)
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured collection rail")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Weekend picks"), text)
+            XCTAssertTrue(text.contains("Orbit"), text)
+            XCTAssertTrue(text.contains("2024"), text)
+            XCTAssertTrue(text.contains("Adventure"), text)
+            #if os(tvOS)
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Orbit") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: target)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === target && controller.isFeaturedReserved },
+                object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+            #else
+            let visible = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in coordinator.activeItemID == items[0].stablePresentationID },
+                object: nil
+            )
+            await self.fulfillment(of: [visible], timeout: 3)
+            #endif
+        }
+    }
+
     func testSectionWarningShowsSourceAndNativeActions() async throws {
         let choice = HomeRowChoice(
             id: .server(accountID: "fixture", section: "top"),
@@ -1392,7 +1474,8 @@ private struct HomeSettingsViewerHost: View {
 }
 #endif
 
-private actor HomeSettingsLibraryProvider: MediaProvider {
+private actor HomeSettingsLibraryProvider: MediaProvider, CapabilityReporting {
+    let capabilities: ProviderCapability
     let session: UserSession
     let isOffline: Bool
     let kind: ProviderKind
@@ -1415,9 +1498,11 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         libraryTitle: String = "Movies", kind: ProviderKind = .jellyfin,
         holdsLibraries: Bool = false, homeLayout: ServerHomeLayout? = nil,
         holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil,
-        collectionItems: [MediaItem] = [], onCollectionRequest: (@Sendable () -> Void)? = nil
+        collectionItems: [MediaItem] = [], onCollectionRequest: (@Sendable () -> Void)? = nil,
+        capabilities: ProviderCapability = .videoOnly
     ) {
         self.isOffline = isOffline
+        self.capabilities = capabilities
         self.homeError = homeError
         self.libraryTitle = libraryTitle
         self.kind = kind
@@ -1468,6 +1553,10 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
+    func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
+        .init(items: [], startIndex: 0, totalCount: 0)
+    }
+
     func collectionMembers(of collectionID: String, page: PageRequest) async throws -> MediaPage {
         onCollectionRequest?()
         return .init(

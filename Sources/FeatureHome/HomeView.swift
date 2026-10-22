@@ -185,6 +185,7 @@ public struct HomeView: View {
     /// viewer sits on it. `nil` disables polling (previews, hosts with no shares).
     private let onPollShares: () -> Void
     @State private var navigationActivity = HomeNavigationActivity()
+    @State private var featuredTrailers = FeaturedTrailerCoordinator()
     private let heroTrailerResolver: HeroTrailerResolving
     private let heroIsFrontmost: Bool
     private let heroCurator: HeroCurator
@@ -1709,6 +1710,12 @@ public struct HomeView: View {
                 rowFailureView(
                     title: section.displayName, error: failure, onFocusEntered: reporter.entered
                 )
+            } else if row.collectionCardStyle == .featured, !row.isLoading {
+                featuredRow(row) { item in
+                    reporter.entered()
+                    reporter.cardFocused(item)
+                    onFocusChange(item)
+                }
             } else {
                 MediaRowView(
                     title: section.displayName,
@@ -1773,6 +1780,8 @@ public struct HomeView: View {
                 sectionStatusView(issue, browseItem: row.browseItem)
             } else if let failure = row.failure {
                 rowFailureView(title: section.displayName, error: failure)
+            } else if row.collectionCardStyle == .featured, !row.isLoading {
+                featuredRow(row)
             } else {
                 MediaRowView(
                     title: section.displayName,
@@ -1785,6 +1794,20 @@ public struct HomeView: View {
                     onSelect: row.browseItem == nil && section.style == .landscape ? onPlayItem : onSelectItem
                 )
         }
+    }
+
+    private func featuredRow(
+        _ row: HomeLibrarySectionGroup.Row, onFocus: ((MediaItem) -> Void)? = nil
+    ) -> some View {
+        FeaturedMediaRow(
+            title: row.section.displayName, items: row.section.items,
+            scope: ObjectIdentifier(viewModel),
+            coordinator: featuredTrailers, controller: heroTrailerController,
+            settings: heroBackground.settings, resolver: heroTrailerResolver,
+            isActive: heroIsFrontmost, spoilers: spoilerSettings, onFocus: onFocus,
+            onSeeAll: row.browseItem.map { item in { onSelectItem(item) } },
+            onSelect: onSelectItem
+        )
     }
 
     private func sectionStatusView(_ issue: HomeSectionIssue, browseItem: MediaItem?) -> some View {

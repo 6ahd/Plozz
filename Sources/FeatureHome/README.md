@@ -161,17 +161,25 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   and cancelled lookups cannot restore another viewer's library choices.
   The section catalog enumerates optional recommendations only while the editor
   is open. Authored collection rows have independent stable section identities,
-  names and poster/landscape presentation. Each references one account/viewer-qualified
+  names and poster, landscape or Featured presentation. Each references one account/viewer-qualified
   collection through `MediaProvider`; its bounded preview preserves server order
   and membership, showing supported movie and series cards without reconstructing
   library membership. **See all** opens the existing collection browser using
-  the original provider ID. Both card shapes open title details.
+  the original provider ID. All card styles open title details.
   Collection definitions persist with the profile separately from arrangement:
   removing a row or choosing a preset retains its configuration in Add section.
   Disabled libraries and a different server viewer prevent collection requests;
   failures remain distinct from empty collections.
-  Mixed feeds, filters, Featured cards and library-page placement are not part
-  of this slice. Home omits
+  Featured is available only for authored collection rows. Large artwork cards
+  place the title logo (or text fallback) and real metadata at the lower left.
+  The focused TV card or settled visible mobile card can play a supported
+  local/server trailer, using the profile's Home trailer enable/mute preferences.
+  A shared coordinator arbitrates visible rails and borrows the existing hero
+  player; it never creates per-card players or performs online trailer extraction.
+  Scrolling away, navigation, backgrounding, source changes and full playback
+  cancel the preview. Reduce Motion keeps the cards static. Missing or failed
+  trailers retain artwork. Mixed feeds, filters and library-page placement are
+  not part of this slice. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.

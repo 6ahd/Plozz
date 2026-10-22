@@ -722,7 +722,7 @@ struct HomeHeroView: View {
         // Fast/local trailers only: resolution and the three-second still-image
         // lead-in overlap. The same single player persists into detail navigation.
         .task(id: trailerTaskKey) {
-            guard isFrontmost, backgroundSettings.homeTrailerEnabled,
+            guard isFrontmost, !trailerController.isFeaturedReserved, backgroundSettings.homeTrailerEnabled,
                   let item = current else {
                 // When detail is pushed over Home, relinquish control without
                 // stopping the shared player — the detail hero owns it now.
@@ -922,7 +922,7 @@ struct HomeHeroView: View {
     }
 
     private var trailerTaskKey: String {
-        "\(current?.id ?? "-")|\(backgroundSettings.homeTrailerEnabled)|\(isFrontmost)"
+        "\(current?.id ?? "-")|\(backgroundSettings.homeTrailerEnabled)|\(isFrontmost)|\(trailerController.isFeaturedReserved)"
     }
 
     // MARK: - Content column
@@ -1773,7 +1773,7 @@ struct HomeHeroView: View {
         guard itemButtons.indices.contains(idx) else { return }
         switch itemButtons[idx] {
         case .play:
-            trailerController.stop()
+            trailerController.stopHero()
             onPlay(item)
         case .request: performRequest(for: item)
         case .downloadStatus: break // informational status pill — no action
@@ -2253,7 +2253,7 @@ struct HomeHeroView: View {
         trailerPausedAt = nil
         trailerController.clearEndHandler(ownerID: "home-hero")
         if stopPlayer {
-            trailerController.stop()
+            trailerController.stopHero()
         }
     }
 

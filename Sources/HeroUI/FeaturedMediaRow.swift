@@ -1,0 +1,200 @@
+#if canImport(UIKit)
+import CoreModels
+import CoreUI
+import FeatureHomeCore
+import SwiftUI
+
+public struct FeaturedMediaRow: View {
+    private let title: Text
+    private let items: [MediaItem]
+    private let scope: ObjectIdentifier
+    private let coordinator: FeaturedTrailerCoordinator
+    private let controller: HeroTrailerController
+    private let settings: HeroBackgroundSettings
+    private let resolver: HeroTrailerResolving
+    private let isActive: Bool
+    private let spoilers: SpoilerSettings
+    private let onFocus: ((MediaItem) -> Void)?
+    private let onSeeAll: (() -> Void)?
+    private let onSelect: (MediaItem) -> Void
+    @State private var rowID = UUID()
+    @State private var selectedID: String?
+    @State private var focusedID: String?
+    @State private var priority: Int?
+    @State private var isSettled = true
+    @State private var viewportWidth: CGFloat = 390
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    public init(
+        title: Text, items: [MediaItem], scope: ObjectIdentifier,
+        coordinator: FeaturedTrailerCoordinator, controller: HeroTrailerController,
+        settings: HeroBackgroundSettings, resolver: @escaping HeroTrailerResolving,
+        isActive: Bool, spoilers: SpoilerSettings = .default,
+        onFocus: ((MediaItem) -> Void)? = nil, onSeeAll: (() -> Void)? = nil,
+        onSelect: @escaping (MediaItem) -> Void
+    ) {
+        self.title = title
+        self.items = items
+        self.scope = scope
+        self.coordinator = coordinator
+        self.controller = controller
+        self.settings = settings
+        self.resolver = resolver
+        self.isActive = isActive
+        self.spoilers = spoilers
+        self.onFocus = onFocus
+        self.onSeeAll = onSeeAll
+        self.onSelect = onSelect
+    }
+
+    private var television: Bool {
+        #if os(tvOS)
+        true
+        #else
+        false
+        #endif
+    }
+    private var inset: CGFloat { television ? PlozzTheme.Metrics.screenPadding : 20 }
+    private var size: CGSize {
+        FeaturedCardLayout.size(viewportWidth: viewportWidth, television: television)
+    }
+    private var candidate: MediaItem? {
+        guard isActive, scenePhase == .active, !reduceMotion,
+              settings.homeTrailerEnabled, !controller.isPlaybackSuppressed,
+              television || (priority != nil && isSettled) else { return nil }
+        let id = television ? focusedID : (selectedID ?? items.first?.stablePresentationID)
+        return items.first { $0.stablePresentationID == id }
+    }
+    private struct Request: Equatable {
+        let itemID: String?
+        let scope: ObjectIdentifier
+        let priority: Int?
+        let muted: Bool
+    }
+    private var request: Request {
+        Request(itemID: candidate?.stablePresentationID, scope: scope,
+                priority: priority, muted: settings.homeTrailerMuted)
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: television ? 22 : 12) {
+            HStack {
+                title.font(television ? .title3.bold() : .title2.bold())
+                Spacer()
+                if let onSeeAll {
+                    Button("See all") {
+                        coordinator.stop()
+                        onSeeAll()
+                    }
+                }
+            }
+            .padding(.horizontal, inset)
+            if items.isEmpty {
+                Text("No titles in this collection.")
+                    .plozzForeground(.secondary)
+                    .padding(.horizontal, inset)
+            } else {
+                rail
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { viewportWidth = $0 }
+        .onGeometryChange(for: Int?.self) { geometry in
+            let frame = geometry.frame(in: .scrollView(axis: .vertical))
+            guard let bounds = geometry.bounds(of: .scrollView(axis: .vertical)),
+                  frame.height > 0 else { return nil }
+            let visible = max(0, min(frame.maxY, bounds.height) - max(frame.minY, 0))
+            guard visible / frame.height >= 0.75 else { return nil }
+            return Int(abs(frame.midY - bounds.height / 2) / 20)
+        } action: { priority = $0 }
+        .task(id: request) {
+            if let candidate {
+                coordinator.update(
+                    rowID: rowID, item: candidate, scope: scope, priority: priority ?? 0,
+                    muted: settings.homeTrailerMuted, controller: controller, resolve: resolver
+                )
+            } else {
+                coordinator.withdraw(rowID: rowID)
+            }
+        }
+        .onDisappear { coordinator.withdraw(rowID: rowID) }
+    }
+
+    private var rail: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: television ? 32 : 16) {
+                ForEach(items, id: \.stablePresentationID) { item in
+                    FeaturedMediaCard(
+                        item: item, size: size, spoilers: spoilers,
+                        controller: controller,
+                        showsVideo: coordinator.activeRowID == rowID
+                            && coordinator.activeItemID == item.stablePresentationID
+                            && controller.currentItemID == coordinator.playerItemID
+                            && controller.isPlaying,
+                        onFocus: { focused in
+                            if focused {
+                                focusedID = item.stablePresentationID
+                                onFocus?(item)
+                            } else if focusedID == item.stablePresentationID {
+                                focusedID = nil
+                            }
+                        },
+                        onSelect: {
+                            coordinator.stop()
+                            onSelect(item)
+                        }
+                    )
+                    .id(item.stablePresentationID)
+                }
+            }
+            .scrollTargetLayout()
+            .padding(.vertical, television ? 24 : 4)
+        }
+        .contentMargins(.horizontal, inset, for: .scrollContent)
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        #if os(iOS)
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $selectedID, anchor: .leading)
+        .onScrollPhaseChange { _, phase in isSettled = phase == .idle }
+        #endif
+    }
+}
+
+private struct FeaturedMediaCard: View {
+    let item: MediaItem
+    let size: CGSize
+    let spoilers: SpoilerSettings
+    let controller: HeroTrailerController
+    let showsVideo: Bool
+    let onFocus: (Bool) -> Void
+    let onSelect: () -> Void
+    @PlozzCardFocus private var focused
+
+    private var artwork: some View {
+        FeaturedCardArtwork(item: item, size: size, spoilerSettings: spoilers) {
+            if showsVideo {
+                HeroTrailerVideoLayer(controller: controller, role: .featured)
+            }
+        }
+    }
+
+    var body: some View {
+        #if os(tvOS)
+        artwork
+            .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
+            .focusableCard(
+                isFocused: $focused, cornerRadius: 20,
+                accessibilityLabel: item.title, action: onSelect
+            )
+            .plozzCardFocusTransition(isFocused: focused)
+            .mediaItemContextMenu(for: item)
+            .onChange(of: focused) { _, value in onFocus(value) }
+        #else
+        Button(action: onSelect) { artwork }
+            .buttonStyle(.plain)
+            .mediaItemContextMenu(for: item)
+        #endif
+    }
+}
+#endif

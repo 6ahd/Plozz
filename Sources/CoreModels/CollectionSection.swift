@@ -3,12 +3,13 @@ import Foundation
 /// Content and presentation are independent of the page's order and visibility.
 public struct CollectionSection: Codable, Equatable, Sendable, Identifiable {
     public enum CardStyle: String, Codable, CaseIterable, Sendable {
-        case poster, landscape
+        case poster, landscape, featured
 
         public var title: LocalizedStringResource {
             switch self {
             case .poster: "Posters"
             case .landscape: "Landscape"
+            case .featured: "Featured"
             }
         }
     }

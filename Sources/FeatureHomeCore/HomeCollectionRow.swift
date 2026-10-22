@@ -22,7 +22,8 @@ public struct HomeCollectionRow: Equatable, Sendable {
                 id: definition.rowID.presentationID, title: definition.title,
                 style: definition.cardStyle == .poster ? .poster : .landscape, items: items
             ),
-            isLoading: isLoading, failure: failure, browseItem: definition.collectionItem
+            isLoading: isLoading, failure: failure, browseItem: definition.collectionItem,
+            collectionCardStyle: definition.cardStyle
         )
     }
 }

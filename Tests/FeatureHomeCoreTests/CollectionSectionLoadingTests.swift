@@ -21,7 +21,8 @@ final class CollectionSectionLoadingTests: XCTestCase {
         for kind in [ProviderKind.plex, .jellyfin] {
             let provider = SectionProvider(kind: kind)
             let account = ResolvedAccount(account: Account(id: "account", from: provider.session), provider: provider)
-            let section = section()
+            var section = section()
+            section.cardStyle = .featured
             let content = await HomeAggregator().unmergedContent(
                 from: [account], perLibraryLimit: 5, visibility: visibility(section)
             )
@@ -35,6 +36,7 @@ final class CollectionSectionLoadingTests: XCTestCase {
             XCTAssertEqual(requests.map(\.limit), [5, 3, 1])
             XCTAssertEqual(row.row.browseItem?.id, "collection")
             XCTAssertEqual(row.row.browseItem?.sourceAccountID, "account")
+            XCTAssertEqual(row.row.collectionCardStyle, .featured)
         }
     }
 
@@ -84,8 +86,17 @@ final class CollectionSectionLoadingTests: XCTestCase {
         XCTAssertEqual(rows.first?.choice.title, "New title")
         if case let .library(row) = rows.first?.source {
             XCTAssertEqual(row.section.style, .landscape)
+            XCTAssertEqual(row.collectionCardStyle, .landscape)
             XCTAssertEqual(row.browseItem?.id, "collection")
         } else { XCTFail("Expected collection media row") }
+        section.cardStyle = .featured
+        if case let .library(row) = HomePresentationRow.resolve(
+            rows: [], content: content, visibility: visibility(section)
+        ).first?.source {
+            XCTAssertEqual(row.collectionCardStyle, .featured)
+            XCTAssertEqual(row.section.items, [item])
+            XCTAssertEqual(row.browseItem?.id, "collection")
+        } else { XCTFail("Expected authored Featured row") }
         section.source = .init(accountID: "account", collectionID: "another", title: "Another", serverUserID: "viewer")
         XCTAssertTrue(HomePresentationRow.resolve(rows: [], content: content, visibility: visibility(section)).isEmpty)
     }
