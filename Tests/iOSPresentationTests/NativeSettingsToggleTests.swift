@@ -409,6 +409,7 @@ final class NativeSettingsToggleTests: XCTestCase {
             let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
             let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
             hero.settings.sources = [.randomFromLibrary, .collection, .featured]
+            hero.settings.setEnabled(.featured, enabled: true)
             window.frame = CGRect(x: 0, y: 0, width: width, height: 1200)
             window.rootViewController = UIHostingController(rootView: NavigationStack {
                 HeroSettingsScreen(page: .titles, libraries: [], accounts: [])
@@ -446,6 +447,61 @@ final class NativeSettingsToggleTests: XCTestCase {
             XCTAssertFalse(collapsed.contains("Choose libraries"), collapsed)
             XCTAssertTrue(collapsed.contains("Choose collections"), collapsed)
             XCTAssertTrue(collapsed.contains("Discovery providers"), collapsed)
+        }
+    }
+
+    func testDiscoverySwitchFollowsSeerrUntilExplicitlyChanged() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for width: CGFloat in [390, 834] {
+            let connection = Model()
+            let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+            hero.setSeerrConnection { connection.isOn }
+            let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+            window.frame = CGRect(x: 0, y: 0, width: width, height: 1600)
+            window.rootViewController = UIHostingController(rootView: NavigationStack {
+                HeroSettingsScreen(page: .titles, libraries: [], accounts: [])
+            }
+            .environment(hero)
+            .environment(background))
+            window.makeKeyAndVisible()
+            try await settle(window)
+            func discoverySwitch() throws -> UISwitch {
+                try XCTUnwrap(listedSwitches(in: window).max {
+                    $0.convert($0.bounds, to: window).minY < $1.convert($1.bounds, to: window).minY
+                })
+            }
+            XCTAssertFalse(try discoverySwitch().isOn)
+            connection.isOn = true
+            try await settle(window)
+            let control = try discoverySwitch()
+            XCTAssertTrue(control.isOn)
+            XCTAssertTrue(hero.settings.discoveryFollowsSeerr)
+            control.setOn(false, animated: false)
+            control.sendActions(for: .valueChanged)
+            try await settle(window)
+            XCTAssertFalse(hero.settings.discoveryFollowsSeerr)
+            connection.isOn = false
+            try await settle(window)
+            connection.isOn = true
+            try await settle(window)
+            XCTAssertFalse(try discoverySwitch().isOn)
+
+            connection.isOn = false
+            try await settle(window)
+            let enable = try discoverySwitch()
+            enable.setOn(true, animated: false)
+            enable.sendActions(for: .valueChanged)
+            try await settle(window)
+            XCTAssertTrue(hero.effectiveSettings.isEnabled(.featured))
+            XCTAssertTrue(try discoverySwitch().isOn)
         }
     }
 

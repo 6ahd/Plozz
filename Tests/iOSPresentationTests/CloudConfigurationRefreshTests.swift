@@ -7,6 +7,28 @@ import XCTest
 
 @MainActor
 final class CloudConfigurationRefreshTests: XCTestCase {
+    func testRebuiltMobileSettingsPreserveAutomaticDiscoveryAndExplicitChoice() {
+        let namespace = "MobileDiscovery.\(UUID())"
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        var configured = false
+        let initial = PlozziOSSettingsModel(namespace: namespace, isSeerrConfigured: { configured })
+        XCTAssertFalse(initial.hero.effectiveSettings.isEnabled(.featured))
+        configured = true
+        XCTAssertTrue(initial.hero.effectiveSettings.isEnabled(.featured))
+        initial.hero.settings.maxItems = 10
+        let rebuilt = PlozziOSSettingsModel(namespace: namespace, isSeerrConfigured: { configured })
+        XCTAssertTrue(rebuilt.hero.effectiveSettings.isEnabled(.featured))
+        rebuilt.hero.settings.setEnabled(.featured, enabled: false)
+        let explicit = PlozziOSSettingsModel(namespace: namespace, isSeerrConfigured: { configured })
+        XCTAssertFalse(explicit.hero.effectiveSettings.isEnabled(.featured))
+        XCTAssertFalse(explicit.hero.settings.discoveryFollowsSeerr)
+        XCTAssertEqual(explicit.hero.settings.maxItems, 10)
+    }
+
     func testPerformancePreferenceSync() async throws {
         try PerformanceProbe.requireEnabled()
         try await withApp { app, other in
