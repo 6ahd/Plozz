@@ -47,6 +47,13 @@ public struct LiveTVSettingsView: View {
                     }
                 }
             }
+            SettingsSectionGroup("Browsing") {
+                Picker("Live TV opens to", selection: $settings.startsWithCategories) {
+                    Text("Categories").tag(true)
+                    Text("Guide").tag(false)
+                }
+                .accessibilityIdentifier("live-tv-start-view")
+            }
             SettingsSectionGroup("Channel order") {
                 Picker("Sort", selection: $settings.sortByName) {
                     Text("Channel number").tag(false)
@@ -102,6 +109,13 @@ public struct LiveTVSettingsView: View {
     #if os(tvOS)
     private var rows: [SettingsSplitRow] {
         let browsingRows = [
+            SettingsSplitRow(id: "start-view", title: "Live TV opens to") {
+                SettingsSegmentedPicker(
+                    options: [true, false], selection: $settings.startsWithCategories,
+                    title: { $0 ? "Categories" : "Guide" }
+                )
+                .accessibilityIdentifier("live-tv-start-view")
+            },
             SettingsSplitRow(
                 id: "sort",
                 title: "Sort"
@@ -180,7 +194,7 @@ public struct LiveTVSettingsView: View {
             }
         ]
         guard inWorkspace else { return sources + browsingRows }
-        return sources.map { $0.page() } + [
+        return sources.map { $0.page() } + browsingRows.filter { $0.id == "start-view" } + [
             SettingsSplitRow(id: "channel-order", title: "Channel order") {
                 SettingsSegmentedPicker(
                     options: [false, true], selection: $settings.sortByName,
