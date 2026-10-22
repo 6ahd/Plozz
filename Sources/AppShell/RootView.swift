@@ -73,6 +73,7 @@ public struct RootView: View {
     @State private var showSyncSend = false
     @State private var rootPresentation = RootPresentationCoordinator()
     @State private var startupNotesPrepared = false
+    @State private var consentDeferredURL: URL?
     @State private var presentedSetupOffer: SyncPairingRendezvous?
     /// Home's view model, owned here because this is the highest view whose
     /// identity is genuinely stable for the signed-in session. Kept out of the
@@ -166,18 +167,10 @@ public struct RootView: View {
     /// Reconcile the crash reporter with the current opt-in consent. Safe to call
     /// repeatedly: starts on the first opt-in, stops on opt-out, no-op otherwise
     /// (and always a no-op when the build has no DSN).
-    ///
-    /// DEBUG: honours `PLOZZ_FORCE_CRASH_REPORTING=1` in the environment to force
-    /// the reporter on regardless of the persisted opt-in, so a crash-hunt build
-    /// can capture a backtrace without navigating Settings. Off by default (the
-    /// env var is unset in normal runs), so this changes no shipped behavior; it
-    /// still no-ops when the build has no DSN. Mirrors the env-gated PLZHFOCUS
-    /// diagnostics pattern.
     private func reconcileCrashReporting() {
-        let forced = ProcessInfo.processInfo.environment["PLOZZ_FORCE_CRASH_REPORTING"] == "1"
         crashReporting.setScreen(CrashReportScreen(context: MainThreadStallProbe.context))
         crashReporting.apply(
-            enabled: appState.crashReportingModel.settings.isEnabled || forced,
+            enabled: appState.crashReportingModel.isEnabled,
             context: makeCrashContext()
         )
     }
@@ -487,6 +480,40 @@ public struct RootView: View {
     }
 
     public var body: some View {
+        Group {
+            if needsDiagnosticConsent {
+                CrashReportingConsentView { enabled in
+                    appState.crashReportingModel.isEnabled = enabled
+                }
+                .environment(\.themePalette, resolvedPalette)
+                .environment(\.colorScheme, resolvedPalette.isLight ? .light : .dark)
+                .background(ColorSchemeMirror { scheme in
+                    if systemColorScheme != scheme { systemColorScheme = scheme }
+                })
+            } else {
+                appContent
+                    .task {
+                        if let url = consentDeferredURL {
+                            consentDeferredURL = nil
+                            appState.handle(url: url)
+                        }
+                    }
+            }
+        }
+        .onOpenURL { url in
+            if needsDiagnosticConsent {
+                consentDeferredURL = url
+            } else {
+                appState.handle(url: url)
+            }
+        }
+    }
+
+    private var needsDiagnosticConsent: Bool {
+        crashReporting.isConfigured && appState.crashReportingModel.needsConsent
+    }
+
+    private var appContent: some View {
         let _ = plozzPrintChanges { Self._printChanges() }
         let requests = presentationRequests
         return ZStack {
@@ -863,10 +890,7 @@ public struct RootView: View {
             appState.drainWatchOutbox()
             reconcileCrashReporting()
         }
-        .onChange(of: appState.crashReportingModel.settings) { _, _ in
-            // Watches the whole value, not just `isEnabled`: flipping the
-            // maintainer marker changes the reporter's environment, and that only
-            // takes effect on a restart the controller performs from here.
+        .onChange(of: appState.crashReportingModel.isEnabled) { _, _ in
             reconcileCrashReporting()
         }
         .onReceive(NotificationCenter.default.publisher(for: MainThreadStallProbe.contextDidChange)) { _ in
@@ -920,7 +944,6 @@ public struct RootView: View {
                 }
             )
         )
-        .onOpenURL { appState.handle(url: $0) }
         .externalPlayerSupport(
             context: { appState.externalPlaybackContext() },
             legacySettings: { appState.profileSettings.playbackModel.settings.externalPlayer },

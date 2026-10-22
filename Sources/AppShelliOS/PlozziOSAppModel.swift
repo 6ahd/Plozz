@@ -913,7 +913,7 @@ final class PlozziOSAppModel {
     func applyCrashReportingPreference() {
         crashReportingController.setScreen(CrashReportScreen(context: MainThreadStallProbe.context))
         crashReportingController.apply(
-            enabled: crashReporting.settings.isEnabled,
+            enabled: crashReporting.isEnabled,
             context: crashReportContext
         )
     }

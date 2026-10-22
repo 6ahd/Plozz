@@ -1060,7 +1060,7 @@ public struct SettingsView: View {
             )
         case .recentActivity:
             RecentActivityDetailView(
-                canSendDiagnostics: crashReportingConfigured && crashReporting.settings.isEnabled
+                canSendDiagnostics: crashReportingConfigured && crashReporting.isEnabled
             )
         case let .plexUser(accountID):
             PlexLinkedUserDetailView(scope: context.librariesScope, accountID: accountID)

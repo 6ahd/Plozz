@@ -7,6 +7,17 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Diagnostic reporting requires an explicit device-wide choice on every build
+channel. `CrashReportingConsentView` appears before first-time setup or normal
+startup when the build has a reporting endpoint and the current consent version
+has not been answered. Existing users, including prior opt-ins and opt-outs, are
+asked once after this migration; reporting stays off until they choose to share.
+Either choice continues setup and survives relaunch and profile switching.
+Help & Diagnostics can change it later. Consent is not synced or transferred.
+The primary Share Diagnostics action and secondary Don't Share action sit above
+a separate bottom privacy footer. Its GitHub-marked link opens the repository
+on mobile or a scannable QR sheet on Apple TV; opening it does not grant consent.
+
 Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
 controls. Each shows one local fictional-wordmark preview and a Small-to-Large
 adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
