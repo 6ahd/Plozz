@@ -42,6 +42,21 @@ final class ServerAddressResolverTests: XCTestCase {
         XCTAssertNil(resolver.confirmed)
     }
 
+    func testDiscoveryFailuresAreNotMisattributedToTheInventoryRequest() async {
+        let resolver = ServerAddressResolver(baseURL: remote, alternatives: [local]) { _ in
+            HTTPResponseDiagnostics.recordTransportFailure(URLError(.cannotConnectToHost))
+            throw AppError.serverUnreachable
+        }
+        let captured = await HTTPResponseDiagnostics.$route.withValue(.playbackInventory) {
+            await HTTPResponseDiagnostics.capture { try await resolver.resolved() }
+        }
+        guard case .failure(let error) = captured.result else {
+            return XCTFail("Unreachable addresses must remain a failure.")
+        }
+        XCTAssertEqual(error as? AppError, .serverUnreachable)
+        XCTAssertEqual(captured.transport.map(\.route), [.serverDiscovery, .serverDiscovery])
+    }
+
     func testReadRetriesAnotherAddressButMutationDoesNotReplay() async throws {
         for method in [HTTPMethod.get, .post, .delete, .patch] {
             let local = local

@@ -526,9 +526,14 @@ public struct PlexClient: Sendable {
             ],
             headers: headers
         )
-        let container = try await decode(PlexMediaContainerResponse.self, endpoint, using: interactiveHTTP).MediaContainer
-        guard let item = container.Metadata?.first else { throw AppError.notFound }
-        return item
+        return try await HTTPResponseDiagnostics.$route.withValue(.itemDetail) {
+            let container = try await decode(PlexMediaContainerResponse.self, endpoint, using: interactiveHTTP).MediaContainer
+            guard let item = container.Metadata?.first else {
+                HTTPResponseDiagnostics.recordValidationFailure(.missingMetadata, route: .itemDetail)
+                throw AppError.notFound
+            }
+            return item
+        }
     }
 
     /// `GET /library/metadata/{ratingKey}?includeMarkers=1` — fetches the item's
