@@ -6,15 +6,21 @@ import XCTest
 
 @MainActor
 final class StartupLogoHostedTests: XCTestCase {
-    func testIntroCompletesAfterTheEarlyWinkAndOnlyOnce() async throws {
-        try await withFixture { host, probe in
+    func testEveryExpressionCompletesAfterTheEarlyFaceAndOnlyOnce() async throws {
+        for expression in PlozzStartupExpression.allCases {
+            try await verifyIntro(expression: expression)
+        }
+    }
+
+    private func verifyIntro(expression: PlozzStartupExpression) async throws {
+        try await withFixture(expression: expression) { host, probe in
             try await Task.sleep(for: .milliseconds(450))
             XCTAssertTrue(probe.completions.isEmpty)
             let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in
                 host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
             }
             let attachment = XCTAttachment(image: image)
-            attachment.name = "Startup wink before release"
+            attachment.name = "Startup \(expression.rawValue) before release"
             attachment.lifetime = .keepAlways
             add(attachment)
             try await waitUntil { probe.completions.count == 1 }
@@ -82,6 +88,7 @@ final class StartupLogoHostedTests: XCTestCase {
     private func withFixture(
         phase: ScenePhase = .active,
         reduceMotion: Bool = false,
+        expression: PlozzStartupExpression = .wink,
         exercise: (UIHostingController<StartupLogoFixture>, StartupLogoProbe) async throws -> Void
     ) async throws {
         try await waitUntil {
@@ -91,7 +98,7 @@ final class StartupLogoHostedTests: XCTestCase {
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        let probe = StartupLogoProbe(phase: phase, reduceMotion: reduceMotion)
+        let probe = StartupLogoProbe(phase: phase, reduceMotion: reduceMotion, expression: expression)
         let host = UIHostingController(rootView: StartupLogoFixture(probe: probe))
         window.rootViewController = host
         probe.mountedAt = .now
@@ -118,14 +125,16 @@ final class StartupLogoHostedTests: XCTestCase {
 private final class StartupLogoProbe {
     var phase: ScenePhase
     let reduceMotion: Bool
+    let expression: PlozzStartupExpression
     var showsLogo = true
     var appeared = false
     var mountedAt = ContinuousClock.now
     var completions: [ContinuousClock.Instant] = []
 
-    init(phase: ScenePhase, reduceMotion: Bool) {
+    init(phase: ScenePhase, reduceMotion: Bool, expression: PlozzStartupExpression) {
         self.phase = phase
         self.reduceMotion = reduceMotion
+        self.expression = expression
     }
 }
 
@@ -135,7 +144,9 @@ private struct StartupLogoFixture: View {
     var body: some View {
         Group {
             if probe.showsLogo {
-                PlozzStartupLogoContent(reduceMotion: probe.reduceMotion, scenePhase: probe.phase) {
+                PlozzStartupLogoContent(
+                    reduceMotion: probe.reduceMotion, scenePhase: probe.phase, expression: probe.expression
+                ) {
                     probe.completions.append(.now)
                 }
                     .onAppear { probe.appeared = true }

@@ -42,7 +42,8 @@ registry.
 
 ## Invariants
 
-- **The TV startup wink survives a fast restore.** The launch logo stays mounted
+- **The TV startup expression survives a fast restore.** Smile leads into wink,
+  delight, or surprise, rotating on each cold launch. The launch logo stays mounted
   until its first 0.7 seconds of active animation and session bootstrap both
   finish. Bootstrap runs independently; profile routing, covers and deferred
   incoming links wait for presentation. First-run diagnostic consent appears
