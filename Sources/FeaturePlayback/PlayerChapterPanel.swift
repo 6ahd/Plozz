@@ -12,19 +12,25 @@ struct PlayerChapterPanel: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView(metrics.isVertical ? .vertical : .horizontal, showsIndicators: false) {
+            Group {
                 if metrics.isVertical {
-                    LazyVStack(spacing: 8) { chapters }
+                    FadingScrollView(
+                        maxHeight: metrics.cardHeight,
+                        fadeLength: metrics.contentPadding * 2,
+                        verticalContentInset: 0
+                    ) {
+                        LazyVStack(spacing: 8) { chapters }
+                    }
                 } else {
-                    LazyHStack(spacing: metrics.columnSpacing) { chapters }
-                        .frame(height: metrics.cardHeight)
-                        .padding(.trailing, metrics.contentPadding)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(alignment: .top, spacing: metrics.columnSpacing) { chapters }
+                            .frame(height: metrics.cardHeight, alignment: .top)
+                            .padding(.trailing, metrics.contentPadding)
+                    }
+                    .scrollClipDisabled()
+                    .frame(height: metrics.cardHeight)
                 }
             }
-            .scrollClipDisabled(!metrics.isVertical)
-            // Rows retain their opening inset; wide cards fill the stage like Cast.
-            .padding(.vertical, metrics.isVertical ? metrics.contentPadding : 0)
-            .frame(height: metrics.cardHeight)
             .onAppear {
                 if let id = MediaChapter.currentID(
                     in: model.infoCard.chapters, at: model.currentSeconds, duration: model.duration
@@ -38,9 +44,11 @@ struct PlayerChapterPanel: View {
 
     private var chapters: some View {
         let entries = model.infoCard.chapters
+        let showsArtwork = entries.contains { $0.imageURL != nil }
         return ForEach(Array(entries.enumerated()), id: \.element.id) { index, chapter in
             PlayerChapterButton(
                 chapter: chapter, number: index + 1,
+                showsArtwork: showsArtwork,
                 nextStart: entries.indices.contains(index + 1) ? entries[index + 1].start : nil,
                 model: model,
                 spoilerSettings: spoilerSettings,
@@ -57,6 +65,7 @@ struct PlayerChapterPanel: View {
 private struct PlayerChapterButton: View {
     let chapter: MediaChapter
     let number: Int
+    let showsArtwork: Bool
     let nextStart: TimeInterval?
     let model: PlayerControlsModel
     let spoilerSettings: SpoilerSettings
@@ -98,6 +107,11 @@ private struct PlayerChapterButton: View {
         max(metrics.contentPadding, metrics.panelCornerRadius * 2 / 3)
     }
 
+    private var cornerRadius: CGFloat {
+        if metrics.isVertical { return metrics.panelCornerRadius - 6 }
+        return showsArtwork ? metrics.panelCornerRadius : metrics.contentPadding
+    }
+
     var body: some View {
         chapterButton
             .focused($focus, equals: .chapter(chapter.id))
@@ -112,7 +126,7 @@ private struct PlayerChapterButton: View {
         Button(action: action) { content }
             .buttonStyle(PlayerOverVideoCardStyle(
                 focused: focus == .chapter(chapter.id),
-                cornerRadius: metrics.panelCornerRadius - (metrics.isVertical ? 6 : 0),
+                cornerRadius: cornerRadius,
                 focusScale: metrics.isVertical ? 1 : 1.10,
                 pressScale: metrics.isVertical ? 0.98 : 1,
                 mediaGlass: true
@@ -123,16 +137,18 @@ private struct PlayerChapterButton: View {
     private var content: some View {
         if metrics.isVertical {
             HStack(spacing: 12) {
-                thumbnail
-                    .frame(width: metrics.castHeadshot * 16 / 9, height: metrics.castHeadshot)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                if showsArtwork {
+                    thumbnail
+                        .frame(width: metrics.castHeadshot * 16 / 9, height: metrics.castHeadshot)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
                 caption
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, showsArtwork ? 10 : metrics.contentPadding)
             .frame(height: metrics.castRowHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
+        } else if showsArtwork {
             VStack(alignment: .leading, spacing: 8) {
                 thumbnail
                     .frame(width: cardWidth - contentInset * 2,
@@ -142,6 +158,11 @@ private struct PlayerChapterButton: View {
             }
             .padding(contentInset)
             .frame(width: cardWidth, height: metrics.cardHeight, alignment: .bottom)
+        } else {
+            caption
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(contentInset)
+                .frame(width: cardWidth, alignment: .leading)
         }
     }
 

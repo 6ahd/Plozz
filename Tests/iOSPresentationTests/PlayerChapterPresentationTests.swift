@@ -9,7 +9,7 @@ import XCTest
 
 @MainActor
 final class PlayerChapterPresentationTests: XCTestCase {
-    func testOverflowingChaptersAlignWithTheTabsAndPreservePortraitOpeningInsets() async throws {
+    func testOverflowingChaptersAlignWithTheTabsAndOpenAtTheCurrentChapter() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -52,11 +52,10 @@ final class PlayerChapterPresentationTests: XCTestCase {
                         : $0.contentSize.width > $0.bounds.width + 100 && $0.bounds.height > 64
                 })
                 let frame = scroll.convert(scroll.bounds, to: window)
-                let verticalInset = metrics.isVertical ? metrics.contentPadding : 0
                 XCTAssertEqual(frame.minX, probe.panelFrame.minX, accuracy: 1)
-                XCTAssertEqual(frame.minY - probe.panelFrame.minY, verticalInset, accuracy: 1)
+                XCTAssertEqual(frame.minY, probe.panelFrame.minY, accuracy: 1)
                 XCTAssertEqual(frame.maxX, probe.panelFrame.maxX, accuracy: 1)
-                XCTAssertEqual(probe.panelFrame.maxY - frame.maxY, verticalInset, accuracy: 1)
+                XCTAssertEqual(frame.maxY, probe.panelFrame.maxY, accuracy: 1)
                 let infoTab = try XCTUnwrap(player.controls.subtitleLayout.frame(for: .tab("info")))
                 XCTAssertEqual(frame.minX, infoTab.minX, accuracy: 1, "Cards must share the tab strip's leading edge.")
 
@@ -71,18 +70,106 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
                 let text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
                 XCTAssertTrue(text.contains("Scene \(chapterIndex + 1)"), "The current chapter must be visible on opening: \(text)")
-                if metrics.isVertical {
-                    let topInset = CGRect(
-                        x: probe.panelFrame.minX + 1, y: probe.panelFrame.minY + 1,
-                        width: probe.panelFrame.width - 2, height: metrics.contentPadding - 2
-                    )
-                    XCTAssertLessThan(try brightestPixel(in: image, rect: topInset), 20,
-                                      "No enclosing panel or scrolled-off chapter may occupy the top gutter.")
-                }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "Overflowing chapters \(Int(size.width))x\(Int(size.height)) start \(chapterIndex + 1)"
                 attachment.lifetime = .keepAlways
                 add(attachment)
+            }
+        }
+        await player.stop()
+    }
+
+    func testPortraitPanelSpacingAndDirectionalOverflowFades() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let player = PlayerViewModel(provider: ChapterPresentationProvider(), itemID: "fixture")
+        await player.load()
+        player.controls.duration = 3_600
+        player.controls.title = "Fixture"
+        player.controls.infoCard.overview = "A short description."
+        let size = CGSize(width: 320, height: 568)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        func capture(_ name: String) -> UIImage {
+            let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+                XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            return image
+        }
+        for count in [3, 20] {
+            player.controls.infoCard.chapters = (0..<count).map {
+                .init(start: Double($0) * 180, title: "Scene \($0 + 1)")
+            }
+            player.controls.infoCard.cast = (0..<count).map {
+                .init(id: "\($0)", name: "Person \($0 + 1)", role: "Character")
+            }
+            for panel in [MobileChapterTestPanel.info, .cast, .chapters] {
+                let probe = ChapterLayoutProbe()
+                let host = UIHostingController(rootView:
+                    MobileChapterFixture(
+                        player: player, size: size, probe: probe, panel: panel,
+                        backdrop: Color(red: 0.25, green: 0.45, blue: 0.65)
+                    )
+                    .playerPlatformAppearance()
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.plozzReduceTransparency, true)
+                )
+                host.safeAreaRegions = []
+                window.frame = CGRect(origin: .zero, size: size)
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                host.view.frame = window.bounds
+                window.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(500))
+                let tab = try XCTUnwrap(player.controls.subtitleLayout.frame(for: .tab("info")))
+                XCTAssertEqual(probe.panelFrame.minY - tab.maxY, PlayerTouchLayout.cardSpacing, accuracy: 1)
+
+                let initial = capture("\(panel) \(count) rows at top")
+                func band(_ offset: CGFloat) -> CGRect {
+                    CGRect(x: size.width - 30, y: probe.panelFrame.minY + offset, width: 4, height: 2)
+                }
+                let backdrop = try brightestPixel(in: initial, rect: band(-6))
+                let top = try brightestPixel(in: initial, rect: band(2))
+                XCTAssertLessThan(Int(top), Int(backdrop) - 8,
+                                  "\(panel): The first surface must start at the panel edge, without an extra top gutter.")
+                guard panel != .info else { continue }
+                let interior = try brightestPixel(in: initial, rect: band(23))
+                XCTAssertGreaterThan(Double(backdrop) - Double(top), (Double(backdrop) - Double(interior)) * 0.85,
+                                     "\(panel): The opening row must retain its surface contrast, not fade into the backdrop.")
+                if count == 20 {
+                    let scroll = try XCTUnwrap(scrollViews(in: host.view).first {
+                        $0.contentSize.height > $0.bounds.height + 100
+                    })
+                    scroll.setContentOffset(CGPoint(x: 0, y: 20), animated: false)
+                    try await Task.sleep(for: .milliseconds(300))
+                    let scrolled = capture("\(panel) overflow fade")
+                    let edge = try brightestPixel(in: scrolled, rect: band(2))
+                    let middle = try brightestPixel(in: scrolled, rect: band(12))
+                    let interior = try brightestPixel(in: scrolled, rect: band(23))
+                    XCTAssertGreaterThan(Int(edge), Int(middle) + 8)
+                    XCTAssertGreaterThan(Int(middle), Int(interior) + 8,
+                                         "Overflow must fade progressively rather than stop at a hard clip.")
+                    scroll.setContentOffset(.zero, animated: false)
+                    try await Task.sleep(for: .milliseconds(300))
+                    let restored = capture("\(panel) returned to top")
+                    XCTAssertEqual(Double(try brightestPixel(in: restored, rect: band(2))), Double(top), accuracy: 3)
+                }
             }
         }
         await player.stop()
@@ -121,14 +208,14 @@ final class PlayerChapterPresentationTests: XCTestCase {
         }
         let player = PlayerViewModel(provider: ChapterPresentationProvider(), itemID: "fixture")
         await player.load()
-        let chapters: [MediaChapter] = [
-            .init(start: 0, title: "Opening"), .init(start: 180, title: "The journey"), .init(start: 360)
-        ]
         player.controls.duration = 600
         for size in [CGSize(width: 320, height: 568), .init(width: 568, height: 320), .init(width: 1024, height: 768)] {
-            for reduced in [false, true] {
+            for (reduced, hasArtwork) in [(false, false), (true, false), (false, true), (true, true)] {
                 let probe = ChapterLayoutProbe()
-                player.controls.infoCard.chapters = chapters
+                player.controls.infoCard.chapters = [
+                    .init(start: 0, title: "Opening"), .init(start: 180, title: "The journey"),
+                    .init(start: 360, imageURL: hasArtwork ? URL(string: "https://chapters.invalid/still.jpg") : nil)
+                ]
                 let host = UIHostingController(rootView:
                     MobileChapterFixture(player: player, size: size, probe: probe)
                         .environment(\.plozzReducePanelGlass, reduced)
@@ -169,17 +256,29 @@ final class PlayerChapterPresentationTests: XCTestCase {
                     XCTAssertEqual(titleBox.minX * size.width, timeBox.minX * size.width, accuracy: 4,
                                    "Chapter titles and timestamps must share a leading edge.")
                     let metrics = PlayerCardMetrics.resolved(forWidth: size.width, height: size.height)
-                    if !metrics.isVertical, title == "Opening" {
+                    if metrics.isVertical, title == "Opening" {
+                        let leading = titleBox.minX * size.width - probe.panelFrame.minX
+                        if hasArtwork {
+                            XCTAssertGreaterThan(leading, metrics.castHeadshot * 16 / 9)
+                        } else {
+                            XCTAssertEqual(leading, metrics.contentPadding, accuracy: 4,
+                                           "No artwork must mean no placeholder or reserved thumbnail column.")
+                        }
+                    } else if title == "Opening" {
                         let inset = max(metrics.contentPadding, metrics.panelCornerRadius / 2)
                         XCTAssertGreaterThanOrEqual(timeBox.minX * size.width - probe.panelFrame.minX, inset - 2)
-                        XCTAssertGreaterThanOrEqual(
-                            probe.panelFrame.maxY - (1 - timeBox.minY) * size.height, inset - 2,
-                            "The timestamp must stay comfortably inside the rounded bottom corner."
-                        )
+                        if hasArtwork {
+                            XCTAssertGreaterThanOrEqual(
+                                probe.panelFrame.maxY - (1 - timeBox.minY) * size.height, inset - 2,
+                                "The timestamp must stay comfortably inside the rounded bottom corner."
+                            )
+                        } else {
+                            XCTAssertLessThan((1 - titleBox.maxY) * size.height - probe.panelFrame.minY, inset * 2)
+                        }
                     }
                 }
                 let attachment = XCTAttachment(image: image)
-                attachment.name = "Chapters \(Int(size.width))x\(Int(size.height)) \(reduced ? "reduced" : "native")"
+                attachment.name = "Chapters \(Int(size.width))x\(Int(size.height)) \(reduced ? "reduced" : "native") \(hasArtwork ? "mixed" : "text")"
                 attachment.lifetime = .keepAlways
                 add(attachment)
                 player.controls.infoCard.chapters = []
@@ -201,23 +300,44 @@ private struct MobileChapterFixture: View {
     let player: PlayerViewModel
     let size: CGSize
     let probe: ChapterLayoutProbe
+    var panel: MobileChapterTestPanel = .chapters
+    var backdrop: Color = .black
     @FocusState private var focus: PlayerControls.FocusSlot?
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: PlayerTouchLayout.cardSpacing) {
             Spacer(minLength: 0)
             PlayerTouchCardStrip(
                 model: player.controls, availableSize: size, isCardOpen: .constant(false), player: player,
                 onRestart: {}, onNextEpisode: {}, onPreviousEpisode: {}
             )
             .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { probe.stripHeight = $0 }
-            PlayerChapterPanel(model: player.controls, spoilerSettings: .default, focus: $focus) { _ in }
+            panelContent
                 .environment(\.playerCardMetrics, .resolved(forWidth: size.width, height: size.height))
                 .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { probe.panelFrame = $0 }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black)
+        .background(backdrop)
     }
+
+    @ViewBuilder
+    private var panelContent: some View {
+        switch panel {
+        case .chapters:
+            PlayerChapterPanel(model: player.controls, spoilerSettings: .default, focus: $focus) { _ in }
+        case .cast:
+            CastPanelView(
+                model: player.controls, focus: $focus, detailPerson: .constant(nil),
+                closeRequest: .constant(0), isCardOpen: true, revealClock: .linear(duration: 0)
+            )
+        case .info:
+            InfoPanelView(model: player.controls, actions: .init(), focus: $focus, onClose: {})
+        }
+    }
+}
+
+private enum MobileChapterTestPanel {
+    case info, cast, chapters
 }
 
 private struct ChapterPresentationProvider: MediaProvider {

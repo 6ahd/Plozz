@@ -25,7 +25,6 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
         let model = PlayerControlsModel()
         model.duration = 3_600
         model.currentSeconds = 100
-        model.infoCard.chapters = (0..<20).map { .init(start: Double($0) * 180, title: "Scene \($0 + 1)") }
         model.infoCard.cast = (0..<20).map { .init(id: "\($0)", name: "Person \($0 + 1)", role: "Character") }
         #if os(tvOS)
         let sizes = [CGSize(width: 1920, height: 1080)]
@@ -38,7 +37,11 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                 for backdrop in [Color(red: 0.12, green: 0.40, blue: 0.65), Color(red: 0.65, green: 0.25, blue: 0.12)] {
                     var reference: [UInt8] = []
                     var referenceFrame = CGRect.zero
-                    for chapters in [false, true] {
+                    for (chapters, artwork) in [(false, false), (true, false), (true, true)] {
+                        model.infoCard.chapters = (0..<20).map {
+                            .init(start: Double($0) * 180, title: "Scene \($0 + 1)",
+                                  imageURL: artwork && $0 == 1 ? URL(string: "https://chapters.invalid/still.jpg") : nil)
+                        }
                         let probe = ChapterCastSurfaceProbe()
                         let host = UIHostingController(rootView:
                             ChapterCastSurfaceFixture(model: model, chapters: chapters, metrics: metrics, probe: probe)
@@ -60,8 +63,14 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                         let frame = probe.frame
                         XCTAssertEqual(frame.width, size.width - 48, accuracy: 1)
                         XCTAssertEqual(frame.height, metrics.cardHeight, accuracy: 1)
-                        let sampleY = metrics.isVertical
-                            ? frame.minY + metrics.contentPadding + metrics.castRowHeight / 2 : frame.midY
+                        let sampleY: CGFloat
+                        if metrics.isVertical {
+                            sampleY = frame.minY + metrics.castRowHeight / 2
+                        } else if chapters && !artwork {
+                            sampleY = frame.minY + metrics.contentPadding + metrics.castNameSize
+                        } else {
+                            sampleY = frame.midY
+                        }
                         let surface = try pixels(image, rect: CGRect(
                             x: frame.minX + 4, y: sampleY - 2, width: 4, height: 4
                         ))
@@ -80,7 +89,7 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                             referenceFrame = frame
                         }
                         let attachment = XCTAttachment(image: image)
-                        attachment.name = "\(chapters ? "Chapters" : "Cast") \(Int(size.width))x\(Int(size.height)) \(mode)"
+                        attachment.name = "\(chapters ? "Chapters" : "Cast") \(Int(size.width))x\(Int(size.height)) \(mode) \(artwork ? "mixed" : "text")"
                         attachment.lifetime = .keepAlways
                         add(attachment)
                     }

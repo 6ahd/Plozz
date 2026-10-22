@@ -23,14 +23,14 @@ final class PlayerChapterHostedTests: XCTestCase {
             previous?.makeKeyAndVisible()
         }
 
-        for reducedGlass in [false, true] {
+        for (reducedGlass, hasArtwork) in [(false, false), (true, false), (false, true), (true, true)] {
             let model = PlayerControlsModel()
             model.duration = 3_600
             model.currentSeconds = 100
             model.infoCard.chapters = [
                 .init(start: 0, title: "Opening"),
                 .init(start: 180, title: "The journey"),
-                .init(start: 360)
+                .init(start: 360, imageURL: hasArtwork ? URL(string: "https://chapters.invalid/still.jpg") : nil)
             ] + (3..<20).map { MediaChapter(start: Double($0) * 180) }
             let driver = ChapterFocusDriver()
             window.rootViewController = UIHostingController(rootView:
@@ -55,6 +55,12 @@ final class PlayerChapterHostedTests: XCTestCase {
             driver.requestFocus?(.chapter(180))
             try await waitUntil { driver.observedFocus == .chapter(180) }
             let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+            if hasArtwork {
+                XCTAssertGreaterThanOrEqual(focused.frame.height, PlayerCardMetrics.tv.cardHeight - 1)
+            } else {
+                XCTAssertLessThan(focused.frame.height, PlayerCardMetrics.tv.cardHeight / 2,
+                                  "Text-only chapter cards must not reserve an empty image area.")
+            }
             for time in [179.9, 180, 359.9, 360] {
                 model.currentSeconds = time
                 try await Task.sleep(for: .milliseconds(50))
@@ -76,12 +82,19 @@ final class PlayerChapterHostedTests: XCTestCase {
             }?.boundingBox)
             let inset = max(PlayerCardMetrics.tv.contentPadding, PlayerCardMetrics.tv.panelCornerRadius / 2)
             XCTAssertGreaterThanOrEqual(timeBox.minX * window.bounds.width - driver.panelFrame.minX, inset - 2)
-            XCTAssertGreaterThanOrEqual(
-                driver.panelFrame.maxY - (1 - timeBox.minY) * window.bounds.height, inset - 2,
-                "Chapter time must clear the rounded bottom corner, including while another card is focused."
-            )
+            if hasArtwork {
+                XCTAssertGreaterThanOrEqual(
+                    driver.panelFrame.maxY - (1 - timeBox.minY) * window.bounds.height, inset - 2,
+                    "Chapter time must clear the rounded bottom corner, including while another card is focused."
+                )
+            } else {
+                let titleBox = try XCTUnwrap(recognition.results?.first {
+                    $0.topCandidates(1).first?.string == "Opening"
+                }?.boundingBox)
+                XCTAssertLessThan((1 - titleBox.maxY) * window.bounds.height - driver.panelFrame.minY, inset * 2)
+            }
             let attachment = XCTAttachment(image: image)
-            attachment.name = "Chapter cards - \(reducedGlass ? "reduced" : "native glass")"
+            attachment.name = "Chapter cards \(hasArtwork ? "mixed" : "text") - \(reducedGlass ? "reduced" : "native glass")"
             attachment.lifetime = .keepAlways
             add(attachment)
         }
