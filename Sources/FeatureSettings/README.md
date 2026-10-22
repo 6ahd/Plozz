@@ -120,6 +120,7 @@ watch history and planning-list behavior are documented in
   Library Navigation comes first, including the first Down move from Back on TV.
   The Recommended Page controls follow it; headings and helper copy name the
   library's page explicitly rather than implying suggested settings.
+  The Libraries list opens each library's Recommended Page Rows editor.
   The TV logo control reuses `HeroLogoSizeControl` with one Showcase preview.
   Library tabs share an arrangement across the profile; each library separately
   owns its Recommended row arrangement. Both editors use `LiftableReorderList`,

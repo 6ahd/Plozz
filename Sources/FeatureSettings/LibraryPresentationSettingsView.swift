@@ -50,7 +50,7 @@ public struct LibraryPresentationSettingsView: View {
                 )
             }
             #endif
-            Text("Recommended Page Rows")
+            Text("Libraries")
                 .font(.headline)
                 .padding(.top)
             Text("Choose a library to arrange or hide rows on its Recommended page.")

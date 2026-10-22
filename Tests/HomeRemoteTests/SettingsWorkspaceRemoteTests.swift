@@ -15,11 +15,13 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let recommended = app.staticTexts.matching(
             NSPredicate(format: "label ==[c] %@", "Recommended Page")
         ).firstMatch
-        let rows = app.staticTexts["Recommended Page Rows"]
+        let libraries = app.staticTexts["Libraries"]
         XCTAssertTrue(recommended.exists, app.debugDescription)
-        XCTAssertTrue(rows.exists, app.debugDescription)
+        XCTAssertTrue(libraries.exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Recommended Page Rows"].exists,
+                       "This page lists libraries; row settings belong inside the selected library.")
         XCTAssertLessThan(navigation.frame.maxY, recommended.frame.minY)
-        XCTAssertLessThan(recommended.frame.maxY, rows.frame.minY)
+        XCTAssertLessThan(recommended.frame.maxY, libraries.frame.minY)
         let back = pageBack(in: app)
         try focus(back, in: app)
         XCUIRemote.shared.press(.down)
