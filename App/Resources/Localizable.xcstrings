@@ -178500,6 +178500,226 @@
         }
       }
     },
+    "Center button action" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "وظيفة الزر الأوسط"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Действие на централния бутон"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acció del botó central"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akce prostředního tlačítka"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Midterknappens funktion"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktion der mittleren Taste"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ενέργεια κεντρικού κουμπιού"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acción del botón central"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عملکرد دکمهٔ وسط"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keskipainikkeen toiminto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Action du bouton central"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פעולת הכפתור המרכזי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बीच वाले बटन का कार्य"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Radnja središnjeg gumba"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Középső gomb művelete"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tindakan tombol tengah"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Azione del tasto centrale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央ボタンの動作"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "가운데 버튼 동작"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tindakan butang tengah"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Handling for midtknappen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Actie van de middelste knop"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Działanie środkowego przycisku"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ação do botão central"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acțiunea butonului central"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Действие центральной кнопки"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akcia stredného tlačidla"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dejanje sredinskega gumba"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Radnja srednjeg dugmeta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mittenknappens funktion"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การทำงานของปุ่มกลาง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orta düğme eylemi"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Дія центральної кнопки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chức năng nút giữa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央按钮操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央按鈕動作"
+          }
+        }
+      }
+    },
     "Centre" : {
       "comment" : "Value label in subtitle horizontal-offset controls when the text is centered.",
       "localizations" : {
@@ -504944,6 +505164,226 @@
         }
       }
     },
+    "Open detail page" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فتح صفحة التفاصيل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отваряне на страницата с подробности"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obre la pàgina de detalls"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otevřít stránku s podrobnostmi"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åbn detaljeside"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detailseite öffnen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Άνοιγμα σελίδας λεπτομερειών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir página de detalles"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن صفحهٔ جزئیات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avaa tietosivu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouvrir la page de détails"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פתיחת דף הפרטים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "विवरण पेज खोलें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori stranicu s pojedinostima"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Részletes adatlap megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka halaman detail"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apri pagina dei dettagli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "詳細ページを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "상세 페이지 열기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka halaman butiran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åpne detaljside"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detailpagina openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otwórz stronę szczegółów"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir página de detalhes"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deschide pagina cu detalii"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Открыть страницу сведений"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvoriť stránku s podrobnosťami"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odpri stran s podrobnostmi"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori stranicu sa detaljima"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Öppna detaljsidan"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดหน้ารายละเอียด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayrıntı sayfasını aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відкрити сторінку відомостей"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mở trang chi tiết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打开详情页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開啟詳細資訊頁面"
+          }
+        }
+      }
+    },
     "Open family guidance" : {
       "localizations" : {
         "ar" : {
@@ -671727,6 +672167,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "所選伺服器"
+          }
+        }
+      }
+    },
+    "Selecting a movie or episode on Home opens its detail page." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يؤدي اختيار فيلم أو حلقة في الرئيسية إلى فتح صفحة التفاصيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Избирането на филм или епизод в „Начало“ отваря страницата му с подробности."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seleccionar una pel·lícula o un episodi a Inici n'obre la pàgina de detalls."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výběrem filmu nebo epizody na kartě Domů otevřete stránku s podrobnostmi."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du vælger en film eller et afsnit på fanen Hjem, åbnes detaljesiden."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wenn du unter Start einen Film oder eine Folge auswählst, wird die zugehörige Detailseite geöffnet."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η επιλογή μιας ταινίας ή ενός επεισοδίου στην καρτέλα Αρχική ανοίγει τη σελίδα λεπτομερειών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al seleccionar una película o un episodio en Inicio, se abre su página de detalles."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با انتخاب فیلم یا قسمت در زبانهٔ خانه، صفحهٔ جزئیات آن باز می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elokuvan tai jakson valitseminen Koti-välilehdellä avaa sen tietosivun."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sélectionner un film ou un épisode dans l’onglet Accueil ouvre sa page de détails."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בחירת סרט או פרק בלשונית בית פותחת את דף הפרטים שלו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "होम पर कोई फ़िल्म या एपिसोड चुनने से उसका विवरण पेज खुलता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odabirom filma ili epizode na stranici Početna otvara se stranica s pojedinostima."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ha filmet vagy epizódot választasz a Kezdőlapon, megnyílik a részletes adatlapja."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih film atau episode di Beranda akan membuka halaman detailnya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selezionando un film o un episodio nella Home si apre la sua pagina dei dettagli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ホームで映画やエピソードを選択すると、詳細ページが開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "홈에서 영화나 에피소드를 선택하면 상세 페이지가 열립니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih filem atau episod di Laman Utama membuka halaman butirannya."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du velger en film eller episode på Hjem, åpnes detaljsiden."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je een film of aflevering op het tabblad Start selecteert, wordt de detailpagina geopend."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybranie filmu lub odcinka na karcie „Strona główna” otwiera jego stronę szczegółów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selecionar um filme ou episódio na aba Início abre sua página de detalhes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selectarea unui film sau episod din fila Acasă deschide pagina sa cu detalii."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При выборе фильма или эпизода на вкладке «Главная» открывается страница сведений о нём."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výberom filmu alebo epizódy na karte Domov otvoríte stránku s podrobnosťami."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbira filma ali epizode na zavihku Domov odpre stran s podrobnostmi."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbor filma ili epizode na kartici Početna otvara stranicu sa detaljima."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du väljer en film eller ett avsnitt på fliken Hem öppnas dess detaljsida."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเลือกภาพยนตร์หรือตอนในหน้าแรกจะเปิดหน้ารายละเอียดของรายการนั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ana Sayfa'da bir film veya bölüm seçmek, ilgili ayrıntı sayfasını açar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вибір фільму або епізоду на сторінці «Головна» відкриває сторінку відомостей про нього."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn phim hoặc tập phim trên Trang chủ sẽ mở trang chi tiết của mục đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首页选择电影或单集时打开其详情页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首頁選取電影或單集時，開啟其詳細資訊頁面。"
+          }
+        }
+      }
+    },
+    "Selecting a movie or episode on Home starts playback." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يؤدي اختيار فيلم أو حلقة في الرئيسية إلى بدء التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Избирането на филм или епизод в „Начало“ стартира възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seleccionar una pel·lícula o un episodi a Inici inicia la reproducció."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výběrem filmu nebo epizody na kartě Domů spustíte přehrávání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du vælger en film eller et afsnit på fanen Hjem, starter afspilningen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wenn du unter Start einen Film oder eine Folge auswählst, beginnt die Wiedergabe."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η επιλογή μιας ταινίας ή ενός επεισοδίου στην καρτέλα Αρχική ξεκινά την αναπαραγωγή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al seleccionar una película o un episodio en Inicio, comienza la reproducción."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با انتخاب فیلم یا قسمت در زبانهٔ خانه، پخش شروع می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elokuvan tai jakson valitseminen Koti-välilehdellä aloittaa toiston."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sélectionner un film ou un épisode dans l’onglet Accueil lance la lecture."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בחירת סרט או פרק בלשונית בית מתחילה את ההפעלה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "होम पर कोई फ़िल्म या एपिसोड चुनने से प्लेबैक शुरू होता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odabirom filma ili epizode na stranici Početna započinje reprodukcija."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ha filmet vagy epizódot választasz a Kezdőlapon, elindul a lejátszás."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih film atau episode di Beranda akan memulai pemutaran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selezionando un film o un episodio nella Home si avvia la riproduzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ホームで映画やエピソードを選択すると、再生が始まります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "홈에서 영화나 에피소드를 선택하면 재생이 시작됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih filem atau episod di Laman Utama memulakan main balik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du velger en film eller episode på Hjem, starter avspillingen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je een film of aflevering op het tabblad Start selecteert, begint het afspelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybranie filmu lub odcinka na karcie „Strona główna” rozpoczyna odtwarzanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selecionar um filme ou episódio na aba Início inicia a reprodução."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selectarea unui film sau episod din fila Acasă pornește redarea."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При выборе фильма или эпизода на вкладке «Главная» начинается воспроизведение."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výberom filmu alebo epizódy na karte Domov spustíte prehrávanie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbira filma ali epizode na zavihku Domov zažene predvajanje."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbor filma ili epizode na kartici Početna pokreće reprodukciju."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du väljer en film eller ett avsnitt på fliken Hem startar uppspelningen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเลือกภาพยนตร์หรือตอนในหน้าแรกจะเริ่มเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ana Sayfa'da bir film veya bölüm seçmek oynatmayı başlatır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вибір фільму або епізоду на сторінці «Головна» запускає відтворення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn phim hoặc tập phim trên Trang chủ sẽ bắt đầu phát."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首页选择电影或单集时开始播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首頁選取電影或單集時，開始播放。"
           }
         }
       }
@@ -909657,6 +910537,226 @@
         }
       }
     },
+    "When tapping an item" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عند النقر على عنصر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При докосване на елемент"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En tocar un element"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Při klepnutí na položku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du trykker på et element"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beim Antippen eines Eintrags"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κατά το πάτημα ενός στοιχείου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al tocar un elemento"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هنگام ضربه زدن روی یک مورد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kohdetta napautettaessa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En touchant un élément"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בעת הקשה על פריט"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "किसी आइटम पर टैप करने पर"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pri dodiru stavke"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elemre koppintáskor"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Saat mengetuk item"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quando tocchi un elemento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "項目をタップしたとき"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "항목을 탭할 때"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apabila mengetik item"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du trykker på et element"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je op een item tikt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Po stuknięciu elementu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ao tocar em um item"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La atingerea unui element"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При нажатии на элемент"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pri klepnutí na položku"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ob dotiku elementa"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kada dodirnete stavku"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du trycker på ett objekt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เมื่อแตะรายการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bir öğeye dokunulduğunda"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Коли торкаєтеся елемента"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khi chạm vào một mục"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "轻点项目时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "點一下項目時"
+          }
+        }
+      }
+    },
     "When you return to a partially-watched title, playback starts a little before where you left off. Set anywhere from 0 to 60 seconds." : {
       "localizations" : {
         "ar" : {
@@ -915388,6 +916488,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "你可以在「設定」中新增更多使用者設定檔。"
+          }
+        }
+      }
+    },
+    "You can also press Play/Pause %@ on your remote to play the focused item." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك أيضًا الضغط على زر تشغيل/إيقاف مؤقت %@ في جهاز التحكم لتشغيل العنصر المظلّل حاليًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете също да натиснете бутона Възпроизвеждане/Пауза %@ на дистанционното, за да възпроизведете маркирания елемент."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "També pots prémer el botó Reproducció/Pausa %@ del comandament per reproduir l'element ressaltat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýrazněnou položku můžete přehrát také stisknutím tlačítka Přehrát/Pozastavit %@ na ovladači."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på knappen Afspil/Pause %@ på fjernbetjeningen for at afspille det fremhævede element."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst auch die Taste Wiedergabe/Pause %@ auf deiner Fernbedienung drücken, um den hervorgehobenen Eintrag abzuspielen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μπορείτε επίσης να πατήσετε Αναπαραγωγή/Παύση %@ στο τηλεχειριστήριο για να αναπαραγάγετε το επισημασμένο στοιχείο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "También puedes pulsar Reproducir/Pausa %@ en el mando para reproducir el elemento resaltado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "همچنین می‌توانید دکمهٔ پخش/مکث %@ روی کنترل را فشار دهید تا مورد برجسته‌شده پخش شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit toistaa korostetun kohteen myös painamalla kaukosäätimen Toisto/Tauko-painiketta %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez aussi appuyer sur Lecture/Pause %@ sur votre télécommande pour lire l'élément en surbrillance."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר גם ללחוץ על הפעלה/השהיה %@ בשלט כדי להפעיל את הפריט המודגש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हाइलाइट किए गए आइटम को चलाने के लिए आप अपने रिमोट का चलाएं/विराम दें %@ बटन भी दबा सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete reproducirati i pritiskom na gumb Reproduciraj/Pauziraj %@ na daljinskom upravljaču."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A kiemelt elemet a távirányító Lejátszás/Szünet %@ gombjával is lejátszhatod."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga dapat menekan tombol Putar/Jeda %@ pada remote untuk memutar item yang disorot."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi anche premere Riproduci/Pausa %@ sul telecomando per riprodurre l'elemento evidenziato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リモコンの再生/一時停止 %@ ボタンを押して、ハイライトされた項目を再生することもできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "리모컨의 재생/일시 정지 %@ 버튼을 눌러 강조 표시된 항목을 재생할 수도 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga boleh menekan Main/Jeda %@ pada alat kawalan jauh untuk memainkan item yang diserlahkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på Spill av/pause-knappen %@ på fjernkontrollen for å spille av det markerte elementet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt ook op Afspelen/Pauze %@ op je afstandsbediening drukken om het gemarkeerde item af te spelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz też nacisnąć przycisk Odtwórz/Pauza %@ na pilocie, aby odtworzyć wyróżniony element."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Você também pode pressionar Reproduzir/Pausar %@ no controle remoto para reproduzir o item em foco."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți apăsa și Redare/Pauză %@ pe telecomandă pentru a reda elementul evidențiat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чтобы воспроизвести выделенный элемент, можно также нажать кнопку «Воспроизведение/Пауза» %@ на пульте."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznenú položku môžete prehrať aj stlačením tlačidla Prehrať/Pozastaviť %@ na ovládači."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Označeni element lahko predvajate tudi s pritiskom na gumb Predvajanje/Premor %@ na daljinskem upravljalniku."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete pustiti i pritiskom na dugme Reprodukcija/Pauza %@ na daljinskom upravljaču."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan också trycka på Spela/Paus %@ på fjärrkontrollen för att spela upp det markerade objektet."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณยังสามารถกดปุ่มเล่น/หยุดชั่วคราว %@ บนรีโมตเพื่อเล่นรายการที่ไฮไลต์อยู่ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaktaki öğeyi oynatmak için kumandanızdaki Oynat/Duraklat %@ düğmesine de basabilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щоб відтворити виділений елемент, можна також натиснути кнопку «Відтворення/пауза» %@ на пульті."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn cũng có thể nhấn nút Phát/Tạm dừng %@ trên điều khiển từ xa để phát mục đang được tô sáng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遥控器上的播放/暂停 %@ 按钮来播放当前高亮显示的项目。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遙控器上的播放/暫停 %@ 按鈕，播放目前反白顯示的項目。"
+          }
+        }
+      }
+    },
+    "You can also press Play/Pause on your remote to play the focused item." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك أيضًا الضغط على زر تشغيل/إيقاف مؤقت في جهاز التحكم لتشغيل العنصر المظلّل حاليًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете също да натиснете бутона Възпроизвеждане/Пауза на дистанционното, за да възпроизведете маркирания елемент."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "També pots prémer el botó Reproducció/Pausa del comandament per reproduir l'element ressaltat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýrazněnou položku můžete přehrát také stisknutím tlačítka Přehrát/Pozastavit na ovladači."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på knappen Afspil/Pause på fjernbetjeningen for at afspille det fremhævede element."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst auch die Taste Wiedergabe/Pause auf deiner Fernbedienung drücken, um den hervorgehobenen Eintrag abzuspielen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μπορείτε επίσης να πατήσετε Αναπαραγωγή/Παύση στο τηλεχειριστήριο για να αναπαραγάγετε το επισημασμένο στοιχείο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "También puedes pulsar Reproducir/Pausa en el mando para reproducir el elemento resaltado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "همچنین می‌توانید دکمهٔ پخش/مکث روی کنترل را فشار دهید تا مورد برجسته‌شده پخش شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit toistaa korostetun kohteen myös painamalla kaukosäätimen Toisto/Tauko-painiketta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez aussi appuyer sur Lecture/Pause sur votre télécommande pour lire l'élément en surbrillance."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר גם ללחוץ על הפעלה/השהיה בשלט כדי להפעיל את הפריט המודגש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हाइलाइट किए गए आइटम को चलाने के लिए आप अपने रिमोट का चलाएं/विराम दें बटन भी दबा सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete reproducirati i pritiskom na gumb Reproduciraj/Pauziraj na daljinskom upravljaču."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A kiemelt elemet a távirányító Lejátszás/Szünet gombjával is lejátszhatod."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga dapat menekan tombol Putar/Jeda pada remote untuk memutar item yang disorot."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi anche premere Riproduci/Pausa sul telecomando per riprodurre l'elemento evidenziato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リモコンの再生/一時停止ボタンを押して、ハイライトされた項目を再生することもできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "리모컨의 재생/일시 정지 버튼을 눌러 강조 표시된 항목을 재생할 수도 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga boleh menekan Main/Jeda pada alat kawalan jauh untuk memainkan item yang diserlahkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på Spill av/pause-knappen på fjernkontrollen for å spille av det markerte elementet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt ook op Afspelen/Pauze op je afstandsbediening drukken om het gemarkeerde item af te spelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz też nacisnąć przycisk Odtwórz/Pauza na pilocie, aby odtworzyć wyróżniony element."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Você também pode pressionar Reproduzir/Pausar no controle remoto para reproduzir o item em foco."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți apăsa și Redare/Pauză pe telecomandă pentru a reda elementul evidențiat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чтобы воспроизвести выделенный элемент, можно также нажать кнопку «Воспроизведение/Пауза» на пульте."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznenú položku môžete prehrať aj stlačením tlačidla Prehrať/Pozastaviť na ovládači."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Označeni element lahko predvajate tudi s pritiskom na gumb Predvajanje/Premor na daljinskem upravljalniku."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete pustiti i pritiskom na dugme Reprodukcija/Pauza na daljinskom upravljaču."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan också trycka på Spela/Paus på fjärrkontrollen för att spela upp det markerade objektet."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณยังสามารถกดปุ่มเล่น/หยุดชั่วคราวบนรีโมตเพื่อเล่นรายการที่ไฮไลต์อยู่ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaktaki öğeyi oynatmak için kumandanızdaki Oynat/Duraklat düğmesine de basabilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щоб відтворити виділений елемент, можна також натиснути кнопку «Відтворення/пауза» на пульті."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn cũng có thể nhấn nút Phát/Tạm dừng trên điều khiển từ xa để phát mục đang được tô sáng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遥控器上的播放/暂停按钮来播放当前高亮显示的项目。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遙控器上的播放/暫停按鈕，播放目前反白顯示的項目。"
           }
         }
       }
