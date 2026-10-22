@@ -403,9 +403,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertTrue(text.contains(String(localized: action.displayName)), text)
                 XCTAssertEqual(store.load().continueWatchingAction, action)
                 #if os(tvOS)
-                XCTAssertTrue(text.contains("Play/Pause always plays the selected item."), text)
+                XCTAssertTrue(text.contains("on your remote always plays the selected item."), text)
+                XCTAssertFalse(text.contains("Play/Pause"), "The visible helper uses the remote button symbol.")
                 XCTAssertLessThan(
-                    try self.y("Play/Pause", in: lines), try self.y("Continue Watching action", in: lines),
+                    try self.y("on your remote", in: lines), try self.y("Continue Watching action", in: lines),
                     "The explanation belongs below the selection control."
                 )
                 let label = try XCTUnwrap(lines.first { $0.0.contains("Continue Watching action") }).1

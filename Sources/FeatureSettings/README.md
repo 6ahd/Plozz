@@ -138,8 +138,9 @@ watch history and planning-list behavior are documented in
   store and profile transfer; it does not change artwork or Live TV shortcuts.
   On Apple TV this setting controls the center button only; the remote's
   Play/Pause button always starts the focused Continue Watching movie or episode.
-  Short helper text below the control explains the shortcut without promising
-  immediate playback.
+  Short helper text below the control uses the filled Play/Pause symbol to
+  explain the remote shortcut without promising immediate playback. VoiceOver
+  reads the button name instead of the symbol.
   Continue Watching offers three native preview choices: Artwork + logo,
   Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
   with an overlaid logo, an unbranded scene, and portrait poster artwork without
