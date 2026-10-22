@@ -5,6 +5,7 @@ import FeatureHomeCore
 import HeroUI
 #if os(tvOS)
 @testable import FeatureHome
+import TVUIKit
 #elseif os(iOS)
 @testable import AppShelliOS
 #endif
@@ -151,6 +152,89 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     #if os(tvOS)
+    func testFeaturedRailUsesTheSharedPinnedNavigationKeyline() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        let items = (0..<6).map { MediaItem(id: "aligned-\($0)", title: "Title \($0)", kind: .movie) }
+        for pinned in [false, true] {
+            try await withWindow {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        MediaRowView(title: Text("Reference row"), items: [], onSeeAll: {}, onSelect: { _ in })
+                        FeaturedMediaRow(
+                            title: Text("Featured row"), items: items, scope: ObjectIdentifier(controller),
+                            coordinator: coordinator, controller: controller, settings: .default,
+                            resolver: { _ in nil }, isActive: false, onSeeAll: {}, onSelect: { _ in }
+                        )
+                        .disabled(true)
+                    }
+                }
+                .environment(\.plozzPinnedSidebarActive, pinned)
+                .environment(\.plozzNavigationContentInset, pinned ? 64 : 0)
+                .environment(\.plozzCardFocusStyle, .system)
+            } inspect: { window in
+                let lines = try await self.capture(window, name: "Featured keyline pinned \(pinned)")
+                let reference = try XCTUnwrap(lines.first { $0.0 == "Reference row" }).1
+                let featured = try XCTUnwrap(lines.first { $0.0 == "Featured row" }).1
+                XCTAssertEqual(featured.minX * window.bounds.width, reference.minX * window.bounds.width, accuracy: 3)
+                XCTAssertEqual(featured.height * window.bounds.height, reference.height * window.bounds.height, accuracy: 3)
+                let actions = lines.filter { $0.0 == "See all" }.map(\.1)
+                XCTAssertEqual(actions.count, 2)
+                if actions.count == 2 {
+                    XCTAssertEqual(actions[0].maxX * window.bounds.width, actions[1].maxX * window.bounds.width, accuracy: 3)
+                    XCTAssertEqual(actions[0].height * window.bounds.height, actions[1].height * window.bounds.height, accuracy: 3)
+                }
+                let card = try XCTUnwrap(self.nativeFeaturedCards(in: window).first)
+                let edge = card.contentView.convert(card.contentView.bounds, to: window).minX
+                XCTAssertEqual(edge, reference.minX * window.bounds.width, accuracy: 4,
+                               "The resting artwork and both headings must share the same keyline.")
+            }
+        }
+    }
+
+    func testFeaturedNativeCardDoesNotExposeBackingAroundDarkArtwork() async throws {
+        try await withWindow {
+            HStack(spacing: 50) {
+                FeaturedCornerFixture()
+                FeaturedCornerFixture()
+            }
+            .environment(\.plozzCardFocusStyle, .system)
+            .environment(\.themePalette, .light)
+        } inspect: { window in
+            let image = try await self.snapshot(window, name: "Featured resting dark corners")
+            let cards = self.nativeFeaturedCards(in: window)
+            XCTAssertEqual(cards.count, 2)
+            let card = try XCTUnwrap(cards.first { !$0.isFocused })
+            XCTAssertFalse(card.isFocused)
+            let frame = card.contentView.convert(card.contentView.bounds, to: window)
+            let bitmap = try XCTUnwrap(image.cgImage)
+            var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
+            let context = try XCTUnwrap(CGContext(
+                data: &pixels, width: bitmap.width, height: bitmap.height,
+                bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+            var lightest = 0
+            for x in Int(frame.minX)..<Int(frame.maxX) {
+                for y in Int(frame.minY)..<Int(frame.maxY) {
+                    guard x < Int(frame.minX) + 24 || x >= Int(frame.maxX) - 24
+                            || y < Int(frame.minY) + 24 || y >= Int(frame.maxY) - 24 else { continue }
+                    let index = (y * bitmap.width + x) * 4
+                    lightest = max(lightest, Int(pixels[index]), Int(pixels[index + 1]), Int(pixels[index + 2]))
+                }
+            }
+            XCTAssertLessThan(lightest, 12, "A second artwork clip must not uncover the native card's light backing.")
+        }
+    }
+
+    private func nativeFeaturedCards(in view: UIView) -> [TVCardView] {
+        if let card = view as? TVCardView { return [card] }
+        return view.subviews.flatMap(nativeFeaturedCards)
+    }
+
     func testReorderInitialTargetOwnsNativeFocusWithoutAnotherSelection() async throws {
         try await withWindow {
             LiftableReorderList(
@@ -454,6 +538,25 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             _ = try await self.capture(window, name: "Preset after server recovery")
         }
     }
+
+    #if os(tvOS)
+    private struct FeaturedCornerFixture: View {
+        @PlozzCardFocus private var focused
+
+        var body: some View {
+            FeaturedCardArtwork(
+                item: MediaItem(id: "corners", title: "Dark artwork", kind: .movie),
+                size: CGSize(width: 520.25, height: 650.3125)
+            ) {
+                Color.black
+            }
+            .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
+            .focusableCard(isFocused: $focused, cornerRadius: 20, action: {})
+            .plozzCardFocusTransition(isFocused: focused)
+            .frame(width: 520.25, height: 650.3125)
+        }
+    }
+    #endif
 
     #if os(iOS)
     func testMobilePresetScrollsWithSectionsWhileToolbarRemainsVisible() async throws {

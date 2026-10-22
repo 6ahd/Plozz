@@ -19,6 +19,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
     private let spoilerSettings: SpoilerSettings
     private let video: Video
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
+    @Environment(\.plozzNativeFocusSurface) private var nativeFocusSurface
 
     public init(
         item: MediaItem, size: CGSize, spoilerSettings: SpoilerSettings = .default,
@@ -94,7 +95,8 @@ public struct FeaturedCardArtwork<Video: View>: View {
         }
         .frame(width: size.width, height: size.height)
         .background(.black)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        // TVCardView owns the outer rounding; a second curve exposes its backing.
+        .clipShape(RoundedRectangle(cornerRadius: nativeFocusSurface ? 0 : 20, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(Text(verbatim: metadata))

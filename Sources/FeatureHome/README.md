@@ -172,6 +172,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   failures remain distinct from empty collections.
   Featured is available only for authored collection rows. Large artwork cards
   place the title logo (or text fallback) and real metadata at the lower left.
+  TV rows reuse the standard media-row heading and See all action, with the same
+  pinned-navigation keyline, leading fade and card-slot parking as ordinary rows.
+  Native card focus owns the artwork's outer rounding, avoiding a second clipped
+  curve that exposes the card backing at its edges.
   The focused TV card or settled visible mobile card can play a supported
   local/server trailer, using the profile's Home trailer enable/mute preferences.
   A shared coordinator arbitrates visible rails and borrows the existing hero

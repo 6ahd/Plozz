@@ -25,6 +25,10 @@ public struct FeaturedMediaRow: View {
     @State private var viewportWidth: CGFloat = 390
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.plozzNavigationContentInset) private var navigationContentInset
+    @Environment(\.plozzPinnedSidebarActive) private var pinnedSidebarActive
+    @Environment(\.plozzMetrics) private var metrics
+    @Environment(\.plozzRowTitleTightening) private var titleTightening
 
     public init(
         title: Text, items: [MediaItem], scope: ObjectIdentifier,
@@ -56,8 +60,12 @@ public struct FeaturedMediaRow: View {
         #endif
     }
     private var inset: CGFloat { television ? PlozzTheme.Metrics.screenPadding : 20 }
+    private var cardSpacing: CGFloat { television ? 32 : 16 }
     private var size: CGSize {
-        FeaturedCardLayout.size(viewportWidth: viewportWidth, television: television)
+        FeaturedCardLayout.size(
+            viewportWidth: viewportWidth - (television ? navigationContentInset : 0),
+            television: television
+        )
     }
     private var candidate: MediaItem? {
         guard isActive, scenePhase == .active, !reduceMotion,
@@ -78,9 +86,18 @@ public struct FeaturedMediaRow: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: television ? 22 : 12) {
+        VStack(alignment: .leading, spacing: television ? metrics.sectionTitleSpacing - titleTightening : 12) {
+            #if os(tvOS)
+            MediaRowHeader(
+                title: title,
+                onSeeAll: onSeeAll.map { action in {
+                    coordinator.stop()
+                    action()
+                } }
+            )
+            #else
             HStack {
-                title.font(television ? .title3.bold() : .title2.bold())
+                title.font(.title2.bold())
                 Spacer()
                 if let onSeeAll {
                     Button("See all") {
@@ -90,10 +107,12 @@ public struct FeaturedMediaRow: View {
                 }
             }
             .padding(.horizontal, inset)
+            #endif
             if items.isEmpty {
                 Text("No titles in this collection.")
                     .plozzForeground(.secondary)
-                    .padding(.horizontal, inset)
+                    .padding(.leading, inset + (television ? navigationContentInset : 0))
+                    .padding(.trailing, inset)
             } else {
                 rail
             }
@@ -120,9 +139,23 @@ public struct FeaturedMediaRow: View {
         .onDisappear { coordinator.withdraw(rowID: rowID) }
     }
 
+    @ViewBuilder
     private var rail: some View {
+        #if os(tvOS)
+        PinnedSidebarLeadingFade(
+            isActive: pinnedSidebarActive, inset: navigationContentInset,
+            verticalOverhang: 24, cardPitch: size.width + cardSpacing
+        ) {
+            scroll
+        }
+        #else
+        scroll
+        #endif
+    }
+
+    private var scroll: some View {
         ScrollView(.horizontal) {
-            LazyHStack(spacing: television ? 32 : 16) {
+            LazyHStack(spacing: cardSpacing) {
                 ForEach(items, id: \.stablePresentationID) { item in
                     FeaturedMediaCard(
                         item: item, size: size, spoilers: spoilers,
@@ -148,9 +181,14 @@ public struct FeaturedMediaRow: View {
                 }
             }
             .scrollTargetLayout()
+            #if os(tvOS)
+            .padding(.horizontal, inset)
+            #endif
             .padding(.vertical, television ? 24 : 4)
         }
+        #if os(iOS)
         .contentMargins(.horizontal, inset, for: .scrollContent)
+        #endif
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
         #if os(iOS)
