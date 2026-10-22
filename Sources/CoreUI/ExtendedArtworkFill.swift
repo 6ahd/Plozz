@@ -129,18 +129,8 @@ public struct ExtendedArtworkFill<Picture: View>: View {
                 sideCrop: sideCrop,
                 minimumReflectionShare: minimumReflectionShare
             )
-            // Sharp layers share ONE outer clip.
-            //
-            // Every `.clipped()` is a rasterisation boundary, and a boundary is
-            // resampled independently when an ancestor scales the card on focus.
-            // Two of them on the same line — the picture's bottom and the
-            // reflection's top — meant that at rest they landed on whole pixels
-            // and looked perfect, while any scale resampled both and let a
-            // hairline show between them. Overlapping the layers alone did not
-            // fix it, because the edges were still there to be resampled; they
-            // have to not exist. The sharp picture may
-            // overrun into the band because the opaque reflection covers it, and
-            // the reflection may overrun past the card because this clip cuts it.
+            // Reflections overlap behind the fitted picture, then share the
+            // card's outer clip so focus scaling cannot open gaps at the joins.
             ZStack(alignment: .top) {
                 sizedPicture(geometry)
                 if progressivelyBlursReflection, geometry.sideReflectionWidth > 0 {
@@ -196,8 +186,12 @@ public struct ExtendedArtworkFill<Picture: View>: View {
                 let offset = max(0, geometry.renderedWidth - ExtendedArtworkWash.sideSeamOverlap)
                 mirror.scaleEffect(x: -1, y: 1).offset(x: -offset)
                 mirror.scaleEffect(x: -1, y: 1).offset(x: offset)
+                // Aspect-fill sources can be wider than their proposed frame.
+                // Keep the visible crop from painting over its mirrored edges.
+                sized.clipped()
+            } else {
+                sized
             }
-            sized
         }
     }
 
@@ -389,11 +383,17 @@ enum ExtendedArtworkBitmap {
         if let cached = cache.object(forKey: key), cached.source === image {
             return cached.bitmap
         }
+        // Render through the complete pixel allocation, not a fractional frame
+        // that leaves a partially painted last row or column in the bitmap.
+        let rasterSize = CGSize(
+            width: ceil(size.width * scale) / scale,
+            height: ceil(size.height * scale) / scale
+        )
         var reflectionImage = image
         #if os(tvOS)
         if minimumReflectionShare > 0 {
             let geometry = ExtendedArtworkGeometry(
-                slot: size, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
+                slot: rasterSize, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
                 minimumReflectionShare: minimumReflectionShare
             )
             let reflectionSize = CGSize(width: geometry.renderedWidth, height: geometry.pictureHeight)
@@ -411,7 +411,7 @@ enum ExtendedArtworkBitmap {
         }
         #endif
         let content = Content(
-            image: image, reflectionImage: reflectionImage, size: size,
+            image: image, reflectionImage: reflectionImage, size: rasterSize,
             artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop,
             minimumReflectionShare: minimumReflectionShare,
             progressivelyBlursReflection: progressivelyBlursReflection
@@ -430,7 +430,7 @@ enum ExtendedArtworkBitmap {
         var rendered: UIImage?
         active.render(rasterizationScale: scale) { _, draw in
             rendered = NativePosterArtworkBitmap.image(
-                source: nil, size: size, scale: scale, backgroundColor: .clear,
+                source: nil, size: rasterSize, scale: scale, backgroundColor: .clear,
                 clipsToArtwork: false, drawOverlay: draw
             )
         }

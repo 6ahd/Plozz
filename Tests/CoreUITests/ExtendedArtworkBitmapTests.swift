@@ -336,6 +336,90 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         }
     }
 
+    func testNonstandardPosterRatiosReflectTheVisibleEdges() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        for sourceWidth in [180, 200, 216] {
+            let source = UIGraphicsImageRenderer(
+                size: CGSize(width: sourceWidth, height: 300), format: format
+            ).image { context in
+                for x in 0..<sourceWidth {
+                    UIColor(red: CGFloat(x) / CGFloat(sourceWidth), green: 0.5,
+                            blue: CGFloat(sourceWidth - 1 - x) / CGFloat(sourceWidth), alpha: 1).setFill()
+                    context.fill(CGRect(x: x, y: 0, width: 1, height: 300))
+                }
+            }
+            for scale: CGFloat in [1, 2] {
+                let size = CGSize(width: 220, height: 330)
+                let reference = ImageRenderer(content:
+                    ExtendedArtworkFill(
+                        image: Image(uiImage: source), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                        minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare
+                    )
+                    .frame(width: size.width, height: size.height)
+                )
+                reference.scale = scale
+                reference.isOpaque = true
+                let native = try XCTUnwrap(ExtendedArtworkBitmap.render(
+                    image: source, size: size, scale: scale, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare
+                ))
+                for (name, image) in [("SwiftUI", try XCTUnwrap(reference.uiImage)), ("native", native)] {
+                    let data = try pixels(image)
+                    let width = try XCTUnwrap(image.cgImage).width
+                    let inset = Int(10 * scale)
+                    let overlap = Int(scale)
+                    let row = Int(100 * scale)
+                    for x in 0..<inset {
+                        func red(_ column: Int) -> Double { Double(data[(row * width + column) * 4]) }
+                        XCTAssertEqual(red(x), red(inset * 2 - 1 - x + overlap), accuracy: 2,
+                                       "Left crop must meet its reflection: \(sourceWidth), \(scale), \(name), \(x)")
+                        XCTAssertEqual(red(width - 1 - x), red(width - inset * 2 + x - overlap), accuracy: 2,
+                                       "Right crop must meet its reflection: \(sourceWidth), \(scale), \(name), \(x)")
+                    }
+                }
+            }
+        }
+    }
+
+    func testFractionalPortraitRasterHasNoUnfilledOuterColumns() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 900), format: format).image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 600, height: 900))
+        }
+        for width: CGFloat in [220, 221.25, 280.7] {
+            for scale: CGFloat in [1, 2] {
+                let size = CGSize(width: width, height: width * 1.5)
+                let prepared = try XCTUnwrap(ExtendedArtworkBitmap.render(
+                    image: source, size: size, scale: scale, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+                    progressivelyBlursReflection: true
+                ))
+                var images = [prepared]
+                #if os(tvOS)
+                images.append(try XCTUnwrap(NativePosterArtworkBitmap.image(
+                    source: prepared, size: size, scale: scale, backgroundColor: .darkGray, clipsToArtwork: false
+                )))
+                #endif
+                for image in images {
+                    let data = try pixels(image)
+                    let pixelWidth = try XCTUnwrap(image.cgImage).width
+                    let row = Int(100 * scale)
+                    for column in 0..<pixelWidth {
+                        XCTAssertGreaterThanOrEqual(data[(row * pixelWidth + column) * 4], 254,
+                                                   "No dark edge at rest: \(width), \(scale), \(column)")
+                        XCTAssertEqual(data[(row * pixelWidth + column) * 4 + 3], 255,
+                                       "No transparent edge at rest: \(width), \(scale), \(column)")
+                    }
+                }
+            }
+        }
+    }
+
     func testPortraitSideJoinsStaySolidAtFractionalWidthsAndFocusScales() throws {
         for width: CGFloat in [132, 224, 280] {
             for focusScale: CGFloat in [1, 1.08] {

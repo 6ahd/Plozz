@@ -23,7 +23,10 @@ Native TV fits only reflection copies to display resolution before rendering,
 leaving the sharp central poster's original source untouched. It caches the
 finished artwork, including the reserved band and blur treatment in the cache
 identity; Reduce Transparency retains the unblurred fallback. Landscape reflection
-is unchanged.
+is unchanged. Nonstandard poster ratios use the same centered aspect-fill crop
+for the visible picture and reflected edges; the picture cannot overdraw the
+side bands. Native preparation and unclipped composition fill their complete
+pixel allocation at fractional card sizes without changing the card's layout.
 Progress only uses the ordinary 2:3 poster and existing
 `MediaCardPlaybackIndicators` white bar, including shared thickness, focus,
 insets, watch-state rules and download badges; it does not create another bar style.
