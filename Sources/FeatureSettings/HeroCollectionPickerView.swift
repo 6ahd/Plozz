@@ -7,6 +7,7 @@ public struct HeroCollectionPickerView: View {
     @Binding private var selections: [HeroCollectionSelection]
     private let libraries: [AggregatedLibrary]
     private let accounts: [ResolvedAccount]
+    private let onSelect: ((HeroCollectionSelection) -> Void)?
     @State private var sourceID: HeroCollectionPickerSource.ID?
     @SettingsPageDismiss private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -15,11 +16,13 @@ public struct HeroCollectionPickerView: View {
     public init(
         selections: Binding<[HeroCollectionSelection]>,
         libraries: [AggregatedLibrary],
-        accounts: [ResolvedAccount]
+        accounts: [ResolvedAccount],
+        onSelect: ((HeroCollectionSelection) -> Void)? = nil
     ) {
         _selections = selections
         self.libraries = libraries
         self.accounts = accounts
+        self.onSelect = onSelect
     }
 
     public var body: some View {
@@ -29,9 +32,10 @@ public struct HeroCollectionPickerView: View {
         }
         let source = sources.first(where: { $0.id == preferred }) ?? sources.first
         ViewCustomizationList(
-            title: "Choose collections", initialRowID: source?.id.focusID ?? "hero-collection-done"
+            title: onSelect == nil ? "Choose collections" : "Choose collection",
+            initialRowID: source?.id.focusID ?? "hero-collection-done"
         ) {
-            if !selections.isEmpty {
+            if onSelect == nil && !selections.isEmpty {
                 HeroCollectionSection(title: "Selected collections") {
                     ForEach(selections) { selection in
                         let selectedSource = sources.first {
@@ -55,7 +59,8 @@ public struct HeroCollectionPickerView: View {
                 if let account = accounts.first(where: { $0.account.id == source.id.accountID }) {
                     HeroCollectionListView(
                         selections: $selections, source: source, provider: account.provider,
-                        serverUserID: account.plexHomeUserID ?? account.provider.session.userID
+                        serverUserID: account.plexHomeUserID ?? account.provider.session.userID,
+                        onSelect: onSelect
                     )
                     .id([
                         source.id.focusID, account.credentialRevision.rawValue.uuidString,
@@ -123,6 +128,7 @@ private struct HeroCollectionListView: View {
     @Binding var selections: [HeroCollectionSelection]
     let source: HeroCollectionPickerSource
     let serverUserID: String
+    let onSelect: ((HeroCollectionSelection) -> Void)?
     @State private var model: HeroCollectionListModel
     @State private var request = 0
 
@@ -130,11 +136,13 @@ private struct HeroCollectionListView: View {
         selections: Binding<[HeroCollectionSelection]>,
         source: HeroCollectionPickerSource,
         provider: any MediaProvider,
-        serverUserID: String
+        serverUserID: String,
+        onSelect: ((HeroCollectionSelection) -> Void)? = nil
     ) {
         _selections = selections
         self.source = source
         self.serverUserID = serverUserID
+        self.onSelect = onSelect
         _model = State(initialValue: HeroCollectionListModel(provider: provider, libraryID: source.id.libraryID))
     }
 
@@ -146,7 +154,7 @@ private struct HeroCollectionListView: View {
                     choice: HeroCollectionSelection(
                         accountID: source.id.accountID, libraryID: source.id.libraryID,
                         collectionID: collection.id, title: collection.title, serverUserID: serverUserID
-                    )
+                    ), onSelect: onSelect
                 )
             }
             if model.isLoading {
@@ -171,11 +179,15 @@ private struct HeroCollectionChoice: View {
     let choice: HeroCollectionSelection
     var source: HeroCollectionPickerSource? = nil
     var isSummary = false
+    var onSelect: ((HeroCollectionSelection) -> Void)? = nil
 
     var body: some View {
         let selected = HeroCollectionPickerSelection.contains(choice, in: selections)
         let focusID = choice.pickerFocusID(isSummary: isSummary)
-        Button { HeroCollectionPickerSelection.toggle(choice, in: &selections) } label: {
+        Button {
+            if let onSelect { onSelect(choice) }
+            else { HeroCollectionPickerSelection.toggle(choice, in: &selections) }
+        } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(verbatim: choice.title).multilineTextAlignment(.leading)

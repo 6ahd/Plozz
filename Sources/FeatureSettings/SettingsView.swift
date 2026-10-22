@@ -959,7 +959,8 @@ public struct SettingsView: View {
                 discoveredLibraries: librariesStore.state,
                 homeVisibility: homeVisibility,
                 seerConfigured: seer.isConfigured,
-                accounts: homeRowAccounts
+                accounts: homeRowAccounts,
+                spoilerSettings: spoilers.settings
             )
         case .customizeLibraries:
             if let libraryPresentationLoader {

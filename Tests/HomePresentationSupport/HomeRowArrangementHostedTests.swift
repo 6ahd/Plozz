@@ -15,6 +15,74 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testCollectionEditorPreviewsActualTitlesBesidePresentationChoices() async throws {
+        for style in CollectionSection.CardStyle.allCases {
+            let requested = expectation(description: "Collection preview requested")
+            let provider = HomeSettingsLibraryProvider(
+                name: "Collection server",
+                collectionItems: [MediaItem(id: "orbit", title: "Orbit", kind: .movie)],
+                onCollectionRequest: { requested.fulfill() }
+            )
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let section = CollectionSection(
+                source: .init(
+                    accountID: account.account.id, collectionID: "weekend",
+                    title: "Weekend picks", serverUserID: account.provider.session.userID
+                ),
+                cardStyle: style
+            )
+            let suite = "CollectionPreview.\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+            try await withWindow {
+                CollectionSectionSettingsView(
+                    section: section, isNew: true, inventory: HomeSectionCatalogModel(),
+                    visibility: visibility, libraries: [], accounts: [account]
+                )
+                #if os(tvOS)
+                .frame(width: SettingsFormMetrics.pageWidth)
+                #elseif os(iOS)
+                .environment(\.plozzMetrics, .touch(density: .standard))
+                #endif
+            } inspect: { window in
+                await self.fulfillment(of: [requested], timeout: 5)
+                let lines = try await self.capture(window, name: "Collection preview \(style.rawValue)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertTrue(text.contains("Weekend picks"), text)
+                XCTAssertTrue(text.contains("Orbit"), "Preview must display the provider's title: \(text)")
+                XCTAssertGreaterThan(try self.y("Posters", in: lines), try self.y("Orbit", in: lines))
+                XCTAssertTrue(visibility.visibility.collectionSections.isEmpty, "Previewing does not save a section.")
+            }
+        }
+    }
+
+    #if os(tvOS)
+    func testEmptyCollectionSeeAllIsFocusableAndReportsRowEntry() async throws {
+        var entries = 0
+        try await withWindow {
+            MediaRowView(
+                title: Text("Weekend picks"), items: [],
+                onFocusEntered: { entries += 1 },
+                onSeeAll: {}, onSelect: { _ in }
+            )
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Empty collection navigation")
+            XCTAssertTrue(lines.contains { $0.0.contains("No titles") })
+            let label = try XCTUnwrap(lines.first { $0.0.contains("See all") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let item = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: item)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === item && entries > 0 }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+        }
+    }
+    #endif
+
     func testReorderRemovalPreservesOtherSettingsAndRemainsAvailableToAdd() throws {
         let suite = "HomeReorderRemoval.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -1263,12 +1331,15 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     private let onFirstHomeRequest: (@Sendable () -> Void)?
     private var requestedHome = false
     private(set) var homeRequests = 0
+    private let collectionItems: [MediaItem]
+    private let onCollectionRequest: (@Sendable () -> Void)?
 
     init(
         name: String, isOffline: Bool = false, homeError: AppError? = nil,
         libraryTitle: String = "Movies", kind: ProviderKind = .jellyfin,
         holdsLibraries: Bool = false, homeLayout: ServerHomeLayout? = nil,
-        holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil
+        holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil,
+        collectionItems: [MediaItem] = [], onCollectionRequest: (@Sendable () -> Void)? = nil
     ) {
         self.isOffline = isOffline
         self.homeError = homeError
@@ -1278,6 +1349,8 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         self.homeLayout = homeLayout
         self.holdsHome = holdsHome
         self.onFirstHomeRequest = onFirstHomeRequest
+        self.collectionItems = collectionItems
+        self.onCollectionRequest = onCollectionRequest
         session = UserSession(
             server: MediaServer(
                 id: name, name: name,
@@ -1319,6 +1392,13 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
+    func collectionMembers(of collectionID: String, page: PageRequest) async throws -> MediaPage {
+        onCollectionRequest?()
+        return .init(
+            items: Array(collectionItems.dropFirst(page.startIndex).prefix(page.limit)),
+            startIndex: page.startIndex, totalCount: collectionItems.count
+        )
+    }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: page.startIndex, totalCount: 0)
     }

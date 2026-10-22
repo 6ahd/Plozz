@@ -3,11 +3,12 @@ import SwiftUI
 import CoreModels
 import CoreUI
 
-/// The shared section editor adapts existing row feeds without changing their identities.
+/// Shared section placement and content-first collection editing.
 public struct HomeRowsSettingsView: View {
     public let libraries: [AggregatedLibrary]
     public let accounts: [ResolvedAccount]
     public let visibility: HomeLibraryVisibilityModel
+    public let spoilerSettings: SpoilerSettings
     @Environment(HeroSettingsModel.self) private var hero
     @Environment(HeroBackgroundSettingsModel.self) private var heroBackground
     @Environment(CardStyleSettingsModel.self) private var cards
@@ -19,18 +20,23 @@ public struct HomeRowsSettingsView: View {
 
     public init(
         libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
-        visibility: HomeLibraryVisibilityModel
+        visibility: HomeLibraryVisibilityModel, spoilerSettings: SpoilerSettings = .default
     ) {
-        self.init(libraries: libraries, accounts: accounts, visibility: visibility, inventory: HomeSectionCatalogModel())
+        self.init(
+            libraries: libraries, accounts: accounts, visibility: visibility,
+            inventory: HomeSectionCatalogModel(), spoilerSettings: spoilerSettings
+        )
     }
 
     init(
         libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
-        visibility: HomeLibraryVisibilityModel, inventory: HomeSectionCatalogModel
+        visibility: HomeLibraryVisibilityModel, inventory: HomeSectionCatalogModel,
+        spoilerSettings: SpoilerSettings = .default
     ) {
         self.libraries = libraries
         self.accounts = accounts
         self.visibility = visibility
+        self.spoilerSettings = spoilerSettings
         _inventory = State(initialValue: inventory)
     }
 
@@ -112,11 +118,19 @@ public struct HomeRowsSettingsView: View {
                 ForEach(sections.enabled, id: \.self) { id in
                     if let choice = choices.first(where: { $0.id == id }) {
                         HomeEditorLink {
-                            HomeSectionSettingsView(
-                                choice: choice, inventory: inventory, visibility: visibility,
-                                libraries: libraries, accounts: accounts
-                            )
-                            .environment(cards)
+                            if let section = choice.collectionSection {
+                                CollectionSectionSettingsView(
+                                    section: section, inventory: inventory, visibility: visibility,
+                                    libraries: libraries, accounts: accounts, spoilerSettings: spoilerSettings
+                                )
+                                .environment(cards)
+                            } else {
+                                HomeSectionSettingsView(
+                                    choice: choice, inventory: inventory, visibility: visibility,
+                                    libraries: libraries, accounts: accounts
+                                )
+                                .environment(cards)
+                            }
                         } label: {
                             HomeSectionChoiceLabel(choice: choice)
                         }
@@ -226,8 +240,10 @@ public struct HomeRowsSettingsView: View {
 
     private var addSectionDestination: some View {
         HomeAddSectionView(
-            inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+            inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts,
+            spoilerSettings: spoilerSettings
         )
+        .environment(cards)
     }
 
     private var heroTitle: Text {

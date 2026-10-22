@@ -55,6 +55,8 @@ public struct MediaRowView: View {
     /// name (provider content), and only the caller knows which. `nil` renders no
     /// heading (previously spelled as an empty string).
     private let title: Text?
+    private let onSeeAll: (() -> Void)?
+    @FocusState private var seeAllFocused: Bool
     private let loadingPlaceholderCount: Int
     /// Gives the first pending Home row a visible waiting destination. Other
     /// skeletons stay inert; data arriving below must not choose initial focus.
@@ -213,6 +215,7 @@ public struct MediaRowView: View {
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onPlay: ((MediaItem) -> Void)? = nil,
+        onSeeAll: (() -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.init(
@@ -244,6 +247,7 @@ public struct MediaRowView: View {
             liveChannels: liveChannels,
             onLiveChannelFocused: onLiveChannelFocused,
             onPlay: onPlay,
+            onSeeAll: onSeeAll,
             onSelect: onSelect
         )
     }
@@ -277,9 +281,11 @@ public struct MediaRowView: View {
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onPlay: ((MediaItem) -> Void)? = nil,
+        onSeeAll: (() -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.title = title
+        self.onSeeAll = onSeeAll
         self.loadingPlaceholderCount = max(loadingPlaceholderCount, 0)
         self.reservesLoadingFocus = reservesLoadingFocus
         _tracksLoadingFocus = State(initialValue: reservesLoadingFocus)
@@ -494,13 +500,35 @@ public struct MediaRowView: View {
     }
 
     public var body: some View {
-        if !items.isEmpty || !liveChannels.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil {
+        if !items.isEmpty || !liveChannels.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil || onSeeAll != nil {
             VStack(alignment: .leading, spacing: layoutMetrics.sectionTitleSpacing - titleTightening) {
                 if let title {
-                    MediaRowHeader(title: title)
+                    Group {
+                        if let onSeeAll {
+                            HStack {
+                                MediaRowHeader(title: title)
+                                Spacer()
+                                Button("See all", action: onSeeAll)
+                                    .font(.callout)
+                                    .plozzActionButton(role: .secondary)
+                                    .focused($seeAllFocused)
+                                    .onChange(of: seeAllFocused) { _, focused in
+                                        if focused { onFocusEntered?() }
+                                    }
+                            }
+                            .padding(.trailing, leadingInset)
+                        } else {
+                            MediaRowHeader(title: title)
+                        }
+                    }
                         .accessibilityIdentifier("media-row-title")
                         .padding(.leading, leadingInset + navigationContentInset)
                         .modifier(PlozzRowTitlePosition())
+                }
+                if items.isEmpty && loadingPlaceholderCount == 0 && onSeeAll != nil {
+                    Text("No titles in this collection.")
+                        .plozzForeground(.secondary)
+                        .padding(.leading, leadingInset + navigationContentInset)
                 }
 
                 PinnedSidebarLeadingFade(

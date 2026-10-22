@@ -88,7 +88,7 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   app-wide maturity threshold.
 - **Home section customization** — Settings > Screens & Navigation > Customize Home
   uses the same section editor on TV, iPhone and iPad. Tap a section to configure
-  it, Reorder to move it, or Add section to show another existing feed. Hero
+  it, Reorder to move it, or Add section to choose a collection or another existing feed. Hero
   stays configurable at the top, outside the movable row list. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries
   tiles. `HomeRowCustomization` stores typed identity, order and explicit
@@ -149,9 +149,18 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Mobile library discovery follows the effective credential and Plex Home viewer,
   and cancelled lookups cannot restore another viewer's library choices.
   The section catalog enumerates optional recommendations only while the editor
-  is open. Section editing retains `HomeRowID` and the existing renderer; there
-  are no duplicate section instances, mixed feeds, per-section source filters
-  or new card layouts in this foundation. Home omits
+  is open. Authored collection rows have independent stable section identities,
+  names and poster/landscape presentation. Each references one account/viewer-qualified
+  collection through `MediaProvider`; its bounded preview preserves server order
+  and membership, showing supported movie and series cards without reconstructing
+  library membership. **See all** opens the existing collection browser using
+  the original provider ID. Both card shapes open title details.
+  Collection definitions persist with the profile separately from arrangement:
+  removing a row or choosing a preset retains its configuration in Add section.
+  Disabled libraries and a different server viewer prevent collection requests;
+  failures remain distinct from empty collections.
+  Mixed feeds, filters, Featured cards and library-page placement are not part
+  of this slice. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.

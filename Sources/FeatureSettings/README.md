@@ -165,7 +165,14 @@ watch history and planning-list behavior are documented in
   On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
   reflecting the active layout and opening the Home layout settings page.
   Mobile uses the shared page inset without extra gutters.
-  Add section offers available existing rows not already shown. Removing a
+  Add section offers available existing rows not already shown and a **Collection**
+  creation flow. Choose a source collection first, then edit its name and
+  poster/landscape presentation with the style control immediately above a real-title
+  preview. The preview uses the existing artwork preferences and spoiler protection.
+  Save places a new independently configured row before Libraries; the ordinary
+  arranger can move it anywhere among the movable rows. Editing never changes
+  the collection on the server. Preview loading is bounded and retains server order;
+  filtering and combining multiple sources are not yet supported. Removing a
   section hides it without erasing its configuration or disabling its libraries.
   Section context menus also offer removal. Reorder menus include Move to top
   and Move to bottom within the movable sections, never above Home layout.

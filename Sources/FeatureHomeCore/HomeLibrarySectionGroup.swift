@@ -36,6 +36,7 @@ public struct HomeLibrarySectionGroup: Identifiable, Equatable, Sendable {
         public let section: LibrarySection
         public let isLoading: Bool
         public let failure: AppError?
+        public var browseItem: MediaItem? = nil
         public var id: String { section.id }
     }
 

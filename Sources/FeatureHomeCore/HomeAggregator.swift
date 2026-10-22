@@ -168,6 +168,7 @@ public struct HomeAggregator: Sendable {
         /// inventory order. Empty blocks (no enabled/non-empty rows) are dropped.
         public var librarySections: [HomeLibrarySectionGroup]
         public var serverRows: [HomeServerRow]
+        public var collectionRows: [HomeCollectionRow]
 
         public init(
             continueWatching: [MediaItem] = [],
@@ -175,7 +176,8 @@ public struct HomeAggregator: Sendable {
             watchlist: [MediaItem] = [],
             libraries: [AggregatedLibrary] = [],
             librarySections: [HomeLibrarySectionGroup] = [],
-            serverRows: [HomeServerRow] = []
+            serverRows: [HomeServerRow] = [],
+            collectionRows: [HomeCollectionRow] = []
         ) {
             self.continueWatching = continueWatching
             self.latest = latest
@@ -183,11 +185,12 @@ public struct HomeAggregator: Sendable {
             self.libraries = libraries
             self.librarySections = librarySections
             self.serverRows = serverRows
+            self.collectionRows = collectionRows
         }
 
         public var isEmpty: Bool {
             continueWatching.isEmpty && latest.isEmpty && watchlist.isEmpty
-                && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty
+                && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty && collectionRows.isEmpty
         }
     }
 
@@ -342,12 +345,13 @@ public struct HomeAggregator: Sendable {
         case feed(Int, Feed, libraryIDs: [String]?)
         case library(Int, AggregatedLibrary, LibraryHomeRowKind)
         case server(Int, [HomeServerRowDefinition])
+        case collection(Int, CollectionSection)
 
         var lane: RequestLane {
             switch self {
             case .libraries: .global(.libraries)
             case .feed(_, let feed, _): .global(feed.row)
-            case .library, .server: .libraryRows
+            case .library, .server, .collection: .libraryRows
             }
         }
     }
@@ -357,6 +361,7 @@ public struct HomeAggregator: Sendable {
         case feed(Int, Feed, Result<[MediaItem], AppError>, LibraryLoadDiagnostic?)
         case library(String, LibraryHomeRowKind, Result<[LibrarySection], AppError>)
         case server([HomeRowID: Result<[MediaItem], AppError>])
+        case collection(String, Result<[MediaItem], AppError>)
     }
 
     private struct LibraryContent {
@@ -442,6 +447,18 @@ public struct HomeAggregator: Sendable {
                         } != false
                 }
                 var serverRows: [HomeRowID: HomeServerRow] = [:]
+                let collectionDefinitions = visibility.collectionSections.filter {
+                    $0.source.serverUserID != nil
+                        && visibility.isHomeRowVisible(HomeRowChoice(collectionSection: $0))
+                        && $0.source.libraryKey.map(visibility.isEnabled) != false
+                        && accounts.contains(where: $0.source.matches)
+                }
+                var collectionRows: [String: HomeCollectionRow] = [:]
+                for definition in collectionDefinitions {
+                    guard let index = accounts.firstIndex(where: definition.source.matches) else { continue }
+                    collectionRows[definition.id] = .init(definition: definition, isLoading: true)
+                    requests.append(.collection(index, definition))
+                }
                 var serverBatches: [ServerBatchKey: [HomeServerRowDefinition]] = [:]
                 var batchOrder: [ServerBatchKey] = []
                 for definition in definitions {
@@ -566,6 +583,12 @@ public struct HomeAggregator: Sendable {
                             case let .failure(error): serverRows[id]?.failure = error
                             }
                         }
+                    case let .collection(id, result):
+                        collectionRows[id]?.isLoading = false
+                        switch result {
+                        case let .success(items): collectionRows[id]?.items = items
+                        case let .failure(error): collectionRows[id]?.failure = error
+                        }
                     }
                     // Refill before publication so drawing a completed row never stalls
                     // the request queue for the remaining libraries.
@@ -625,6 +648,7 @@ public struct HomeAggregator: Sendable {
                         return group
                     }
                     content.serverRows = definitions.compactMap { serverRows[$0.id] }
+                    content.collectionRows = collectionDefinitions.compactMap { collectionRows[$0.id] }
                     merging?.finish(.succeeded, metrics: .init(
                         items: content.continueWatching.count + content.latest.count + content.watchlist.count,
                         rows: content.librarySections.reduce(0) { $0 + $1.sections.count } + content.serverRows.count
@@ -792,6 +816,15 @@ public struct HomeAggregator: Sendable {
                     }
                     return section
                 }
+            })
+        case let .collection(index, definition):
+            let resolved = accounts[index]
+            return .collection(definition.id, await fetch("collection-section", from: resolved) {
+                let page = try await CollectionPreviewLoader.load(
+                    selection: definition.source, limit: perLibraryLimit,
+                    provider: resolved.provider, visibility: visibility
+                )
+                return page.items.filter { $0.kind == .movie || $0.kind == .series }
             })
         case let .server(index, definitions):
             let resolved = accounts[index]

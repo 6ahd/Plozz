@@ -129,6 +129,7 @@ extension HomeRowChoice {
             return library.library.displayName + Text(verbatim: " · \(library.serverName)")
         }
         if let serverRow { return Text(verbatim: serverRow.serverName) }
+        if let collectionSection { return Text(verbatim: collectionSection.source.title) }
         return id == .liveTV ? Text("All live sources") : Text("All libraries")
     }
 }
@@ -309,16 +310,26 @@ struct HomeAddSectionView: View {
     let visibility: HomeLibraryVisibilityModel
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
+    var spoilerSettings: SpoilerSettings = .default
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
+            HomeEditorLink {
+                CollectionSectionCreationView(
+                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts,
+                    spoilerSettings: spoilerSettings
+                )
+            } label: {
+                HomeEditorRowLabel(title: Text("Collection"), subtitle: Text("Choose the titles for this section"))
+            }
+            .accessibilityIdentifier("home-add-collection")
             let catalog = inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
             if choices.isEmpty && !inventory.isLoading {
-                Text("No sections are available to add.").plozzForeground(.secondary)
+                Text("No other sections are available to add.").plozzForeground(.secondary)
             }
             ForEach(choices) { choice in
                 Button {

@@ -179,6 +179,7 @@ public final class HomeViewModel {
         /// library's own Continue Watching / Recently Added / discovery-hub rows.
         public var librarySections: [HomeLibrarySectionGroup] = []
         public var serverRows: [HomeServerRow] = []
+        public var collectionRows: [HomeCollectionRow] = []
 
         public init(
             continueWatching: [MediaItem] = [],
@@ -187,7 +188,8 @@ public final class HomeViewModel {
             libraries: [AggregatedLibrary] = [],
             mergeLibraries: Bool = true,
             librarySections: [HomeLibrarySectionGroup] = [],
-            serverRows: [HomeServerRow] = []
+            serverRows: [HomeServerRow] = [],
+            collectionRows: [HomeCollectionRow] = []
         ) {
             self.continueWatching = continueWatching
             self.latest = latest
@@ -196,6 +198,7 @@ public final class HomeViewModel {
             self.mergeLibraries = mergeLibraries
             self.librarySections = librarySections
             self.serverRows = serverRows
+            self.collectionRows = collectionRows
         }
 
         // The launch snapshot persists only the merged-mode rows plus the merge
@@ -210,7 +213,7 @@ public final class HomeViewModel {
 
         public var isEmpty: Bool {
             continueWatching.isEmpty && latest.isEmpty && watchlist.isEmpty
-                && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty
+                && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty && collectionRows.isEmpty
         }
 
         /// Bounds discovery previews for launch persistence, not Continue Watching.
@@ -236,6 +239,11 @@ public final class HomeViewModel {
                     )
                 },
                 serverRows: serverRows.map { row in
+                    var row = row
+                    row.items = Array(row.items.prefix(perRow))
+                    return row
+                },
+                collectionRows: collectionRows.map { row in
                     var row = row
                     row.items = Array(row.items.prefix(perRow))
                     return row
@@ -275,6 +283,11 @@ public final class HomeViewModel {
                     return group
                 },
                 serverRows: serverRows.map { row in
+                    var row = row
+                    row.items = row.items.map { $0.sanitizingArtworkCredentials() }
+                    return row
+                },
+                collectionRows: collectionRows.map { row in
                     var row = row
                     row.items = row.items.map { $0.sanitizingArtworkCredentials() }
                     return row
@@ -895,7 +908,8 @@ public final class HomeViewModel {
                 libraries: unmerged.libraries,
                 mergeLibraries: false,
                 librarySections: unmerged.librarySections,
-                serverRows: unmerged.serverRows
+                serverRows: unmerged.serverRows,
+                collectionRows: unmerged.collectionRows
             )
         }
         // A SILENT background refresh that came back empty must not blank out good
@@ -919,6 +933,7 @@ public final class HomeViewModel {
             let failures = Array(loadFailures.values)
                 + content.librarySections.flatMap { $0.failures.values }
                 + content.serverRows.compactMap(\.failure)
+                + content.collectionRows.compactMap(\.failure)
             diagnosticOutcome = failures.isEmpty ? .succeeded
                 : failures.allSatisfy { $0 == .cancelled } ? .cancelled : .failed
         }
@@ -1072,6 +1087,7 @@ public final class HomeViewModel {
         content.serverRows = retainingServerRowContent(
             progress.content.serverRows, previous: content.serverRows
         )
+        content.collectionRows = progress.content.collectionRows
         if let resume { content.continueWatching = resume }
         if newlyReady.contains(.recentlyAdded) { content.latest = progress.content.latest }
         if newlyReady.contains(.libraries) { content.libraries = progress.content.libraries }
@@ -1138,6 +1154,7 @@ public final class HomeViewModel {
             }
             content.latest = content.latest.map { apply(mutation, to: $0) }
             content.serverRows = applying(mutation, to: content.serverRows)
+            content.collectionRows = applying(mutation, to: content.collectionRows)
             content.watchlist = updatedWatchlist(content.watchlist, mutation: mutation, in: content)
             content.librarySections = content.librarySections.map { group in
                 var group = group
@@ -1339,6 +1356,7 @@ public final class HomeViewModel {
         }
         content.latest = content.latest.map { apply(mutation, to: $0) }
         content.serverRows = applying(mutation, to: content.serverRows)
+        content.collectionRows = applying(mutation, to: content.collectionRows)
         content.watchlist = updatedWatchlist(content.watchlist, mutation: mutation, in: content)
         // Unmerged mode renders the per-library rows straight from
         // `librarySections`, so the same title's card there must reflect an
@@ -1386,6 +1404,14 @@ public final class HomeViewModel {
                 }
                 return apply(mutation, to: item)
             }
+            return row
+        }
+    }
+
+    private func applying(_ mutation: MediaItemMutation, to rows: [HomeCollectionRow]) -> [HomeCollectionRow] {
+        rows.map { row in
+            var row = row
+            row.items = row.items.map { apply(mutation, to: $0) }
             return row
         }
     }
@@ -1460,6 +1486,7 @@ public final class HomeViewModel {
             $0.sections.flatMap(\.items)
         }
         candidates += content.serverRows.flatMap(\.items)
+        candidates += content.collectionRows.flatMap(\.items)
 
         let authoritative = Self.resolvedWatchlist(
             candidates: candidates,
@@ -2350,7 +2377,8 @@ public final class HomeViewModel {
             // (r6-watchlist-bareid)
             func scopedKey(_ item: MediaItem) -> String { "\(item.sourceAccountID ?? ""):\(item.id)" }
             var seen = Set(updated.map(scopedKey))
-            for candidate in (content.continueWatching + content.latest)
+            let candidates = content.continueWatching + content.latest + content.collectionRows.flatMap(\.items)
+            for candidate in candidates
             where mutation.targets(candidate) && seen.insert(scopedKey(candidate)).inserted {
                 var copy = candidate
                 copy.isFavorite = true

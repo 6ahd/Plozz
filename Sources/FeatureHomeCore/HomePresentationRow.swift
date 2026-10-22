@@ -90,6 +90,16 @@ public struct HomePresentationRow: Identifiable, Equatable, Sendable {
                 ))
             }
         }
+        for var row in content.collectionRows {
+            guard let definition = visibility.collectionSections.first(where: {
+                $0.id == row.definition.id && $0.source == row.definition.source
+            }), definition.source.libraryKey.map(visibility.isEnabled) != false else { continue }
+            row.definition = definition
+            row.items = row.items.filter { $0.isVisibleOnHome(isLibraryVisible: visibility.isEnabled) }
+            available.append(Self(
+                choice: HomeRowChoice(collectionSection: definition), source: .library(row.row)
+            ))
+        }
         available += rows.filter { $0.kind == .libraries }.compactMap(entry)
         let byID = Dictionary(available.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let ordered = visibility.rowSections(choices: available.map(\.choice)).enabled

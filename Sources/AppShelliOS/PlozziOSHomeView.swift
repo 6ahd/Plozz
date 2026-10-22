@@ -590,6 +590,7 @@ struct PlozziOSHomeView: View {
                                     ? .landscape
                                     : .poster,
                                 appModel: appModel,
+                                browseItem: row.browseItem,
                                 onNavigationInteraction:
                                     viewModel.noteHomeNavigationInteraction
                             )
@@ -2455,7 +2456,9 @@ struct PlozziOSHomeMediaRail: View {
     /// item's own thumbnail.
     var showsSeriesArtwork: Bool = false
     var liveChannels: [HomeLiveTVChannel] = []
+    var browseItem: MediaItem? = nil
     var onNavigationInteraction: () -> Void = {}
+    @State private var isBrowsingCollection = false
     @State private var prefetchedIDs: Set<String> = []
     @State private var prefetchedPreviewIDs: Set<String> = []
     @State private var lastArtworkPrefetchIndex: Int?
@@ -2465,10 +2468,23 @@ struct PlozziOSHomeMediaRail: View {
 
     var body: some View {
         PlozziOSHomeRailLayout { rail(metrics: $0) }
+            .navigationDestination(isPresented: $isBrowsingCollection) {
+                if let browseItem {
+                    PlozziOSHomeCardDetail(item: browseItem, fallbackProvider: provider(for: browseItem))
+                }
+            }
     }
 
     private func rail(metrics: PlozzMetrics) -> some View {
-        PlozziOSMediaSection(title: title, artworkInset: cardStyle == .framed ? metrics.cardInset : 0) {
+        PlozziOSMediaSection(
+            title: title, artworkInset: cardStyle == .framed ? metrics.cardInset : 0,
+            onSeeAll: browseItem == nil ? nil : { isBrowsingCollection = true }
+        ) {
+            if browseItem != nil && items.isEmpty && loadingPlaceholderCount == 0 {
+                Text("No titles in this collection.")
+                    .plozzForeground(.secondary)
+                    .padding(.horizontal, PlozziOSPageLayout.horizontalInset(for: horizontalSizeClass))
+            }
             ScrollView(.horizontal) {
                 LazyHStack(
                     alignment: .top,

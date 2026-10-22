@@ -1717,8 +1717,9 @@ public struct HomeView: View {
                     onCardFocused: reporter.cardFocused,
                     loadingPlaceholderCount: row.isLoading ? 8 : 0,
                     reservesLoadingFocus: reservesLoadingFocus,
-                    playsOnSelect: section.style == .landscape,
-                    onSelect: section.style == .landscape ? onPlayItem : onSelectItem
+                    playsOnSelect: row.browseItem == nil && section.style == .landscape,
+                    onSeeAll: row.browseItem.map { item in { onSelectItem(item) } },
+                    onSelect: row.browseItem == nil && section.style == .landscape ? onPlayItem : onSelectItem
                 )
             }
         }
@@ -1774,8 +1775,9 @@ public struct HomeView: View {
                     style: cardStyle(section.style),
                     spoilerSettings: spoilerSettings,
                     loadingPlaceholderCount: row.isLoading ? 8 : 0,
-                    playsOnSelect: section.style == .landscape,
-                    onSelect: section.style == .landscape ? onPlayItem : onSelectItem
+                    playsOnSelect: row.browseItem == nil && section.style == .landscape,
+                    onSeeAll: row.browseItem.map { item in { onSelectItem(item) } },
+                    onSelect: row.browseItem == nil && section.style == .landscape ? onPlayItem : onSelectItem
                 )
         }
     }

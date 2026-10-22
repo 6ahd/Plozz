@@ -250,6 +250,29 @@ public final class HomeLibraryVisibilityModel {
         store.save(visibility)
     }
 
+    public func saveCollectionSection(_ section: CollectionSection, catalog: HomeSectionCatalog) throws {
+        guard !section.id.isEmpty, !section.source.collectionID.isEmpty,
+              !section.source.accountID.isEmpty, section.source.serverUserID?.isEmpty == false,
+              !section.title.isEmpty else { throw AppError.invalidResponse }
+        var updated = visibility
+        if let index = updated.collectionSections.firstIndex(where: { $0.id == section.id }) {
+            updated.collectionSections[index] = section
+        } else {
+            updated.collectionSections.append(section)
+        }
+        let choices = catalog.availableChoices(in: updated)
+        guard choices.contains(where: { $0.id == section.rowID }) else { throw AppError.notFound }
+        var sections = catalog.sections(in: updated)
+        sections.disabled.removeAll { $0 == section.rowID }
+        if !sections.enabled.contains(section.rowID) {
+            let index = sections.enabled.firstIndex(of: .libraries) ?? sections.enabled.endIndex
+            sections.enabled.insert(section.rowID, at: index)
+        }
+        updated.applyRows(sections, choices: choices)
+        visibility = updated
+        store.save(visibility)
+    }
+
     public func useRowDefaults(_ defaults: HomeRowCustomization.Defaults) {
         serverRequest?.cancel()
         serverRequest = nil
