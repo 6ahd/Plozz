@@ -77,7 +77,7 @@ class WorkflowTests(unittest.TestCase):
                 block = JOBS[lane]
                 self.assertIn("    needs: guards\n", block)
                 self.assertEqual(block.count("needs:"), 1)
-                self.assertIn("    runs-on: macos-15\n", block)
+                self.assertIn("    runs-on: xcode-27\n", block)
                 timeout = 90 if lane == "hosted-focus" else 60
                 self.assertIn(f"    timeout-minutes: {timeout}\n", block)
                 self.assertIn(f"          lane: {lane}\n", block)
@@ -124,8 +124,18 @@ class WorkflowTests(unittest.TestCase):
         ):
             self.assertNotIn(unsafe, WORKFLOW + PREPARE)
 
+    def test_all_macos_lanes_use_the_engine_supported_toolchain(self):
+        for lane in ("guards", *CACHE.LANES):
+            with self.subTest(lane=lane):
+                self.assertIn("    runs-on: xcode-27\n", JOBS[lane])
+        for source in (JOBS["guards"], PREPARE):
+            self.assertIn("xcodebuild -version", source)
+            self.assertIn("xcrun swift --version", source)
+        self.assertNotIn("xcode-select", WORKFLOW + PREPARE)
+        self.assertNotIn("Xcode_26", WORKFLOW + PREPARE)
+
     def test_cache_hits_do_not_skip_generation_or_sdk_selection(self):
-        self.assertIn("sudo xcode-select -s /Applications/Xcode_26.2.app", PREPARE)
+        self.assertLess(PREPARE.index("xcodebuild -version"), PREPARE.index("ci-cache.py keys"))
         self.assertIn('tools/select-ci-tvos-simulator.py --sdk-version "$sdk_version"', PREPARE)
         self.assertIn('PLOZZ_SIM_ID=%s\\n', PREPARE)
         self.assertLess(PREPARE.index("tools/generate-project.sh"), PREPARE.index("ci-cache.py keys"))
