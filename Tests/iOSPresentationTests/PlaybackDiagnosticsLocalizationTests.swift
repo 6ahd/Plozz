@@ -66,7 +66,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
 
     private let commonLabelKeys = [
         "File", "Size", "Delivery", "Stream", "Codec", "Resolution", "Frame Rate",
-        "Color", "Codec Tag", "Channels", "Sample Rate", "Bitrate", "System output", "Connection", "Track",
+        "Codec Tag", "Channels", "Sample Rate", "Bitrate", "System output", "Connection", "Track",
         "State", "Buffer", "Engine buffer", "Stalls", "Dropped",
         "Declared stream bitrate", "Network throughput", "Disk", "Memory", "Thermal", "Instances"
     ]
@@ -108,6 +108,28 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         assertMediaContent(in: text)
         for value in ["720", "300", "24.00", "Stereo", "48", "128", "HDMI", "628", "8.0"] {
             XCTAssertTrue(text.contains(value), "Combining rows must preserve their measurements: \(text)")
+        }
+    }
+
+    func testBothLayoutsUseTheSameConciseSourceFormatWithoutClaimingFELIsActive() throws {
+        for mode in [PlaybackDiagnostics.PlaybackMode.directPlay, .remux, .plozzigen, .transcode] {
+            let diagnostics = PlaybackDiagnostics(
+                mode: mode, hdr: .dolbyVision, videoBitDepth: 10, dolbyVisionProfile: 7
+            )
+            for presentation in [PlaybackDiagnosticsOverlay.Presentation.mobile, .television] {
+                let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: presentation)
+                let text = try renderedText(
+                    panel.videoSection(diagnostics).frame(width: 360)
+                        .fixedSize(horizontal: false, vertical: true),
+                    locale: "en"
+                )
+                for token in [mode == .transcode ? "Stream" : "Source", "Dolby Vision", "P7", "10-bit"] {
+                    XCTAssertTrue(normalized(text).contains(normalized(token)), text)
+                }
+                for absent in [mode == .transcode ? "Source" : "Stream", "hybrid", "dual-layer", "FEL", "Color", "output"] {
+                    XCTAssertFalse(normalized(text).contains(normalized(absent)), text)
+                }
+            }
         }
     }
 
@@ -233,6 +255,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         }
         labels += mode == .plozzigen ? ["AVPlayer time", "AVPlayer window"] : ["Position", "Seekable"]
         labels += mode == .transcode ? ["Estimated bitrate", "Video", "Audio", "Container"] : ["Container"]
+        if mode != .transcode { labels.append("Source") }
         let bundleURL = try XCTUnwrap(Bundle.main.url(forResource: "cs", withExtension: "lproj"))
         let bundle = try XCTUnwrap(Bundle(url: bundleURL))
         for key in labels + ["playback.diagnostics.device"] {

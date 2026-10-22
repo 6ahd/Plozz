@@ -610,9 +610,12 @@ The TV diagnostics use three columns capped at 1280 points (two-thirds of a
 1920-point TV viewport), above the measured visible playback controls, including
 the Info/Cast tabs and cards. Format summaries combine related video/audio facts;
 system output includes the connection, while Processing remains separate.
-The buffer row labels player and engine measurements independently. HDR keeps
-the Dolby Vision profile and reported color/range facts rather than inferring
-compatibility from a profile number. Playback-health metrics, including zero
+The buffer row labels player and engine measurements independently. Both platforms
+use **Source** for the video format summary (for example, `Dolby Vision P7 · 10-bit`);
+server transcodes use **Stream** because those facts describe the current rendition.
+The summary retains reported color/range facts without inferring compatibility,
+FEL processing, or display output from the profile or bit depth. It does not label
+Profile 7 as a confirmed dual-layer decoding route. Playback-health metrics, including zero
 stalls/drops, memory, thermal state, and seeking, remain visible. Mobile retains
 its expanded, scrollable rows. Long filenames are
 limited to two lines on TV (the mobile sheet keeps the complete value). If a

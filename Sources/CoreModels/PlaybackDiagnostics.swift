@@ -692,19 +692,6 @@ public extension PlaybackDiagnostics {
         public let totalText: String?
     }
 
-    /// Human-readable Dolby Vision profile, calling out the make-or-break facts:
-    /// Profile 5 has **no** HDR10 fallback (a wrong sample entry = no picture),
-    /// Profile 8 is HDR10-compatible, Profile 7 is dual-layer (stays on Plozzigen).
-    static func dolbyVisionDescription(profile: Int?) -> String? {  // l10n:content — Dolby Vision brand name + technical profile description, never translated
-        guard let profile else { return nil }
-        switch profile {
-        case 5: return "Profile 5 (single-layer · no HDR10 fallback)"
-        case 7: return "Profile 7 (dual-layer · hybrid engine)"
-        case 8: return "Profile 8 (single-layer · HDR10-compatible)"
-        default: return "Profile \(profile)"
-        }
-    }
-
     /// Friendly transfer-function label from a raw token, e.g. `smpte2084` → `PQ`.
     static func transferFunctionLabel(_ raw: String?) -> String? {
         guard let raw = raw?.trimmingCharacters(in: .whitespaces), !raw.isEmpty else { return nil }
@@ -942,9 +929,14 @@ public extension PlaybackDiagnostics {
             ?? Self.placeholder
     }
 
-    /// Explicit Dolby Vision profile line.
-    var dolbyVisionText: String {
-        Self.dolbyVisionDescription(profile: dolbyVisionProfile) ?? Self.placeholder
+    /// Source/stream format facts, not confirmation of FEL processing or display output.
+    var videoFormatText: String {
+        let format = [hdr.shortName, dolbyVisionProfile.map { "P\($0)" }]
+            .compactMap { $0 }.joined(separator: " ")
+        return Self.joinParts([
+            format.isEmpty ? nil : format,
+            colorText == Self.placeholder ? nil : colorText
+        ])
     }
 
     /// Selected source filename, or a placeholder when the provider cannot expose
