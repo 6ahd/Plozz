@@ -23,13 +23,24 @@ final class PlozzStartupLogoTests: XCTestCase {
     }
 
     func testExpressionsHaveQuietHoldsBeforeAndAfterTheTurn() {
-        XCTAssertEqual(timeline.value(time: 0.5), .rest)
-        XCTAssertEqual(timeline.value(time: 1.3).wink, 1)
+        XCTAssertEqual(timeline.value(time: 0.1), .rest)
+        XCTAssertEqual(timeline.value(time: 0.5).wink, 1)
+        XCTAssertEqual(timeline.value(time: 1.3).wink, 0)
         XCTAssertEqual(timeline.value(time: 2.5).delight, 1)
         XCTAssertEqual(timeline.value(time: 2.5).turn, 0)
         XCTAssertEqual(timeline.value(time: 5).delight, 1)
         XCTAssertEqual(timeline.value(time: 5).turn, 360)
         XCTAssertEqual(timeline.value(time: 7).delight, 0)
+    }
+
+    func testWinkStartsAtQuarterSecondAndIsVisibleBeforeIntroCompletes() {
+        XCTAssertEqual(timeline.value(time: 0.25).wink, 0)
+        XCTAssertGreaterThan(timeline.value(time: 0.3).wink, 0)
+        XCTAssertEqual(timeline.value(time: 0.4).wink, 1, accuracy: 0.0001)
+        XCTAssertEqual(timeline.value(time: 0.699).introCompleted, 0)
+        XCTAssertEqual(timeline.value(time: 0.701).introCompleted, 1)
+        XCTAssertEqual(timeline.value(time: 0.7).wink, 1)
+        XCTAssertEqual(PlozzStartupLogoMotion.minimumDisplayDuration, 0.7)
     }
 
     func testMotionStaysBoundedWithoutOpacityOvershoot() {

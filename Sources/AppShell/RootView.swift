@@ -73,7 +73,8 @@ public struct RootView: View {
     @State private var showSyncSend = false
     @State private var rootPresentation = RootPresentationCoordinator()
     @State private var startupNotesPrepared = false
-    @State private var consentDeferredURL: URL?
+    @State private var startupLogoIntroCompleted = false
+    @State private var deferredStartupURL: URL?
     @State private var presentedSetupOffer: SyncPairingRendezvous?
     /// Home's view model, owned here because this is the highest view whose
     /// identity is genuinely stable for the signed-in session. Kept out of the
@@ -204,6 +205,7 @@ public struct RootView: View {
     }
 
     private var startupPresentationReady: Bool {
+        guard !showsStartupLogo else { return false }
         guard appState.canEnterApp, !appState.pendingStandaloneLiveTVEntry else { return false }
         guard appState.profileFlow.pendingSetupProfile == nil else { return false }
         guard case .ready = appState.state else { return false }
@@ -249,6 +251,7 @@ public struct RootView: View {
     }
 
     private var presentationRequests: [RootPresentationCoordinator.Destination] {
+        guard !showsStartupLogo else { return [] }
         var requests: [RootPresentationCoordinator.Destination] = []
         let flow = appState.profileFlow
         if flow.pendingLockedProfile != nil || flow.pendingParentalSwitch != nil
@@ -482,8 +485,15 @@ public struct RootView: View {
     public var body: some View {
         Group {
             if needsDiagnosticConsent {
-                CrashReportingConsentView { enabled in
-                    appState.crashReportingModel.isEnabled = enabled
+                Group {
+                    if !startupLogoIntroCompleted {
+                        launchView
+                            .background { AppBackground(palette: resolvedPalette) }
+                    } else {
+                        CrashReportingConsentView { enabled in
+                            appState.crashReportingModel.isEnabled = enabled
+                        }
+                    }
                 }
                 .environment(\.themePalette, resolvedPalette)
                 .environment(\.colorScheme, resolvedPalette.isLight ? .light : .dark)
@@ -492,17 +502,17 @@ public struct RootView: View {
                 })
             } else {
                 appContent
-                    .task {
-                        if let url = consentDeferredURL {
-                            consentDeferredURL = nil
+                    .task(id: showsStartupLogo) {
+                        if !showsStartupLogo, let url = deferredStartupURL {
+                            deferredStartupURL = nil
                             appState.handle(url: url)
                         }
                     }
             }
         }
         .onOpenURL { url in
-            if needsDiagnosticConsent {
-                consentDeferredURL = url
+            if needsDiagnosticConsent || showsStartupLogo {
+                deferredStartupURL = url
             } else {
                 appState.handle(url: url)
             }
@@ -513,15 +523,25 @@ public struct RootView: View {
         crashReporting.isConfigured && appState.crashReportingModel.needsConsent
     }
 
+    private var showsStartupLogo: Bool {
+        !startupLogoIntroCompleted || appState.rootPresentationState == .launching
+    }
+
+    private var launchView: some View {
+        LaunchView { startupLogoIntroCompleted = true }
+    }
+
     private var appContent: some View {
         let _ = plozzPrintChanges { Self._printChanges() }
         let requests = presentationRequests
         return ZStack {
-            // Profile setup outranks the global session machine. Add-user auth
+            // After the intro, profile setup outranks the global session machine. Add-user auth
             // temporarily moves that machine to `.onboarding`, but setup must
             // remain mounted underneath so its exact NavigationStack path
             // survives and the auth screen can behave as an overlay.
-            if appState.allowsStandalonePlayback && appState.profileFlow.isChoosingProfile {
+            if showsStartupLogo {
+                launchView
+            } else if appState.allowsStandalonePlayback && appState.profileFlow.isChoosingProfile {
                 // Standalone can resume profile confirmation without a server.
                 // A remembered locked profile must still be selected/unlocked
                 // before its confirmation or editor can appear.
@@ -540,7 +560,8 @@ public struct RootView: View {
             } else {
                 switch appState.rootPresentationState {
             case .launching:
-                LaunchView()
+                // Handled before profile routing so readiness cannot cut the wink short.
+                EmptyView()
 
             case let .onboarding(step, canReturnToApp):
                 OnboardingFlowView(
@@ -758,6 +779,7 @@ public struct RootView: View {
         }
         .modifier(AccountSetupOverlay(
             appState: appState, deviceColorScheme: systemColorScheme,
+            presentationEnabled: !showsStartupLogo,
             onAppearanceSelected: completeAppearanceIntroductions
         ))
         .background { AppBackground(palette: resolvedPalette) }
@@ -1339,14 +1361,19 @@ private struct OnboardingPageContent: View {
 struct AccountSetupOverlay: ViewModifier {
     let appState: AppState
     let deviceColorScheme: ColorScheme
+    var presentationEnabled = true
     var onAppearanceSelected: (() -> Void)?
+
+    private var isPresented: Bool {
+        presentationEnabled && appState.presentsAccountSetupOverApp
+    }
 
     func body(content: Content) -> some View {
         content
-            .disabled(appState.presentsAccountSetupOverApp)
-            .accessibilityHidden(appState.presentsAccountSetupOverApp)
+            .disabled(isPresented)
+            .accessibilityHidden(isPresented)
             .overlay {
-                if appState.presentsAccountSetupOverApp {
+                if isPresented {
                     ZStack {
                         AppBackground(palette: ThemePalette.palette(
                             for: appState.profileSettings.themeModel.theme,
@@ -1685,13 +1712,16 @@ private struct PlexPINFallbackGlyph: View {
 
 /// Brief splash while we check for a stored session.
 private struct LaunchView: View {
+    var onIntroCompleted: (() -> Void)? = nil
+
     var body: some View {
         VStack {
-            PlozzStartupLogo()
+            PlozzStartupLogo(onIntroCompleted: onIntroCompleted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Loading"))
+        .accessibilityIdentifier("startup-logo")
     }
 }
 

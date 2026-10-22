@@ -6,10 +6,27 @@ import SwiftUI
 public struct PlozzStartupLogo: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    private let onIntroCompleted: (() -> Void)?
 
-    public init() {}
+    public init(onIntroCompleted: (() -> Void)? = nil) {
+        self.onIntroCompleted = onIntroCompleted
+    }
 
     public var body: some View {
+        PlozzStartupLogoContent(
+            reduceMotion: reduceMotion, scenePhase: scenePhase,
+            onIntroCompleted: onIntroCompleted
+        )
+    }
+}
+
+struct PlozzStartupLogoContent: View {
+    let reduceMotion: Bool
+    let scenePhase: ScenePhase
+    let onIntroCompleted: (() -> Void)?
+    @State private var didCompleteIntro = false
+
+    var body: some View {
         Group {
             if !PlozzStartupLogoMotion.shouldAnimate(reduceMotion: reduceMotion, scenePhase: scenePhase) {
                 PlozzStartupLogoArtwork(pose: .rest)
@@ -17,6 +34,9 @@ public struct PlozzStartupLogo: View {
                 Color.clear
                     .keyframeAnimator(initialValue: PlozzStartupLogoMotion.Pose.rest) { _, pose in
                         PlozzStartupLogoArtwork(pose: pose)
+                            .onChange(of: pose.introCompleted, initial: true) { _, completed in
+                                if completed == 1 { completeIntro() }
+                            }
                     } keyframes: { _ in
                         PlozzStartupLogoMotion.keyframes
                     }
@@ -29,6 +49,15 @@ public struct PlozzStartupLogo: View {
         #endif
         .accessibilityHidden(true)
         .allowsHitTesting(false)
+        .onChange(of: reduceMotion, initial: true) { _, reduceMotion in
+            if reduceMotion { completeIntro() }
+        }
+    }
+
+    private func completeIntro() {
+        guard !didCompleteIntro else { return }
+        didCompleteIntro = true
+        onIntroCompleted?()
     }
 }
 
@@ -56,6 +85,8 @@ struct PlozzStartupLogoArtwork: View {
 }
 
 enum PlozzStartupLogoMotion {
+    static let minimumDisplayDuration = 0.7
+
     static func shouldAnimate(reduceMotion: Bool, scenePhase: ScenePhase) -> Bool {
         !reduceMotion && scenePhase == .active
     }
@@ -65,6 +96,7 @@ enum PlozzStartupLogoMotion {
         var delight = 0.0
         var tilt = 0.0
         var turn = 0.0
+        var introCompleted = 0.0
 
         static let rest = Pose()
     }
@@ -75,11 +107,16 @@ enum PlozzStartupLogoMotion {
     @KeyframesBuilder<Pose>
     static var keyframes: some Keyframes<Pose> {
         KeyframeTrack(\.wink) {
-            LinearKeyframe(0, duration: 0.9)
+            LinearKeyframe(0, duration: 0.25)
             LinearKeyframe(1, duration: 0.15)
             LinearKeyframe(1, duration: 0.55)
             LinearKeyframe(0, duration: 0.15)
-            LinearKeyframe(0, duration: 6.25)
+            LinearKeyframe(0, duration: 6.9)
+        }
+        KeyframeTrack(\.introCompleted) {
+            LinearKeyframe(0, duration: minimumDisplayDuration)
+            MoveKeyframe(1)
+            LinearKeyframe(1, duration: 8 - minimumDisplayDuration)
         }
         KeyframeTrack(\.delight) {
             LinearKeyframe(0, duration: 1.7)

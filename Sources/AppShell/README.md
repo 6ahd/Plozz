@@ -42,6 +42,13 @@ registry.
 
 ## Invariants
 
+- **The TV startup wink survives a fast restore.** The launch logo stays mounted
+  until its first 0.7 seconds of active animation and session bootstrap both
+  finish. Bootstrap runs independently; profile routing, covers and deferred
+  incoming links wait for presentation. First-run diagnostic consent appears
+  after the same intro, without starting bootstrap before consent. Reduce Motion
+  skips the animation hold, and returning from the background does not repeat it.
+
 - **Mobile Home keeps background folds out of scrolling.** Watchlist cache-load
   notifications use the same coalesced refresh as membership changes. Vertical
   scrolling and horizontal rail movement both extend the interaction settle
