@@ -77,6 +77,15 @@ from a fixed 5 ms Plex metadata delay, checks that every selection reaches the
 PIN gate, and verifies tokens remain denied. It measures activation work, not
 rendered frame pacing or physical-device network latency.
 
+`mobile-home-rail-prefetch` updates the real mobile Continue Watching rail 24
+times with the same 180 metadata-rich episodes across twelve synthetic account
+identities. Artwork is preloaded into the test cache and online providers are
+disabled. It counts series-source construction while preserving every item and
+waiting for each hosting-graph update. It isolates repeated layout/prefetch-key
+work, not twelve connected servers, profile-transition frame pacing or hardware
+scrolling. `watchlist-artwork-rehydration` separately exercises the production
+Plex/Jellyfin credential-restoration path, checking every title and cast image.
+
 `mobile-profile-pin-handoff` unlocks a local profile in a sixteen-profile
 household using the production 120,000-round verifier. It separates verification
 duration from the largest 2 ms main-actor heartbeat gap. Initialization settles

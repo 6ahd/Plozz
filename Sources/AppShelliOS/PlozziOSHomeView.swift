@@ -330,12 +330,9 @@ struct PlozziOSHomeView: View {
                 for: .universalWatchlistCacheDidLoad
             )
         ) { _ in
-            // The cache is already in memory, and nobody is waiting for a press
-            // acknowledgement. Fold last-known ownership immediately rather than
-            // waiting for the interaction debounce used above.
             refreshHeroSourceEligibility()
             watchlistIntentRevision &+= 1
-            viewModel.refreshDurableWatchlist()
+            viewModel.scheduleDurableWatchlistRefresh()
         }
         .onReceive(
             NotificationCenter.default.publisher(
@@ -609,11 +606,12 @@ struct PlozziOSHomeView: View {
                 heroPullModel.isVisible = !isPastHalfHero
             }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                let topOffset = geometry.contentOffset.y
-                    + geometry.contentInsets.top
-                return max(0, -topOffset)
-            } action: { _, pullDistance in
-                heroPullModel.update(pullDistance)
+                geometry.contentOffset.y + geometry.contentInsets.top
+            } action: { oldOffset, newOffset in
+                heroPullModel.update(max(0, -newOffset))
+                if oldOffset != newOffset {
+                    viewModel.noteHomeNavigationInteraction()
+                }
             }
             .task(id: heroLoadKey) {
                 await loadHero(from: heroContent)
@@ -2432,6 +2430,9 @@ private struct PlozziOSHomeRowView: View {
 }
 
 struct PlozziOSHomeMediaRail: View {
+    #if DEBUG
+    static var artworkPrefetchSourceBuildCount = 0
+    #endif
     @Environment(\.plozzCardStyle) private var cardStyle
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -2571,17 +2572,18 @@ struct PlozziOSHomeMediaRail: View {
         return appModel.accountsProviders.primaryProvider
     }
 
-    private var artworkPrefetchIdentity: String {
-        [
-            style == .poster ? "poster" : "landscape",
-            showsSeriesArtwork ? "series" : "item",
-            prefetchesArtwork ? "prefetch" : "on-demand",
-            appModel.settings.spoilers.settings.isEnabled ? "spoilers" : "visible",
-            appModel.settings.spoilers.settings.mode.rawValue,
-            MediaRowView.uniqued(items)
-                .map { showsSeriesArtwork ? seriesArtworkSource(for: $0).identity : $0.stablePresentationID }
-                .joined(separator: "|"),
-        ].joined(separator: "\n")
+    private var artworkPrefetchIdentity: PlozziOSArtworkPrefetchIdentity? {
+        guard prefetchesArtwork else { return nil }
+        // Compare retained inputs instead of rebuilding metadata queries for the
+        // entire row during layout. Only the bounded lookahead needs those queries.
+        return PlozziOSArtworkPrefetchIdentity(
+            items: items,
+            isPortrait: style == .poster,
+            showsSeriesArtwork: showsSeriesArtwork,
+            spoilers: appModel.settings.spoilers.settings,
+            artwork: appModel.settings.cardStyle.artwork,
+            providers: appModel.metadataProviderSettingsModel.settings
+        )
     }
 
     private func resetArtworkPrefetch() {
@@ -2685,7 +2687,10 @@ struct PlozziOSHomeMediaRail: View {
     }
 
     private func seriesArtworkSource(for item: MediaItem) -> ContinueWatchingArtworkSource {
-        ContinueWatchingArtworkSource(
+        #if DEBUG
+        Self.artworkPrefetchSourceBuildCount += 1
+        #endif
+        return ContinueWatchingArtworkSource(
             item: item, style: style,
             policy: .init(
                 area: .continueWatching,
@@ -2703,6 +2708,15 @@ struct PlozziOSHomeMediaRail: View {
             artworkPrefetchTasks.track(task)
         }
     }
+}
+
+private struct PlozziOSArtworkPrefetchIdentity: Equatable {
+    let items: [MediaItem]
+    let isPortrait: Bool
+    let showsSeriesArtwork: Bool
+    let spoilers: SpoilerSettings
+    let artwork: ArtworkSettings
+    let providers: MetadataProviderSettings
 }
 
 private final class PlozziOSArtworkPrefetchTasks {

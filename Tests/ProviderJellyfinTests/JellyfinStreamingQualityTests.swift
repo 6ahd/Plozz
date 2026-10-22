@@ -1,6 +1,7 @@
-import CoreModels
+@testable import CoreModels
 import CoreNetworking
 import Foundation
+import os
 import XCTest
 @testable import ProviderJellyfin
 
@@ -317,7 +318,11 @@ final class JellyfinStreamingQualityTests: XCTestCase {
             itemID: "movie", playSessionID: "active-session", positionSeconds: 30, isPaused: false
         ), event: .start)
         let store = InMemoryWatchMutationStore()
-        let reconciler = WatchStateReconciler(store: store, applier: ResumeMutationApplier(provider: provider))
+        let clock = OSAllocatedUnfairLock(initialState: Date())
+        let reconciler = WatchStateReconciler(
+            store: store, applier: ResumeMutationApplier(provider: provider),
+            now: { clock.withLock { $0 } }
+        )
         await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
         let target = WatchMutationTarget(accountID: "server", itemID: "other", providerKind: .emby)
         await reconciler.enqueue(.init(
@@ -330,6 +335,10 @@ final class JellyfinStreamingQualityTests: XCTestCase {
         XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/Stopped") || $0.hasSuffix("/ActiveEncodings") })
 
         http.error = nil
+        await reconciler.drain()
+        XCTAssertFalse(store.load().pending.isEmpty, "Recovery cannot bypass the persisted retry cooldown")
+        let retryAt = try XCTUnwrap(store.load().pending.first?.targetRetries.values.first?.notBefore)
+        clock.withLock { $0 = retryAt }
         await reconciler.drain()
         XCTAssertTrue(store.load().pending.isEmpty, "A successful retry must acknowledge the saved write")
         let remainsLive = await reconciler.isLiveSession(accountID: "server", itemID: "movie")

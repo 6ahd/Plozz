@@ -271,6 +271,13 @@ SCENARIOS = {
         "description": "Update 24 production mobile Home cards against a four-source identity index without activating a card.",
         "counters": ["rootUpdates", "cards", "sourceResolutions", "observedRevision"],
     },
+    "mobile-home-rail-prefetch": {
+        "suite": "ui", "platforms": ["iOS"],
+        "test": "HomeRailPrefetchPerformanceTests/testPerformanceRepeatedRailUpdates",
+        "file": "Tests/iOSPresentationTests/HomeRailPrefetchPerformanceTests.swift",
+        "description": "Update a production mobile Continue Watching rail 24 times with 180 episodes across twelve synthetic source identities and cached artwork.",
+        "counters": ["rootUpdates", "items", "accounts", "seriesSourceBuilds"],
+    },
     "mobile-preference-sync": {
         "suite": "ui",
         "platforms": ["iOS"],

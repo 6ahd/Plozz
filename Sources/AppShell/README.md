@@ -42,6 +42,16 @@ registry.
 
 ## Invariants
 
+- **Mobile Home keeps background folds out of scrolling.** Watchlist cache-load
+  notifications use the same coalesced refresh as membership changes. Vertical
+  scrolling and horizontal rail movement both extend the interaction settle
+  window; cached Home rows still paint immediately on profile entry.
+  Artwork prefetch task identity compares retained media and policy inputs,
+  rather than constructing every item's metadata query during layout. Actual
+  artwork lookup remains bounded to the existing nearby-card window. Changed
+  items, artwork/provider preferences, spoilers and presentation restart that
+  window; disabled prefetch performs no source preparation.
+
 - **Preference sync is not a profile switch.** Mobile cloud apply rebuilds active
   settings and track/version preferences without restarting downloads, provider
   caches, identity indexing, or tracker/watchlist imports. Inactive-profile
