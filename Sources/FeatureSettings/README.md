@@ -47,17 +47,18 @@ iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
 and travels through profile settings transfer. The helper explains the memory
 cost, possible stuttering and loss of overhead sound on the FEL route.
+Audio still plays, including TrueHD and DTS. The warning remains relevant after
+optional height conversion is removed: FEL also decodes otherwise directly
+compatible E-AC-3/JOC spatial audio to channel-based PCM.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
-On tvOS 26+, Playback > **Spatial audio** controls lossy spatial conversion for
-eligible soundtracks, not directly compatible spatial audio. Feature descriptions
-use this neutral name; track metadata, diagnostics and legal notices retain their
-accurate format and dependency names. The `trueHDAtmosEnabled` preference and
-`truehd-atmos` row identity remain unchanged so saved choices and focus survive.
-The short helper covers supported tracks, compatible equipment and stuttering;
-the compatibility documentation retains conversion quality and session timing.
+The optional **Spatial audio** conversion switch and `trueHDAtmosEnabled`
+preference have been removed; old profile values cannot enable the excluded
+engine components. Ordinary channel audio and directly compatible spatial audio
+remain available. Feature descriptions use neutral spatial-audio wording; track
+metadata, diagnostics and legal notices retain accurate format and dependency names.
 See [spatial audio](../../docs/playback-engines.md#spatial-audio) for limitations.
 
 Playback > Advanced > External player is a device-only, default-off preference
@@ -161,6 +162,19 @@ watch history and planning-list behavior are documented in
   and held Up/Down; reaching an edge does not move focus out of the list.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
+  **Center button action** on TV and **When tapping an item** on iPhone/iPad
+  select **Play** or **Open detail page** for Home's movie/episode cards.
+  Play remains the default for fresh and existing profiles. The choice uses the
+  existing profile-scoped Home settings store and profile transfer; it does not
+  change artwork or Live TV shortcuts.
+  On Apple TV this setting controls the center button only; the remote's
+  Play/Pause button always starts the focused Continue Watching movie or episode.
+  Helper text below the control describes Play/Pause, with its filled circular
+  symbol, as an additional way to play the focused item without promising immediate
+  playback. VoiceOver reads the button name without repeating the symbol.
+  The section editor shows the three artwork choices first, followed by a shared
+  settings group for Playback details and Labels, then a group for Merge Next Up
+  and selection behavior. The shared containers own insets and separators.
   Continue Watching offers three native preview choices: Artwork + logo,
   Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
   with an overlaid logo, an unbranded scene, and portrait poster artwork without

@@ -66,6 +66,15 @@ final class NativeTVMediaCoordinator {
     }
 
     private func applyFocus(to view: UIControl, in window: UIWindow, using system: UIFocusSystem) {
+        let restoring = DetailTransitionNavigation.isRestoringSourcePage
+        if restoring {
+            HandoffDiagnostics.emit("detail RETURN_NATIVE_REQUEST target=\(HandoffDiagnostics.correlationID(view.accessibilityLabel)) focused=\(view.isFocused)")
+        }
+        defer {
+            if restoring {
+                HandoffDiagnostics.emit("detail RETURN_NATIVE_RESULT target=\(HandoffDiagnostics.correlationID(view.accessibilityLabel)) accepted=\(view.isFocused)")
+            }
+        }
         focus.focusState.wrappedValue = true
         window.layoutIfNeeded()
         guard hasPendingRequest, view.window === window, view.isEnabled, view.canBecomeFocused else { return }
@@ -74,7 +83,7 @@ final class NativeTVMediaCoordinator {
         request.wantsFocus = false
         focus.request.wrappedValue = request
         guard !view.isFocused else { return }
-        system.requestFocusUpdate(to: window)
+        system.requestFocusUpdate(to: view)
         system.updateFocusIfNeeded()
         if !view.isFocused {
             PlozzLog.app.debug("Native media focus request was not accepted by the current focus scope")
@@ -258,6 +267,11 @@ struct NativeTVCard<Content: View>: UIViewRepresentable {
             super.didUpdateFocus(in: context, with: coordinator)
             onFocus?(isFocused)
         }
+
+        override func shouldUpdateFocus(in context: UIFocusUpdateContext) -> Bool {
+            DetailTransitionNavigation.allowsFocusUpdate(heading: context.focusHeading, in: self)
+                && super.shouldUpdateFocus(in: context)
+        }
     }
 }
 
@@ -425,6 +439,11 @@ final class NativePosterButton: UIButton {
         super.didUpdateFocus(in: context, with: coordinator)
         artworkView.updateFocus(isFocused, coordinator: coordinator)
         onFocus?(isFocused)
+    }
+
+    override func shouldUpdateFocus(in context: UIFocusUpdateContext) -> Bool {
+        DetailTransitionNavigation.allowsFocusUpdate(heading: context.focusHeading, in: self)
+            && super.shouldUpdateFocus(in: context)
     }
 
     private func refreshArtwork() {

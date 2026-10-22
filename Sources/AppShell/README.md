@@ -42,6 +42,25 @@ registry.
 
 ## Invariants
 
+- **Mobile Home keeps background folds out of scrolling.** Watchlist cache-load
+  notifications use the same coalesced refresh as membership changes. Vertical
+  scrolling and horizontal rail movement both extend the interaction settle
+  window; cached Home rows still paint immediately on profile entry.
+  Artwork prefetch task identity compares retained media and policy inputs,
+  rather than constructing every item's metadata query during layout. Actual
+  artwork lookup remains bounded to the existing nearby-card window. Changed
+  items, artwork/provider preferences, spoilers and presentation restart that
+  window; disabled prefetch performs no source preparation.
+
+- **Preference sync is not a profile switch.** Mobile cloud apply rebuilds active
+  settings and track/version preferences without restarting downloads, provider
+  caches, identity indexing, or tracker/watchlist imports. Inactive-profile
+  preferences and unchanged membership do not rebuild the active runtime.
+  Changes to the active profile, namespace, membership, or local accounts still
+  reconcile sources, after mandatory profile-lock checks. Retained downloads
+  read current preferences from their original profile's stores when preparing
+  new work.
+
 - **Top Shelf actions retain their intent and owner.** Play opens the title then
   starts playback; More Info opens the same detail/episode-context destination
   without playback. Requests wait for signed-in admission and route through the
@@ -198,6 +217,12 @@ inside pushed pages and presentations still belongs to those surfaces. A hidden
 Home destination is temporarily available for this explicit return without
 changing the profile's hidden/order preferences. Native navigation and its
 optional exit protection are unchanged.
+
+`HomeTab` applies `NavigationRailRootContentInset` only to its root, before
+registering destinations. Home, Watchlist and library roots retain their sidebar
+clearance while details hide the rail; hiding chrome must not resize retained
+rows or grids. Pushed pages still receive the shell's zero inset and remain
+full-bleed. Native navigation roots keep their zero custom inset.
 
 `NavigationRailEdgeCatcher` passively observes arrow presses and indirect-touch
 swipes. Left at an unresolved content edge opens the sidebar; Right at an

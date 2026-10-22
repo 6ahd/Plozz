@@ -107,6 +107,10 @@ public struct HomeRow: Identifiable, Equatable, Sendable {
     /// media row shows portrait posters.
     public var style: HomeRowStyle { kind == .continueWatching ? .landscape : .poster }
 
+    public func playsOnSelect(continueWatchingAction: ContinueWatchingAction) -> Bool {
+        kind == .continueWatching && continueWatchingAction == .play
+    }
+
     /// The number of cards this row renders — its media `items` for a media row,
     /// or its `libraries` tiles for the Libraries row (exactly one is populated).
     /// Recorded per row so the next launch's skeleton shows a matching count.

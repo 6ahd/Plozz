@@ -12,13 +12,6 @@
 </p>
 
 <p align="center">
-  <b>Spatial audio with overhead sound on Apple TV.</b>
-  <br />
-  From supported soundtracks in your own movie library, on tvOS 26 or later
-  with compatible audio equipment.
-</p>
-
-<p align="center">
   <a href="https://plozz.app"><b>plozz.app</b></a>
 </p>
 
@@ -127,10 +120,9 @@ available when you want them.
   other clients hand back to you, powered by
   [AetherEngine](https://github.com/superuser404notfound/AetherEngine).
   ([The full format list](https://github.com/superuser404notfound/AetherEngine/blob/main/docs/formats.md).)
-- **Spatial audio on Apple TV** — hear
-  sound all around you and above you. Enabled by default for supported movie
-  and episode soundtracks on tvOS 26 or later with compatible audio equipment.
-  Uses lossy spatial conversion, not original-audio bitstream passthrough.
+- **Surround audio** — TrueHD and DTS soundtracks use compatible channel
+  playback, without their original height positioning. Dolby Digital Plus
+  streams keep their native playback path.
   [Compatibility details](docs/playback-engines.md#spatial-audio).
 - **Change versions without leaving the player** — switch between files or
   editions on the active server on Apple TV, iPhone, and iPad. Keep your

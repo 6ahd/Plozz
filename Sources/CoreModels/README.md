@@ -78,6 +78,15 @@ first completion timestamp. Ending that session allows a new rewatch key; there
 is no day-wide WeTrakr suppression. Older outboxes without these fields remain
 readable and retain their original retry-key derivation.
 
+Failed server targets in the watch outbox have independent persisted retry
+deadlines: 30 seconds initially, doubling to a 15-minute maximum, or longer when
+the server explicitly requests it. Existing drain triggers retry once the deadline
+passes; no polling timer is added. Coalescing preserves the cooldown while keeping
+the latest desired state, and relaunching cannot reset it. Successful destinations
+and tracker mirrors are not held behind a failed server. Cancellation is not a
+server failure, and authorization is still checked before any retry. Legacy
+outboxes without retry metadata remain readable and immediately eligible.
+
 | Concept | Entry point |
 | --- | --- |
 | Provider abstraction | `MediaProvider`, `ProviderKind`, `ProviderRegistry` |
@@ -139,6 +148,12 @@ existing `HomeRowID` to represent independent instances or change provider IDs
 to make them unique in the UI.
 
 ## Profile deletion and namespace ownership
+
+Transferable preferences use byte-stable sync values. JSON object keys and
+Hero's set-valued `randomLibraryKeys` are canonicalized on capture and apply,
+including legacy blobs. User-ordered arrays such as Hero sources and unknown
+fields retain their meaning; native preferred-version dictionaries stay
+dictionaries rather than becoming JSON data.
 
 Any profile may be deleted while at least one remains. Both cloud adapters apply
 the original/default profile's deletion and omit deleted profiles, membership and

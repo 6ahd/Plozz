@@ -774,7 +774,7 @@ struct PlaybackDetailView: View {
     }
 
     private var audioRows: [SettingsSplitRow] {
-        var rows = [
+        [
             SettingsSplitRow(
                 id: "audio-defaults",
                 title: "Audio defaults",
@@ -808,18 +808,6 @@ struct PlaybackDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         ]
-        #if os(tvOS)
-        if #available(tvOS 26.0, *) {
-            rows.append(SettingsSplitRow(
-                id: "truehd-atmos",
-                title: "Spatial audio",
-                description: "Hear overhead sound from supported tracks on compatible equipment. Turn off if playback stutters."
-            ) {
-                Toggle("Spatial audio", isOn: $playback.settings.trueHDAtmosEnabled)
-            })
-        }
-        #endif
-        return rows
     }
 
     private var skipIntroRows: [SettingsSplitRow] {

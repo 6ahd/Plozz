@@ -352,6 +352,7 @@ struct SearchTab: View {
             // pushed pages never see the router.
             .mediaItemNavigator { navigateToItem($0) }
         }
+        .cinematicDetailNavigation(path: $path)
         // See HomeTab: reports detail-page depth so the custom rail steps aside.
         .reportsNavigationDepth(path.count, to: navigationChrome)
     }

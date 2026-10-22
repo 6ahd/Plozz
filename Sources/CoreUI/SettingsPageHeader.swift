@@ -88,6 +88,7 @@ public struct SettingsBackButton: View {
     private var button: some View {
         Button(action: action) {
             Label("Back", systemImage: "chevron.backward")
+                .labelStyle(.iconOnly)
         }
     }
 }

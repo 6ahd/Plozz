@@ -1,4 +1,5 @@
 import AVFoundation
+@testable import AppShell
 import CoreModels
 @testable import CoreUI
 @testable import FeatureHome
@@ -1182,12 +1183,37 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 let session = try XCTUnwrap(model.session)
                 try await waitUntil { session.stage == .complete }
                 session.close { model.path.removeLast() }
+                withObservationTracking {
+                    _ = session.blocksNavigation
+                } onChange: {
+                    MainActor.assumeIsolated {
+                        let requester = source.focusRequester as? DetailTransitionSourceAnchor.Coordinator
+                        model.pendingFocusRequestAtRelease = requester?.cardFocus?.request.wrappedValue.wantsFocus ?? false
+                    }
+                }
                 let cover = try XCTUnwrap(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first)
                 try await waitUntil { cover.cardContainer.frame.width < 1000 }
                 let target = cover.cardContainer.frame
                 let radius = cover.cardContainer.layer.cornerRadius
-                try await waitUntil { cover.superview == nil && source.isFocused == true }
-                try await Task.sleep(for: .milliseconds(600))
+                try await waitUntil { cover.superview == nil }
+                var returnFrames: [CGRect] = []
+                for _ in 0..<6 {
+                    returnFrames.append(try redArtworkBounds(in: window))
+                    try await Task.sleep(for: .milliseconds(60))
+                }
+                let timeline = XCTAttachment(string: returnFrames.map(String.init(describing:)).joined(separator: "\n"))
+                timeline.name = "visible-return-frames-\(style)-\(shape)-\(focusStyle)"
+                timeline.lifetime = .keepAlways
+                add(timeline)
+                for frame in returnFrames {
+                    XCTAssertEqual(frame.minX, initialPainted.minX, accuracy: 2, "Visible return must not move: \(style), \(focusStyle)")
+                    XCTAssertEqual(frame.minY, initialPainted.minY, accuracy: 2, "Visible return must not move: \(style), \(focusStyle)")
+                    XCTAssertEqual(frame.width, initialPainted.width, accuracy: 2, "Visible return must not resize: \(style), \(focusStyle)")
+                    XCTAssertEqual(frame.height, initialPainted.height, accuracy: 2, "Visible return must not resize: \(style), \(focusStyle)")
+                }
+                XCTAssertEqual(source.isFocused, true)
+                XCTAssertEqual(model.pendingFocusRequestAtRelease, false,
+                               "Native focus restoration must finish before new navigation is accepted.")
                 let painted = try redArtworkBounds(in: window)
                 let after = XCTAttachment(image: DetailTransitionSnapshot.image(of: window))
                 after.name = "focused-return-\(style)-\(shape)-\(focusStyle)"
@@ -1204,6 +1230,125 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 XCTAssertEqual(radius, try XCTUnwrap(source.geometry(in: window)).cornerRadius, accuracy: 0.5)
             }
         }
+    }
+
+    func testPinnedShowcaseReturnKeepsItsFocusedArtworkInPlace() async throws {
+        try await checkShowcaseReturn(rowCount: 3, itemCount: 8)
+    }
+
+    func testPopulatedShowcaseReturnAcceptsFocusBeforeAnotherPopAnimationCanRun() async throws {
+        try await checkShowcaseReturn(rowCount: 8, itemCount: 75, movesFocusImmediately: true)
+    }
+
+    private func checkShowcaseReturn(rowCount: Int, itemCount: Int, movesFocusImmediately: Bool = false) async throws {
+        let scene = try await activeScene()
+        let red = try await seedArtwork(color: .red, size: CGSize(width: 200, height: 300))
+        let blue = try await seedArtwork(color: .blue, size: CGSize(width: 200, height: 300))
+        let model = ShowcaseReturnModel(red: red, blue: blue, rowCount: rowCount, itemCount: itemCount)
+        let host = ShowcaseReturnController(rootView: ShowcaseReturnRoot(model: model))
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            model.detail.dismiss = nil
+            model.detail.session?.finishImmediately()
+            DetailTransitionNavigation.take(in: window)?.discard()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        func findSource(in view: UIView, key: String) -> DetailTransitionSourceReference? {
+            if let marker = view as? DetailTransitionSourceView,
+               marker.reference?.itemKey == key {
+                return marker.reference
+            }
+            return view.subviews.lazy.compactMap { findSource(in: $0, key: key) }.first
+        }
+        let sourceKey = model.detail.item.stablePresentationID
+        try await waitUntil { findSource(in: host.view, key: sourceKey)?.nativeArtworkView != nil }
+        try await Task.sleep(for: .milliseconds(700))
+        let source = try XCTUnwrap(findSource(in: host.view, key: sourceKey))
+        var target = source.nativeArtworkView
+        while target != nil, !(target is NativePosterButton) { target = target?.superview }
+        host.target = try XCTUnwrap(target)
+        let focus = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        focus.requestFocusUpdate(to: host)
+        focus.updateFocusIfNeeded()
+        try await waitUntil { source.isFocused == true }
+        try await Task.sleep(for: .milliseconds(700))
+        let before = try redArtworkBounds(in: window)
+        model.insets.removeAll()
+        source.prepare(for: model.detail.item)
+        DetailTransitionNavigation.performNavigation { model.detail.path.append(1) }
+        try await waitUntil { model.detail.session?.stage == .complete }
+        host.target = nil
+        XCTAssertEqual(model.detailInset, 0, "Pushed details must still use the full page width.")
+        let session = try XCTUnwrap(model.detail.session)
+        let dismiss = try XCTUnwrap(model.detail.dismiss)
+        XCTAssertTrue(model.detail.hasBoundPop)
+        model.cardInputs = 0
+        model.fits.removeAll()
+        let start = CACurrentMediaTime()
+        dismiss()
+        withObservationTracking {
+            _ = session.blocksNavigation
+        } onChange: {
+            MainActor.assumeIsolated {
+                let requester = source.focusRequester as? DetailTransitionSourceAnchor.Coordinator
+                model.detail.pendingFocusRequestAtRelease = requester?.cardFocus?.request.wrappedValue.wantsFocus ?? false
+            }
+        }
+        let cover = try XCTUnwrap(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first)
+        try await waitUntil { cover.superview == nil }
+        let elapsed = CACurrentMediaTime() - start
+        let counts = "returnSeconds=\(elapsed) cardInputs=\(model.cardInputs) fits=\(model.fits.count) fittingNanoseconds=\(model.fits.filter { $0.nestingDepth == 0 }.reduce(0) { $0 + $1.fittingNanoseconds })"
+        print("SHOWCASE_RETURN \(counts)")
+        XCTAssertEqual(model.detail.returnWasAnimated, false,
+                       "The real stack must not run a second native animation underneath the reverse cover.")
+        XCTAssertFalse(session.blocksNavigation)
+        XCTAssertNotNil(DetailTransitionNavigation.navigationInputEpoch(in: window))
+        XCTAssertEqual(source.isFocused, true)
+        XCTAssertEqual(model.detail.pendingFocusRequestAtRelease, false)
+        if movesFocusImmediately {
+            let neighbor = try XCTUnwrap(findSource(
+                in: host.view, key: model.rows[1].items[3].stablePresentationID
+            ))
+            var neighborView = neighbor.nativeArtworkView
+            while neighborView != nil, !(neighborView is NativePosterButton) {
+                neighborView = neighborView?.superview
+            }
+            let next = try XCTUnwrap(neighborView as? NativePosterButton)
+            host.target = next
+            focus.requestFocusUpdate(to: host)
+            focus.updateFocusIfNeeded()
+            host.target = nil
+            XCTAssertTrue(focus.focusedItem === next, "A new focus move must be accepted at cover removal.")
+            for _ in 0..<10 {
+                try await Task.sleep(for: .milliseconds(60))
+                XCTAssertTrue(focus.focusedItem === next, "A late return callback must not steal new focus.")
+                XCTAssertNotNil(DetailTransitionNavigation.navigationInputEpoch(in: window))
+            }
+            return
+        }
+        var frames: [CGRect] = []
+        for _ in 0..<8 {
+            frames.append(try redArtworkBounds(in: window))
+            try await Task.sleep(for: .milliseconds(60))
+        }
+        let trace = XCTAttachment(string: "\(counts)\nBefore: \(before)\nInsets: \(model.insets)\nReturn: \(frames)")
+        trace.name = "pinned-showcase-return"
+        trace.lifetime = .keepAlways
+        add(trace)
+        for frame in frames {
+            XCTAssertEqual(frame.minX, before.minX, accuracy: 2)
+            XCTAssertEqual(frame.minY, before.minY, accuracy: 2)
+            XCTAssertEqual(frame.width, before.width, accuracy: 2)
+            XCTAssertEqual(frame.height, before.height, accuracy: 2)
+        }
+        XCTAssertEqual(source.isFocused, true)
+        XCTAssertFalse(model.insets.contains(0), "Hiding navigation must not relayout the retained Home page.")
     }
 
     func testNativeCircularTileHasNoSquareFocusPlate() async throws {
@@ -1607,11 +1752,16 @@ private struct NativeFocusTestCard: View {
 @MainActor @Observable
 private final class RealPosterReturnModel {
     let item: MediaItem
-    var path: [Int] = []
+    var path = NavigationPath()
     @ObservationIgnored var session: TVDetailEntranceSession?
+    @ObservationIgnored var dismiss: (@MainActor () -> Void)?
+    @ObservationIgnored var returnWasAnimated: Bool?
+    @ObservationIgnored var hasBoundPop = false
+    @ObservationIgnored var pendingFocusRequestAtRelease: Bool?
 
-    init(artwork: URL) {
-        item = MediaItem(id: "real-return", title: "Real return", kind: .movie, posterURL: artwork)
+    init(artwork: URL, backdrop: URL? = nil) {
+        item = MediaItem(id: "real-return", title: "Real return", kind: .movie,
+                         posterURL: artwork, backdropURL: backdrop, allowsTitleBasedMetadataMatching: false)
     }
 }
 
@@ -1639,13 +1789,146 @@ private struct RealPosterReturnRoot: View {
 private struct RealPosterReturnPage: View {
     let model: RealPosterReturnModel
     @Environment(\.detailEntranceSession) private var session
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.detailNavigationPop) private var pop
 
     var body: some View {
         Button("Play") {}
             .detailEntranceStage(.controls)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(.blue)
-            .onAppear { model.session = session }
+            .background(RealPosterReturnNavigationProbe(model: model))
+            .onAppear {
+                model.session = session
+                model.hasBoundPop = pop != nil
+                model.dismiss = { session?.close(dismiss: dismiss, pop: pop) }
+            }
+            .onDisappear { model.dismiss = nil }
+    }
+}
+
+private struct RealPosterReturnNavigationProbe: UIViewControllerRepresentable {
+    let model: RealPosterReturnModel
+
+    func makeUIViewController(context: Context) -> Controller { Controller(model: model) }
+    func updateUIViewController(_ controller: Controller, context: Context) {}
+
+    final class Controller: UIViewController {
+        let model: RealPosterReturnModel
+
+        init(model: RealPosterReturnModel) {
+            self.model = model
+            super.init(nibName: nil, bundle: nil)
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            model.returnWasAnimated = transitionCoordinator?.isAnimated ?? animated
+        }
+    }
+}
+
+@MainActor @Observable
+private final class ShowcaseReturnModel {
+    let detail: RealPosterReturnModel
+    let chrome = NavigationChromeModel()
+    let rows: [FocusHeroRow]
+    var selection = NavigationRailDestination.home
+    @ObservationIgnored var insets: [CGFloat] = []
+    @ObservationIgnored var detailInset: CGFloat?
+    @ObservationIgnored var cardInputs = 0
+    @ObservationIgnored var fits: [FocusHeroLayoutMeasurement.Sample] = []
+    let measurement = FocusHeroLayoutMeasurement()
+
+    init(red: URL, blue: URL, rowCount: Int, itemCount: Int) {
+        detail = RealPosterReturnModel(artwork: red, backdrop: blue)
+        let selected = detail.item
+        rows = (0..<rowCount).map { row in
+            let items = (0..<itemCount).map { index in
+                row == 1 && index == 2 ? selected : MediaItem(
+                    id: "return-\(row)-\(index)", title: "Return \(row)-\(index)",
+                    kind: .movie, posterURL: blue, allowsTitleBasedMetadataMatching: false
+                )
+            }
+            return FocusHeroRow(id: "row-\(row)", itemIDs: items.map(\.stablePresentationID),
+                                leadItem: items.first, items: items)
+        }
+        measurement.onMeasure = { [weak self] in self?.fits.append($0) }
+    }
+}
+
+private struct ShowcaseReturnRoot: View {
+    @Bindable var model: ShowcaseReturnModel
+
+    var body: some View {
+        NavigationRailShell(
+            profile: Profile(name: "Viewer"), entries: [], destinations: [.home, .settings],
+            selection: $model.selection, onOpenProfileSwitcher: {}, chrome: model.chrome,
+            content: ShowcaseReturnContent(model: model), contentDestination: .home
+        )
+        .environment(\.plozzCardStyle, .borderless)
+        .environment(\.plozzCardFocusStyle, .system)
+        .environment(\.themePalette, .dark)
+        .environment(\.gradientBackgroundsEnabled, false)
+        .environment(\.focusHeroLayoutMeasurement, model.measurement)
+    }
+}
+
+private struct ShowcaseReturnContent: View {
+    let model: ShowcaseReturnModel
+    @Bindable var detail: RealPosterReturnModel
+
+    init(model: ShowcaseReturnModel) {
+        self.model = model
+        detail = model.detail
+    }
+
+    var body: some View {
+        NavigationStack(path: $detail.path) {
+            FocusHeroHomeView(
+                rows: model.rows, settings: .default, spoilerSettings: .default,
+                navigationStyle: .rail, isFrontmost: detail.path.isEmpty
+            ) { row, reporter in
+                MediaRowView(
+                    title: Text(verbatim: row.id), items: row.items, style: .poster,
+                    onFocusEntered: reporter.entered,
+                    onFocusChange: { if let item = $0 { reporter.focusedItem(item) } },
+                    onCardFocused: reporter.cardFocused,
+                    statusCue: { _ in model.cardInputs += 1; return nil },
+                    onSelect: { _ in detail.path.append(1) }
+                )
+            }
+            .background(ShowcaseReturnInsetProbe(model: model))
+            .modifier(NavigationRailRootContentInset())
+            .navigationDestination(for: Int.self) { _ in
+                RealPosterReturnPage(model: detail)
+                    .background(ShowcaseReturnInsetProbe(model: model, isDetail: true))
+                    .cinematicDetailPage(isEnabled: true)
+            }
+        }
+        .cinematicDetailNavigation(path: $detail.path)
+        .onChange(of: detail.path.count) { _, depth in model.chrome.setStackDepth(depth) }
+    }
+}
+
+private struct ShowcaseReturnInsetProbe: UIViewRepresentable {
+    let model: ShowcaseReturnModel
+    var isDetail = false
+    func makeUIView(context: Context) -> UIView { UIView() }
+    func updateUIView(_ view: UIView, context: Context) {
+        let inset = context.environment.plozzNavigationContentInset
+        if isDetail { model.detailInset = inset }
+        else if model.insets.last != inset { model.insets.append(inset) }
+    }
+}
+
+@MainActor
+private final class ShowcaseReturnController: UIHostingController<ShowcaseReturnRoot> {
+    weak var target: (any UIFocusEnvironment)?
+    override var preferredFocusEnvironments: [any UIFocusEnvironment] {
+        target.map { [$0] } ?? super.preferredFocusEnvironments
     }
 }
 

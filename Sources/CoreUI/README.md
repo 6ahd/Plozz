@@ -6,11 +6,23 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Loading placeholders share `shimmering()`. Its static gradient band is rasterized
+before the animated translation, avoiding repeated gradient work without
+rasterizing the placeholder content or changing the sweep, masking, or intensity.
+Inactive placeholders remain unmodified; Reduce Motion retains the static dim.
+The simulator lab's `skeletons-idle` and `skeletons-static` scenarios isolate this
+cost from loaded cards and network/provider work.
+
 Continue Watching's profile-scoped Playback details choice applies to Artwork + logo,
 Thumbnail, and Poster, on Home and library rows.
 Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
+
+`MediaRowView.onPlay` optionally gives each media card a tvOS Play/Pause shortcut,
+independent of Select and without preparing a detail transition. Home Continue
+Watching supplies its existing playback callback for either selection preference.
+Other rows, loading placeholders and Live TV cards retain their own behavior.
 
 Continue Watching portrait cards reuse `PosterCardView` at ordinary 2:3 poster
 dimensions. Detailed starts with the complete poster above a bottom reflection 10% of
@@ -209,8 +221,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
   horizontal Back/title layout, not a separate pinned container. `SettingsBackButton`
-  selects the shared native bordered capsule while callers retain navigation and
-  focus ownership. The full-width header is a native focus section, so Up from
+  shows only the backward chevron in the shared native button, retaining the
+  localized Back accessibility label. Callers retain navigation and focus
+  ownership. The full-width header is a native focus section, so Up from
   right-aligned controls can reach the leading Back button. The full-screen subtitle editor is
   an explicit exception: its stationary heading sits above a scrolling tool pane.
   TV Settings categories and descendants share the centered
@@ -227,6 +240,23 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   boolean destinations retain native navigation outside this workspace,
   including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
   subtitle panels, with Reduce Motion respected by their hosts.
+- **Cinematic detail returns** — TV browse stacks install
+  `cinematicDetailNavigation(path:)` on the stack so its destinations inherit it.
+  Back changes that bound path in the reverse transition's nonanimated transaction:
+  SwiftUI's environment dismiss action can still animate a native pop underneath
+  the cover. Input remains guarded until both the reverse motion and real pop
+  finish and native source focus is restored. Native media controls also reject
+  directional focus updates while the window's input guard is installed; a
+  window gesture recognizer alone does not prevent UIKit's directional focus.
+  Programmatic restoration remains allowed and targets the requested control,
+  not the window's default focus candidate. If UIKit already restored the source,
+  synchronize its SwiftUI binding without queuing another native request.
+  Cross the native pop's render boundary and prepare source focus while the
+  reverse artwork is still moving, not after it finishes. The cover and input
+  guard remain until both preparation and motion complete; held input still
+  drains before fresh navigation is admitted.
+  Hosts without a bound path retain
+  ordinary dismissal; Reduce Motion and noncinematic pages keep native navigation.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no
   font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,

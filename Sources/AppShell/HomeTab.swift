@@ -482,6 +482,7 @@ struct HomeTab: View {
         let _ = PlozzBodyRate.tick("HomeTab")
         NavigationStack(path: $path) {
             rootContent
+            .modifier(NavigationRailRootContentInset())
             .navigationDestination(for: MediaLibrary.self) { library in
                 libraryBrowse(for: library)
             }
@@ -662,6 +663,7 @@ struct HomeTab: View {
             // Watching and was silently dropped in every pushed detail page.
             .mediaItemNavigator { navigate($0, asOwnSubject: $0.kind == .episode) }
         }
+        .cinematicDetailNavigation(path: $path)
         // Under the rail, a pushed page is a detail page — report the depth so the
         // chrome steps aside and the title page is full-bleed. No-op under the two
         // native tab styles, which install no chrome model.

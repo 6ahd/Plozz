@@ -692,7 +692,7 @@ final class PlozziOSAppModel {
             durableStore: durableLocalStateStore,
             mediaShareRuntime: mediaShareRuntime,
             accountsProviders: accountsProviders,
-            settings: initialSettings,
+            settingsNamespace: profiles.activeNamespace,
             authenticatedHTTPResolver: authenticatedHTTPResolver
         )
         self.pendingLibrarySelection = nil
@@ -1650,9 +1650,7 @@ final class PlozziOSAppModel {
         refreshActiveProfileConfiguration()
     }
 
-    /// Reapply settings and reconcile sources without granting a new profile
-    /// activation or discarding an unchanged Plex authentication in progress.
-    func refreshActiveProfileConfiguration() {
+    func refreshActiveProfileSettings() {
         settings = PlozziOSSettingsModel(
             namespace: profiles.activeNamespace,
             allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
@@ -1663,6 +1661,12 @@ final class PlozziOSAppModel {
         versionPreferences = VersionPreferenceStore(
             namespace: profiles.activeNamespace
         )
+    }
+
+    /// Reapply settings and reconcile sources without granting a new profile
+    /// activation or discarding an unchanged Plex authentication in progress.
+    func refreshActiveProfileConfiguration() {
+        refreshActiveProfileSettings()
         transitionDownloads(to: profiles.activeProfileID)
         reloadAccountsAndCrashContext()
         plexHomeUsers.ensurePlexIdentityForActiveProfile()
@@ -1700,7 +1704,7 @@ final class PlozziOSAppModel {
                 durableStore: self.durableLocalStateStore,
                 mediaShareRuntime: self.mediaShareRuntime,
                 accountsProviders: self.accountsProviders,
-                settings: self.settings,
+                settingsNamespace: self.profiles.activeNamespace,
                 startsActive: self.applicationIsActive,
                 authenticatedHTTPResolver: self.authenticatedHTTPResolver
             )
@@ -2145,7 +2149,7 @@ final class PlozziOSAppModel {
         durableStore: DurableLocalStateStore?,
         mediaShareRuntime: DefaultMediaShareRuntime,
         accountsProviders: AccountsProvidersModel,
-        settings: PlozziOSSettingsModel,
+        settingsNamespace: String?,
         startsActive: Bool = true,
         authenticatedHTTPResolver: ManagedAuthenticatedHTTPResolver
     ) -> PlozziOSDownloadsModel {
@@ -2155,6 +2159,11 @@ final class PlozziOSAppModel {
                 initializationError: "Durable download storage is unavailable."
             )
         }
+        // Read current preferences at download preparation time, not a settings
+        // model that a same-profile cloud update can replace.
+        let playbackStore = PlaybackSettingsStore(namespace: settingsNamespace)
+        let audioPolicyStore = AudioPolicyStore(namespace: settingsNamespace)
+        let artworkStore = ArtworkSettingsStore(namespace: settingsNamespace)
         do {
             return PlozziOSDownloadsModel(
                 profileID: namespace,
@@ -2169,8 +2178,8 @@ final class PlozziOSAppModel {
                     }?.server.provider
                 },
                 preferredAudioLanguages: { item in
-                    let playbackSettings = settings.playback.settings
-                    let policy = settings.audioPolicy.resolvedPolicy(
+                    let playbackSettings = playbackStore.load()
+                    let policy = audioPolicyStore.resolvedPolicy(
                         settings: playbackSettings
                     )
                     return AudioLanguagePolicy.preferredAudioLanguages(
@@ -2183,7 +2192,7 @@ final class PlozziOSAppModel {
                         deviceLanguage: LanguageMatch.deviceLanguageCode
                     )
                 },
-                artworkSettings: { settings.cardStyle.artwork },
+                artworkSettings: { artworkStore.load() },
                 startsActive: startsActive,
                 resolveArtworkItem: { record in
                     guard let accountID = record.snapshot.sourceAccountID

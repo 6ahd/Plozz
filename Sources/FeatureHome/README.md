@@ -110,6 +110,15 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   selecting the already active preset does nothing.
   **Merge Next Up rows** is a profile-scoped setting inside the **Continue Watching**
   section's configuration on every platform, alongside its artwork choice.
+  **Continue Watching action** chooses **Play** (the unchanged default) or
+  **Open details** for movie/episode cards on Home, including merged Next Up
+  entries and every TV Home layout. It persists and transfers with the profile.
+  Artwork, progress overlays, context menus and Live TV tuning are unchanged.
+  Library Recommended rows retain their existing detail navigation.
+  On Apple TV, the remote's center button follows this choice, while Play/Pause
+  always starts the focused Continue Watching item through the normal playback
+  path. Play/Pause never opens details, including when **Open details** is selected.
+  Normal resume/restart and version-choice prompts still apply.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather
@@ -319,6 +328,9 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   previous movie's trailer. A confirmed cancelled cinematic Back restores the page that
   remains on the real navigation stack, removes its cover/input guard, and keeps
   its controls focusable. Older transition completions cannot finish a newer pop.
+  Returning to a retained page restores its cached artwork palette without a
+  second crossfade after the cinematic cover lifts. Ordinary artwork changes
+  still crossfade, and hidden pages still release their displayed-artwork owner.
   The bounded debug handoff journal records page membership, return outcomes,
   and hashed trailer ownership so an intermittent failure can be inspected
   without restarting the affected app.
