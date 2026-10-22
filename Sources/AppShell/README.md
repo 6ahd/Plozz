@@ -42,6 +42,15 @@ registry.
 
 ## Invariants
 
+- **Preference sync is not a profile switch.** Mobile cloud apply rebuilds active
+  settings and track/version preferences without restarting downloads, provider
+  caches, identity indexing, or tracker/watchlist imports. Inactive-profile
+  preferences and unchanged membership do not rebuild the active runtime.
+  Changes to the active profile, namespace, membership, or local accounts still
+  reconcile sources, after mandatory profile-lock checks. Retained downloads
+  read current preferences from their original profile's stores when preparing
+  new work.
+
 - **Top Shelf actions retain their intent and owner.** Play opens the title then
   starts playback; More Info opens the same detail/episode-context destination
   without playback. Requests wait for signed-in admission and route through the

@@ -259,6 +259,14 @@ SCENARIOS = {
         "description": "Update 24 production mobile Home cards against a four-source identity index without activating a card.",
         "counters": ["rootUpdates", "cards", "sourceResolutions", "observedRevision"],
     },
+    "mobile-preference-sync": {
+        "suite": "ui",
+        "platforms": ["iOS"],
+        "test": "CloudConfigurationRefreshTests/testPerformancePreferenceSync",
+        "file": "Tests/iOSPresentationTests/CloudConfigurationRefreshTests.swift",
+        "description": "Apply 24 active/inactive preference batches through the mobile app model; count synchronous account, index and download invalidations.",
+        "counters": ["batches", "appliedPreferences", "accountInvalidations", "indexResets", "downloadTransitions"],
+    },
     "mobile-profile-selection": {
         "suite": "ui", "platforms": ["iOS"],
         "test": "ProfileSelectionPerformanceTests/testPerformanceProfileSelection",

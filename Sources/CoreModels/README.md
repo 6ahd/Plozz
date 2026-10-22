@@ -149,6 +149,12 @@ to make them unique in the UI.
 
 ## Profile deletion and namespace ownership
 
+Transferable preferences use byte-stable sync values. JSON object keys and
+Hero's set-valued `randomLibraryKeys` are canonicalized on capture and apply,
+including legacy blobs. User-ordered arrays such as Hero sources and unknown
+fields retain their meaning; native preferred-version dictionaries stay
+dictionaries rather than becoming JSON data.
+
 Any profile may be deleted while at least one remains. Both cloud adapters apply
 the original/default profile's deletion and omit deleted profiles, membership and
 settings from capture, allowing the existing durable sync ledger to delete their

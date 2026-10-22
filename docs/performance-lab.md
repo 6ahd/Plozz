@@ -53,6 +53,14 @@ Cancellation/timeout stops only the owned process group and preserves evidence.
 
 ## Baseline → attribution → candidate → regression
 
+The iOS `mobile-preference-sync` scenario applies 24 cloud batches through the
+real mobile app model, updating active Hero preferences and an inactive profile's
+preferred version in each batch. It verifies all 48 applied values and counts
+account invalidations, index resets, and download-model replacements. With no
+accounts or external services, it isolates synchronous configuration-apply work;
+it does not measure full network/indexing completion, CloudKit delivery, rendered
+frames, or physical-device temperature and battery use.
+
 The iOS `mobile-profile-selection` scenario activates sixteen synthetic profiles
 through the real app model. It reports synchronous selection time separately
 from a fixed 5 ms Plex metadata delay, checks that every selection reaches the
