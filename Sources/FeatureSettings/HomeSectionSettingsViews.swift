@@ -167,8 +167,6 @@ struct HomeSectionSettingsView: View {
                 choice.homeEditorSource.font(.subheadline).plozzForeground(.secondary)
             }
             if choice.id == .global(.continueWatching) {
-                ContinueWatchingActionControl(visibility: visibility)
-                ContinueWatchingNextUpControl(visibility: visibility)
                 ContinueWatchingArtworkPicker(style: Binding(
                     get: {
                         if visibility.continueWatchingLayout == .portrait { return .portraitPosters }
@@ -182,18 +180,12 @@ struct HomeSectionSettingsView: View {
                     }
                 ), playbackDetails: visibility.continueWatchingPlaybackDetails,
                    captions: cards.captions, isShowcase: previewsShowcase)
-                ContinueWatchingPlaybackDetailsControl(visibility: visibility)
-                CardCaptionViewChoices(
-                    view: .continueWatching,
-                    settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
-                    title: "Labels"
-                )
-                #if os(iOS)
-                .padding(.horizontal, 14)
-                .settingsGroupSurface(cornerRadius: 12)
+                #if os(tvOS)
+                SettingsControlGroup { presentationControls }
+                SettingsControlGroup { behaviorControls }
                 #else
-                .padding(SettingsFormMetrics.groupInset)
-                .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+                SettingsSectionGroup { presentationControls }
+                SettingsSectionGroup { behaviorControls }
                 #endif
             }
             Button("Remove section", role: .destructive) {
@@ -214,6 +206,22 @@ struct HomeSectionSettingsView: View {
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
+    }
+
+    @ViewBuilder
+    private var presentationControls: some View {
+        ContinueWatchingPlaybackDetailsControl(visibility: visibility)
+        CardCaptionViewChoices(
+            view: .continueWatching,
+            settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
+            title: "Labels"
+        )
+    }
+
+    @ViewBuilder
+    private var behaviorControls: some View {
+        ContinueWatchingNextUpControl(visibility: visibility)
+        ContinueWatchingActionControl(visibility: visibility)
     }
 
     private var previewsShowcase: Bool {
@@ -253,22 +261,15 @@ struct ContinueWatchingActionControl: View {
                     visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
                 }
                 #if os(tvOS)
-                Text("\(Image(systemName: "playpause.circle.fill")) on your remote always plays the selected item.")
+                Text("Play/Pause (\(Image(systemName: "playpause.circle.fill"))) on your remote always plays the focused item.")
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("Play/Pause on your remote always plays the selected item.")
+                    .accessibilityLabel("Play/Pause on your remote always plays the focused item.")
                     .accessibilityIdentifier("continue-watching-remote-help")
                 #endif
             }
             #endif
         }
-        #if os(iOS)
-        .padding(.horizontal, 14)
-        .settingsGroupSurface(cornerRadius: 12)
-        #else
-        .padding(SettingsFormMetrics.groupInset)
-        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
-        #endif
     }
 }
 
@@ -300,13 +301,6 @@ private struct ContinueWatchingPlaybackDetailsControl: View {
             }
             #endif
         }
-        #if os(iOS)
-        .padding(.horizontal, 14)
-        .settingsGroupSurface(cornerRadius: 12)
-        #else
-        .padding(SettingsFormMetrics.groupInset)
-        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
-        #endif
     }
 }
 

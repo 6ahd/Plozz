@@ -1242,6 +1242,36 @@ final class SettingsInteractionTests: XCTestCase {
         selectCustomization(labels, expecting: "Follow Appearance")
     }
 
+    func testContinueWatchingGroupedControlsKeepSelectionsIndependent() {
+        openSettingsPage("Customize Home")
+        app.buttons["home-section-home-continueWatching"].tap()
+        XCTAssertTrue(app.navigationBars["Continue Watching"].waitForExistence(timeout: 3))
+        let artwork = app.buttons["continue-watching-style-portraitPosters"]
+        let details = app.buttons["continue-watching-playback-details"]
+        let labels = app.buttons["card-label-view-continueWatchingPortrait"]
+        let merge = app.switches["home-merge-next-up"]
+        let action = app.buttons["continue-watching-action"]
+        reveal(artwork, fullyVisible: true)
+        artwork.tap()
+        XCTAssertLessThan(artwork.frame.maxY, details.frame.minY)
+        XCTAssertLessThan(details.frame.maxY, labels.frame.minY)
+        XCTAssertLessThan(labels.frame.maxY, merge.frame.minY)
+        XCTAssertLessThan(merge.frame.maxY, action.frame.minY)
+        selectCustomization(details, expecting: "Progress only")
+        selectCustomization(labels, expecting: "On")
+        let mergeBefore = merge.value as? String
+        selectCustomization(action, expecting: "Open details")
+        XCTAssertEqual(merge.value as? String, mergeBefore)
+        XCTAssertEqual(details.value as? String, "Progress only")
+        XCTAssertEqual(labels.value as? String, "On")
+        XCTAssertTrue(artwork.isSelected)
+        reveal(merge, fullyVisible: true)
+        tapNativeSwitch(merge)
+        XCTAssertNotEqual(merge.value as? String, mergeBefore)
+        XCTAssertEqual(action.value as? String, "Open details")
+        capture("continue-watching-grouped-controls")
+    }
+
     func testHeroSettingsNavigationKeepsProfileModelsAndEdits() {
         openSettingsPage("Customize Home")
         app.buttons["home-section-hero"].tap()

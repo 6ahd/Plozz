@@ -2,6 +2,90 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testSharedChevronHeaderKeepsRightAlignedFocusBridge() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { app.terminate() }
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        let link = app.buttons["settings-page-night-shift"]
+        try focus(link, in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["Always On"], in: app)
+        XCUIRemote.shared.press(.up)
+        let back = pageBack(in: app)
+        let focused = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(back) }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                       "Up from the rightmost mode must reach the shared chevron button.")
+        XCTAssertEqual(back.label, "Back")
+        XCTAssertLessThan(back.frame.width, back.frame.height * 2)
+        capture("shared-chevron-header-right-aligned-focus", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        #else
+        throw XCTSkip("Simulator-only shared header review.")
+        #endif
+    }
+
+    func testContinueWatchingGroupsFollowArtworkAndKeepNativeFocus() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-home"], in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["home-section-home-continueWatching"], in: app)
+        XCUIRemote.shared.press(.select)
+        let artwork = app.buttons["continue-watching-style-portraitPosters"]
+        let details = app.buttons["continue-watching-playback-details"]
+        let labels = app.buttons["card-label-view-continueWatchingPortrait"]
+        let merge = app.switches["home-merge-next-up"]
+        let action = app.buttons["continue-watching-action"]
+        try focus(artwork, in: app)
+        let back = pageBack(in: app)
+        assertInlineSettingsHeader("Continue Watching", back: back, in: app)
+        XCTAssertEqual(back.label, "Back")
+        XCTAssertLessThan(back.frame.width, back.frame.height * 2)
+        capture("continue-watching-artwork-first", in: app)
+        XCTAssertLessThan(artwork.frame.maxY, details.frame.minY)
+        for control in [details, labels, merge, action] {
+            XCUIRemote.shared.press(.down)
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in self.hasFocus(control) }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                           "Down must reach \(control.identifier). \(app.debugDescription)")
+        }
+        XCTAssertEqual(
+            app.staticTexts["continue-watching-remote-help"].label,
+            "Play/Pause on your remote always plays the focused item."
+        )
+        let mergeBefore = merge.value as? String
+        let actionBefore = action.value as? String
+        XCUIRemote.shared.press(.select)
+        XCTAssertNotEqual(action.value as? String, actionBefore)
+        XCTAssertEqual(merge.value as? String, mergeBefore)
+        XCTAssertTrue(hasFocus(action))
+        capture("continue-watching-behavior-group", in: app)
+        for control in [merge, labels, details] {
+            XCUIRemote.shared.press(.up)
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in self.hasFocus(control) }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                           "Up must reach \(control.identifier). \(app.debugDescription)")
+        }
+        try focus(back, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["home-section-home-continueWatching"].waitForExistence(timeout: 5))
+        #else
+        throw XCTSkip("Never changes Home preferences on a physical device.")
+        #endif
+    }
+
     func testEpisodeCountStyleMenuKeepsWatchModeAndRetainsHiddenChoice() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar")

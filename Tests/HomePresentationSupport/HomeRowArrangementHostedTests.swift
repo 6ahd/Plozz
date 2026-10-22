@@ -381,6 +381,53 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
     }
 
+    func testContinueWatchingSectionOrdersArtworkAndGroupedControls() async throws {
+        let suite = "HomeSectionLayout.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let choice = try XCTUnwrap(HomeRowChoice.shared.first { $0.id == .global(.continueWatching) })
+        let page = HomeSectionSettingsView(
+            choice: choice, inventory: HomeSectionCatalogModel(),
+            visibility: visibility, libraries: [], accounts: []
+        )
+        try await withWindow(size: CGSize(width: 1100, height: 1600)) {
+            Group {
+                #if os(tvOS)
+                page.environment(\.settingsPageBackButton, AnyView(SettingsBackButton {}))
+                #else
+                NavigationStack { page }
+                #endif
+            }
+            .environment(\.horizontalSizeClass, .regular)
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Continue Watching grouped section layout")
+            XCTAssertEqual(lines.filter { $0.0 == "Continue Watching" }.count, 1,
+                           "The section must not repeat its heading in the native navigation bar.")
+            let controls = ["Playback details", "Labels", "Merge Next Up rows", "Continue Watching action"]
+            let detailsY = try self.y("Playback details", in: lines)
+            for artwork in ["Artwork + logo", "Thumbnail", "Poster"] {
+                XCTAssertGreaterThan(try self.y(artwork, in: lines), detailsY,
+                                     "All three artwork choices belong above the settings groups.")
+            }
+            for (upper, lower) in zip(controls, controls.dropFirst()) {
+                XCTAssertGreaterThan(try self.y(upper, in: lines), try self.y(lower, in: lines),
+                                     "\(upper) must appear before \(lower).")
+            }
+            XCTAssertGreaterThan(try self.y("Continue Watching action", in: lines),
+                                 try self.y("Remove section", in: lines))
+            #if os(tvOS)
+            XCTAssertFalse(lines.contains { $0.0.contains("Back") },
+                           "The shared back control shows only its chevron.")
+            for title in controls {
+                let label = try XCTUnwrap(lines.first { $0.0.contains(title) }).1
+                let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+                XCTAssertNotNil(self.focusableItem(at: point, in: window), title)
+            }
+            #endif
+        }
+    }
+
     func testContinueWatchingActionControlShowsCurrentProfileChoice() async throws {
         let suite = "HomeActionControl.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -389,7 +436,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let visibility = HomeLibraryVisibilityModel(store: store)
         try await withWindow {
             ScrollView {
-                ContinueWatchingActionControl(visibility: visibility).padding(32)
+                Group {
+                    #if os(tvOS)
+                    SettingsControlGroup { ContinueWatchingActionControl(visibility: visibility) }
+                    #else
+                    SettingsSectionGroup { ContinueWatchingActionControl(visibility: visibility) }
+                    #endif
+                }
+                .padding(32)
             }
             #if os(tvOS)
             .frame(width: 900, height: 650)
@@ -403,10 +457,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertTrue(text.contains(String(localized: action.displayName)), text)
                 XCTAssertEqual(store.load().continueWatchingAction, action)
                 #if os(tvOS)
-                XCTAssertTrue(text.contains("on your remote always plays the selected item."), text)
-                XCTAssertFalse(text.contains("Play/Pause"), "The visible helper uses the remote button symbol.")
+                XCTAssertTrue(text.contains("on your remote always plays the focused item."), text)
+                XCTAssertTrue(text.contains("Play/Pause"), "The helper names the button alongside its symbol.")
                 XCTAssertLessThan(
-                    try self.y("on your remote", in: lines), try self.y("Continue Watching action", in: lines),
+                    try self.y("Play/Pause", in: lines), try self.y("Continue Watching action", in: lines),
                     "The explanation belongs below the selection control."
                 )
                 let label = try XCTUnwrap(lines.first { $0.0.contains("Continue Watching action") }).1
@@ -476,6 +530,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 (view as? UISwitch).map { [$0] } ?? view.subviews.flatMap(switches)
             }
             let control = try XCTUnwrap(switches(window).first)
+            var ancestor = control.superview
+            while let view = ancestor {
+                if let scroll = view as? UIScrollView {
+                    scroll.scrollRectToVisible(control.convert(control.bounds, to: scroll), animated: false)
+                    break
+                }
+                ancestor = view.superview
+            }
             XCTAssertTrue(control.isOn)
             control.setOn(false, animated: false)
             control.sendActions(for: .valueChanged)

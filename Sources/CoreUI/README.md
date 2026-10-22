@@ -194,8 +194,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
   horizontal Back/title layout, not a separate pinned container. `SettingsBackButton`
-  selects the shared native bordered capsule while callers retain navigation and
-  focus ownership. The full-width header is a native focus section, so Up from
+  shows only the backward chevron in the shared native button, retaining the
+  localized Back accessibility label. Callers retain navigation and focus
+  ownership. The full-width header is a native focus section, so Up from
   right-aligned controls can reach the leading Back button. The full-screen subtitle editor is
   an explicit exception: its stationary heading sits above a scrolling tool pane.
   TV Settings categories and descendants share the centered

@@ -10,6 +10,24 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testSharedPageBackButtonsShowOnlyChevronAndKeepNativeFocus() async throws {
+        for usesGlass in [false, true] {
+            try await withScreen(content:
+                SettingsPageHeader("Shared page")
+                    .environment(\.settingsPageBackButton, AnyView(SettingsBackButton(usesGlass: usesGlass) {}))
+                    .frame(width: SettingsFormMetrics.pageWidth)
+            ) { window in
+                let text = try await self.capture(window, name: "shared-back-chevron-\(usesGlass)", includeMaster: true)
+                XCTAssertTrue(text.contains("Shared page"), text)
+                XCTAssertFalse(text.contains("Back"), text)
+                let back = try self.backButton(beside: "Shared page", in: window)
+                let frame = try self.nativeFrame(back, in: window)
+                XCTAssertLessThan(frame.width, frame.height * 2, "The icon-only back button must remain compact.")
+                XCTAssertTrue(UIFocusSystem.focusSystem(for: window)?.focusedItem === back)
+            }
+        }
+    }
+
     func testContinueWatchingPreviewsUseSharedSelectionStyleAndReadableDetails() async throws {
         for showsCaptions in [false, true] {
             var captions = CardCaptionSettings.default
@@ -184,7 +202,8 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                     window, name: "settings-native-illustrated-rows-\(divider ? "spaced-divider" : "no-divider")",
                     includeMaster: true
                 )
-                for label in ["Back", "App default", "Customize by view", "Watched", "Unwatched", "Show unwatched episode count"] {
+                _ = try self.backButton(beside: "Cards", in: window)
+                for label in ["App default", "Customize by view", "Watched", "Unwatched", "Show unwatched episode count"] {
                     XCTAssertTrue(copy.contains(label), copy)
                 }
             }
@@ -255,7 +274,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                     window, name: "settings-native-long-copy-\(smallerTitle ? "smaller-title" : "current-title")",
                     includeMaster: true
                 )
-                XCTAssertTrue(copy.contains("Back"), copy)
+                _ = try self.backButton(beside: "Playback", in: window)
                 XCTAssertTrue(copy.contains(title), copy)
                 XCTAssertTrue(copy.contains(label), copy)
                 XCTAssertTrue(copy.contains(value), copy)
@@ -740,9 +759,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             XCTAssertTrue(kids.contains("Discovery is unavailable in Kids profiles"), kids)
             XCTAssertFalse(kids.contains("TMDB"), kids)
             XCTAssertFalse(kids.contains("Show provider labels"), kids)
-            XCTAssertEqual(try self.collectionLabelFrames(in: window).filter {
-                $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
-            }.count, 1)
+            _ = try self.backButton(beside: "Discovery", in: window)
             XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
         }
     }
@@ -763,15 +780,9 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 .environment(hero)
                 .environment(background)) { window in
                 _ = try await self.capture(window, name: "hero-empty-\(page.rawValue)", includeMaster: true)
-                let labels = try self.collectionLabelFrames(in: window).filter {
-                    $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
-                }
-                XCTAssertEqual(labels.count, 1)
-                let label = try XCTUnwrap(labels.first)
+                let back = try self.backButton(beside: String(localized: page.title), in: window)
                 let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
-                XCTAssertTrue(try self.nativeFrame(focused, in: window).contains(
-                    CGPoint(x: label.frame.midX, y: label.frame.midY)
-                ))
+                XCTAssertTrue(focused === back)
                 XCTAssertFalse(navigation.awaitingFocus)
             }
         }
@@ -875,27 +886,26 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(250))
             _ = try await self.capture(window, name: "labels-before-top-scroll", includeMaster: true)
             let before = try self.collectionLabelFrames(in: window)
-            let back = try XCTUnwrap(before.first { $0.text.hasSuffix("Back") }, "\(before)")
             let title = try XCTUnwrap(before.first { $0.text == "Labels by view" })
-            let backCenter = CGPoint(x: back.frame.midX, y: back.frame.midY)
-            let backItem = try XCTUnwrap(self.focusItems(in: window).first {
-                (try? self.nativeFrame($0, in: window).contains(backCenter)) == true
-            })
+            let backItem = try self.backButton(beside: "Labels by view", in: window)
             let backControlFrame = try self.nativeFrame(backItem, in: window)
+            let backInk = try self.textInkBounds(in: self.renderWindow(window),
+                                                frame: backControlFrame.insetBy(dx: 12, dy: 12))
             let viewport = scroll.convert(scroll.bounds, to: window)
             let innerTop = viewport.minY + scroll.adjustedContentInset.top
-            let distance = back.frame.minY - innerTop + 14
+            let distance = backInk.minY - innerTop + 14
             XCTAssertGreaterThan(distance, 20)
             scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: scroll.contentOffset.y + distance), animated: false)
             try await Task.sleep(for: .milliseconds(250))
             _ = try await self.capture(window, name: "labels-crossing-top-inset", includeMaster: true)
             let after = try self.collectionLabelFrames(in: window)
-            let scrolledBack = try XCTUnwrap(after.first { $0.text.hasSuffix("Back") },
-                                             "Back must remain readable across the top inset: viewport=\(viewport), offset=\(scroll.contentOffset), clips=\(scroll.clipsToBounds), text=\(after)")
             let scrolledTitle = try XCTUnwrap(after.first { $0.text == "Labels by view" })
-            XCTAssertLessThan(scrolledBack.frame.minY, innerTop - 8)
-            XCTAssertGreaterThan(scrolledBack.frame.height, back.frame.height * 0.85)
             let scrolledControlFrame = try self.nativeFrame(backItem, in: window)
+            let scrolledBackInk = try self.textInkBounds(in: self.renderWindow(window),
+                                                        frame: scrolledControlFrame.insetBy(dx: 12, dy: 12))
+            XCTAssertLessThan(scrolledBackInk.minY, innerTop - 8)
+            XCTAssertGreaterThan(scrolledBackInk.height, backInk.height * 0.85,
+                                 "The back chevron must remain visible across the top inset.")
             XCTAssertEqual(backControlFrame.minY - scrolledControlFrame.minY, distance, accuracy: 1)
             XCTAssertEqual(title.frame.minY - scrolledTitle.frame.minY, distance, accuracy: 3,
                            "Neither Back nor the title should be pinned.")
@@ -963,7 +973,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let headingInk = try self.textInkBounds(in: self.renderWindow(window), frame: heading.frame)
             XCTAssertLessThan(headingInk.height, 60, "The shared page title must fit the available pane.")
             XCTAssertTrue(text.contains("Choose collections"), text)
-            XCTAssertTrue(text.contains("Back"), "The pane's Back label must remain legible: \(text)")
+            _ = try self.backButton(beside: "Choose collections", in: window)
             XCTAssertTrue(text.contains("Funny movies from year 2000"), text)
             XCTAssertTrue(text.contains("Personal collections"), text)
             let rows = self.focusItems(in: window)
@@ -1009,6 +1019,20 @@ final class ArtworkSettingsHostedTests: XCTestCase {
 
     private func nativeFocusedFrame(_ system: UIFocusSystem, in window: UIWindow) throws -> CGRect {
         try nativeFrame(XCTUnwrap(system.focusedItem), in: window)
+    }
+
+    private func backButton(beside title: String, in window: UIWindow) throws -> any UIFocusItem {
+        let heading = try XCTUnwrap(collectionLabelFrames(in: window, matchingText: title)
+            .min { $0.frame.minY < $1.frame.minY }).frame
+        let buttons = try focusItems(in: window).filter {
+            let frame = try nativeFrame($0, in: window)
+            // OCR can include the adjacent chevron in the heading's bounds.
+            return frame.midX < heading.minX && frame.minY < heading.maxY && frame.maxY > heading.minY
+        }
+        let frames = try focusItems(in: window).map { try nativeFrame($0, in: window) }
+        XCTAssertEqual(buttons.count, 1,
+                       "The page must have one native Back control beside \(heading). Items: \(frames)")
+        return try XCTUnwrap(buttons.first)
     }
 
     private func nativeFrame(_ item: any UIFocusItem, in window: UIWindow) throws -> CGRect {
