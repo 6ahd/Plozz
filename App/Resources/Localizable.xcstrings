@@ -737555,6 +737555,7 @@
       }
     },
     "Stop playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
