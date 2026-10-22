@@ -1433,7 +1433,12 @@ final class SettingsInteractionTests: XCTestCase {
         let heroY = hero.frame.minY
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reorder '")).count, 0)
         let reorder = app.navigationBars["Customize Home"].buttons["home-section-reorder"]
-        reorder.tap()
+        let original = app.buttons["home-section-home-continueWatching"]
+        original.press(forDuration: 1)
+        let menu = app.collectionViews.buttons["Reorder"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertTrue(app.collectionViews.buttons["Remove section"].exists)
+        menu.tap()
         XCTAssertEqual(reorder.label, "Done")
         XCTAssertFalse(app.buttons["home-row-preset"].isEnabled)
         XCTAssertFalse(app.buttons["home-section-add"].isEnabled)

@@ -571,7 +571,27 @@ struct PlozziOSHomeView: View {
                     )
                 case let .library(row):
                         let section = row.section
-                        if let failure = row.failure {
+                        if let issue = row.issue {
+                            VStack(alignment: .leading) {
+                                HomeSectionStatusView(issue: issue) {
+                                    Task { await viewModel.load(showLoadingState: false) }
+                                }
+                                if let item = row.browseItem {
+                                    NavigationLink {
+                                        PlozziOSHomeCardDetail(
+                                            item: item,
+                                            fallbackProvider: item.sourceAccountID.flatMap {
+                                                appModel.accountsProviders.provider(forAccountID: $0)
+                                            }
+                                        )
+                                    } label: {
+                                        Text("See all")
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .disabled(viewModel.isRefreshing)
+                        } else if let failure = row.failure {
                             PlozziOSHomeRowFailure(
                                 title: section.displayName,
                                 error: failure, viewModel: viewModel

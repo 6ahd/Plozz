@@ -1702,7 +1702,10 @@ public struct HomeView: View {
             )
         case .section(let row):
             let section = row.section
-            if let failure = row.failure {
+            if let issue = row.issue {
+                sectionStatusView(issue, browseItem: row.browseItem)
+                    .background { NativeFocusRegionObserver(onFocusEntered: reporter.entered) }
+            } else if let failure = row.failure {
                 rowFailureView(
                     title: section.displayName, error: failure, onFocusEntered: reporter.entered
                 )
@@ -1766,7 +1769,9 @@ public struct HomeView: View {
     @ViewBuilder
     private func libraryRowView(_ row: HomeLibrarySectionGroup.Row) -> some View {
             let section = row.section
-            if let failure = row.failure {
+            if let issue = row.issue {
+                sectionStatusView(issue, browseItem: row.browseItem)
+            } else if let failure = row.failure {
                 rowFailureView(title: section.displayName, error: failure)
             } else {
                 MediaRowView(
@@ -1780,6 +1785,15 @@ public struct HomeView: View {
                     onSelect: row.browseItem == nil && section.style == .landscape ? onPlayItem : onSelectItem
                 )
         }
+    }
+
+    private func sectionStatusView(_ issue: HomeSectionIssue, browseItem: MediaItem?) -> some View {
+        HomeSectionStatusView(issue: issue, onSeeAll: browseItem.map { item in { onSelectItem(item) } }) {
+            Task { await viewModel.load(showLoadingState: false) }
+        }
+        .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
+        .padding(.vertical, metrics.sectionTitleSpacing)
+        .disabled(viewModel.isRefreshing)
     }
 
     private func librariesRow(

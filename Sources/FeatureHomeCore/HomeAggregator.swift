@@ -644,7 +644,13 @@ public struct HomeAggregator: Sendable {
                             "HomeAgg.rowReady row=\(row.rawValue) ms=\(elapsedMS(from: started, to: clock.now))")
                     }
                     content.librarySections = content.libraries.compactMap {
-                        guard let group = perLibrary[$0.key]?.group, !group.isEmpty else { return nil }
+                        guard let group = perLibrary[$0.key]?.group else { return nil }
+                        let explicitlySelected = group.sections.contains { section in
+                            visibility.rowCustomization?.shown.contains(
+                                .library(key: group.library.key, section: section.id)
+                            ) == true
+                        }
+                        guard !group.isEmpty || explicitlySelected else { return nil }
                         return group
                     }
                     content.serverRows = definitions.compactMap { serverRows[$0.id] }
@@ -806,7 +812,7 @@ public struct HomeAggregator: Sendable {
                     }
                 }
                 return sections.filter {
-                    !$0.items.isEmpty && visibility.isHomeRowVisible(
+                    visibility.isHomeRowVisible(
                         HomeRowChoice(section: $0, library: library)
                     )
                 }.map { section in

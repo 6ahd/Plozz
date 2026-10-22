@@ -113,6 +113,21 @@ struct HomeEditorRowLabel: View {
 
 extension HomeRowChoice {
     var homeEditorTitle: Text { localizedTitle.map(Text.init) ?? Text(verbatim: title) }
+    func homeEditorProvider(in accounts: [ResolvedAccount]) -> ProviderKind? {
+        library?.providerKind ?? serverRow?.providerKind
+            ?? collectionSection.flatMap { section in
+                accounts.first(where: section.source.matches)?.account.server.provider
+            }
+    }
+
+    func homeEditorSource(in accounts: [ResolvedAccount]) -> Text {
+        if library == nil, let collectionSection,
+           let account = accounts.first(where: collectionSection.source.matches) {
+            return Text(verbatim: "\(collectionSection.source.title) · \(account.account.server.name)")
+        }
+        return homeEditorSource
+    }
+
     @ViewBuilder var homeEditorProviderMark: some View {
         if let provider = library?.providerKind ?? serverRow?.providerKind {
             ProviderBrandMark(
@@ -137,12 +152,13 @@ extension HomeRowChoice {
 struct HomeSectionChoiceLabel: View {
     let choice: HomeRowChoice
     var accessory = "chevron.forward"
+    var accounts: [ResolvedAccount] = []
 
     var body: some View {
         HomeEditorRowLabel(
-            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource(in: accounts),
             accessory: accessory,
-            subtitleProvider: choice.library?.providerKind ?? choice.serverRow?.providerKind,
+            subtitleProvider: choice.homeEditorProvider(in: accounts),
             mediaShareTransport: choice.library?.transportKind
         )
     }
@@ -338,7 +354,7 @@ struct HomeAddSectionView: View {
                         dismiss()
                     } catch { failed = true }
                 } label: {
-                    HomeSectionChoiceLabel(choice: choice, accessory: "plus")
+                    HomeSectionChoiceLabel(choice: choice, accessory: "plus", accounts: accounts)
                 }
                 .buttonStyle(SettingsFormButtonStyle())
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")

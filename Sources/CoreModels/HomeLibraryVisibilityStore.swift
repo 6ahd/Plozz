@@ -61,6 +61,7 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
 @MainActor
 @Observable
 public final class HomeLibraryVisibilityModel {
+    public let sectionDiagnostics = HomeSectionDiagnosticsModel()
     public private(set) var visibility: HomeLibraryVisibility
     public private(set) var serverMatchFailures: [String: AppError] = [:]
     public private(set) var rowDefaultsRevision = UUID()

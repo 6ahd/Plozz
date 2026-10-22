@@ -180,6 +180,7 @@ public final class HomeViewModel {
         public var librarySections: [HomeLibrarySectionGroup] = []
         public var serverRows: [HomeServerRow] = []
         public var collectionRows: [HomeCollectionRow] = []
+        public var sectionIssues: [HomeSectionIssue] = []
 
         public init(
             continueWatching: [MediaItem] = [],
@@ -214,6 +215,7 @@ public final class HomeViewModel {
         public var isEmpty: Bool {
             continueWatching.isEmpty && latest.isEmpty && watchlist.isEmpty
                 && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty && collectionRows.isEmpty
+                && sectionIssues.isEmpty
         }
 
         /// Bounds discovery previews for launch persistence, not Continue Watching.
@@ -383,6 +385,7 @@ public final class HomeViewModel {
     /// need no re-fetch (Plex, already-tagged items) apply instantly.
     private let currentVisibility: () -> HomeLibraryVisibility
     private let prepareVisibility: @MainActor () async -> Void
+    private let sectionDiagnostics: HomeSectionDiagnosticsModel?
 
     /// A snapshot of the durable watch-outbox's not-yet-confirmed mutations, read
     /// at load time so the freshly-fetched Continue Watching row reflects plays the
@@ -490,6 +493,7 @@ public final class HomeViewModel {
         identitySources: @escaping @Sendable (MediaItem) -> [MediaSourceRef] = { _ in [] },
         currentVisibility: @escaping () -> HomeLibraryVisibility = { .default },
         prepareVisibility: @escaping @MainActor () async -> Void = {},
+        sectionDiagnostics: HomeSectionDiagnosticsModel? = nil,
         pendingWatchMutations: @escaping @Sendable () async -> [WatchMutation] = { [] },
         recentlyAppliedRecency: @escaping @Sendable () async -> [String: AppliedResumeRecord] = { [:] },
         mediaItemActionHandler: (any MediaItemActionHandling)? = nil,
@@ -504,6 +508,7 @@ public final class HomeViewModel {
         self.identitySources = identitySources
         self.currentVisibility = currentVisibility
         self.prepareVisibility = prepareVisibility
+        self.sectionDiagnostics = sectionDiagnostics
         self.pendingWatchMutations = pendingWatchMutations
         self.recentlyAppliedRecency = recentlyAppliedRecency
         self.policy = policy
@@ -754,12 +759,17 @@ public final class HomeViewModel {
         let onScreenContinueWatching = previousContent?.continueWatching ?? []
         let visibility = currentVisibility()
         loadingVisibility = visibility
+        let sectionDiagnosticGeneration = sectionDiagnostics?.begin(accounts: accounts, visibility: visibility)
+        defer {
+            if let sectionDiagnosticGeneration { sectionDiagnostics?.cancel(sectionDiagnosticGeneration) }
+        }
         let publishesProgress = showLoadingState || !hasCompletedHomeLoad
         if publishesProgress, !accounts.isEmpty {
             rowFailures = [:]
             continueWatchingDiagnostic = nil
             loadingRows = Set(HomeRowKind.allCases)
             var initial = previousContent ?? Content()
+            initial.sectionIssues = []
             initial.mergeLibraries = !visibility.usesIndividualHomeRows
             initial.librarySections = !visibility.usesIndividualHomeRows ? [] : Self.plannedLibrarySections(
                 libraries: initial.libraries, visibility: visibility
@@ -937,6 +947,15 @@ public final class HomeViewModel {
             diagnosticOutcome = failures.isEmpty ? .succeeded
                 : failures.allSatisfy { $0 == .cancelled } ? .cancelled : .failed
         }
+        let hasNoMediaContent = content.isEmpty
+        content.sectionIssues = HomeSectionIssueResolver.resolve(
+            content: content, failures: loadFailures, visibility: visibility, accounts: accounts
+        )
+        if let sectionDiagnosticGeneration {
+            sectionDiagnostics?.finish(sectionDiagnosticGeneration, issues: content.sectionIssues) { [weak self] in
+                await self?.load(showLoadingState: false)
+            }
+        }
         content.serverRows = retainingServerRowContent(
             content.serverRows, previous: previousContent?.serverRows ?? []
         )
@@ -946,13 +965,14 @@ public final class HomeViewModel {
         continueWatchingDiagnostic = loadContinueWatchingDiagnostic
         if content.isEmpty, accounts.isEmpty {
             await scheduleSnapshotClear().value
-        } else if content.isEmpty, !showLoadingState, let previousContent {
+        } else if hasNoMediaContent, !showLoadingState, var previousContent {
             PlozzLog.boot("HomeVM.load KEEP-CACHED silent-empty vm=\(UInt(bitPattern: ObjectIdentifier(self).hashValue))")
             lastLoadedVisibility = visibility
             lastLoadedAt = Date()
             // The live sources were unavailable. Reveal the cached row rather than
             // leaving a permanent loading placeholder with no refresh in flight.
             let publication = PerformanceDiagnostics.shared.begin(.homePublish)
+            previousContent.sectionIssues = content.sectionIssues
             state = .loaded(previousContent)
             publication?.finish(.succeeded)
             if diagnosticOutcome == .succeeded { diagnosticOutcome = .failed }

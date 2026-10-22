@@ -174,10 +174,18 @@ watch history and planning-list behavior are documented in
   the collection on the server. Preview loading is bounded and retains server order;
   filtering and combining multiple sources are not yet supported. Removing a
   section hides it without erasing its configuration or disabling its libraries.
-  Section context menus also offer removal. Reorder menus include Move to top
+  Holding a normal section opens Reorder and Remove section. Reorder keeps the
+  selected section as the movement target: TV lifts and focuses it immediately;
+  mobile exposes native drag handles without losing its position. Collection
+  subtitles resolve their server mark from the current account even without a
+  discovered library. Reorder menus include Move to top
   and Move to bottom within the movable sections, never above Home layout.
   On TV, picked-up rows retain native focus during rapid directional presses
   and held Up/Down; reaching an edge does not move focus out of the list.
+  Home's latest section warnings also appear here with Details and Retry.
+  These are transient results fenced by profile, account, effective viewer,
+  credentials, and the loaded Home settings; catalog discovery is not treated
+  as evidence that the actual Home content request succeeded.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
   **Center button action** on TV and **When tapping an item** on iPhone/iPad

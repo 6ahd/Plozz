@@ -15,6 +15,82 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testSectionWarningShowsSourceAndNativeActions() async throws {
+        let choice = HomeRowChoice(
+            id: .server(accountID: "fixture", section: "top"),
+            title: "Top picks", isProviderDefault: true
+        )
+        let issue = HomeSectionIssue(
+            choice: choice, reason: .failed(.serverUnreachable),
+            serverName: "Living room server", providerKind: .jellyfin
+        )
+        try await withWindow {
+            HomeSectionStatusView(issue: issue, onRetry: {})
+                .padding()
+                #if os(iOS)
+                .environment(\.plozzMetrics, .touch(density: .standard))
+                #endif
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Home section load warning")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Top picks"), text)
+            XCTAssertTrue(text.contains("Living room server"), text)
+            XCTAssertTrue(text.contains("Details"), text)
+            XCTAssertTrue(text.contains("Retry"), text)
+            #if os(tvOS)
+            for title in ["Details", "Retry"] {
+                let label = try XCTUnwrap(lines.first { $0.0.contains(title) }).1
+                let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+                let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+                XCTAssertTrue(target.canBecomeFocused, title)
+            }
+            #endif
+        }
+    }
+
+    func testPersonalCollectionSourceUsesCurrentAccountBrand() throws {
+        for kind in [ProviderKind.plex, .jellyfin] {
+            let provider = HomeSettingsLibraryProvider(name: "Collection server", kind: kind)
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let section = CollectionSection(source: .init(
+                accountID: account.account.id, collectionID: "personal", title: "Personal picks",
+                serverUserID: provider.session.userID
+            ))
+            let choice = HomeRowChoice(collectionSection: section)
+            XCTAssertNil(choice.library)
+            XCTAssertEqual(choice.homeEditorProvider(in: [account]), kind)
+            XCTAssertNil(choice.homeEditorProvider(in: []))
+            let differentViewer = HomeRowChoice(collectionSection: CollectionSection(source: .init(
+                accountID: account.account.id, collectionID: "personal", title: "Personal picks",
+                serverUserID: "different-viewer"
+            )))
+            XCTAssertNil(differentViewer.homeEditorProvider(in: [account]))
+        }
+    }
+
+    #if os(tvOS)
+    func testReorderInitialTargetOwnsNativeFocusWithoutAnotherSelection() async throws {
+        try await withWindow {
+            LiftableReorderList(
+                sections: .init(enabled: [0, 1, 2], disabled: []),
+                disabledSectionTitle: "Hidden", disabledPlaceholder: "None",
+                isLifting: .constant(false), allowsHiding: false, initialElement: 1,
+                row: { .init(title: Text(verbatim: "Section \($0)")) }, onChange: { _ in }
+            )
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Selected section lifted")
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Section 1") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === target }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+        }
+    }
+    #endif
+
     func testCollectionEditorPreviewsActualTitlesBesidePresentationChoices() async throws {
         for style in CollectionSection.CardStyle.allCases {
             let requested = expectation(description: "Collection preview requested")

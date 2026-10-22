@@ -1155,6 +1155,7 @@ struct PlozziOSTabShell: View {
                     accounts: appModel.accountsProviders.homeAccounts
                 )
             },
+            sectionDiagnostics: appModel.settings.homeVisibility.sectionDiagnostics,
             pendingWatchMutations: { [weak appModel] in
                 await appModel?.pendingWatchMutations() ?? []
             },

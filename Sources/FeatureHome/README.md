@@ -146,6 +146,17 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   each failed server, distinguishing offline, sign-in, and Home-loading problems
   instead of showing a blanket warning about server arrangements. Recovery clears
   that server's status; failures never reset saved row choices.
+  Enabled sections missing their content retain a compact warning on Home with
+  source, Details, and Retry. Customize Home shares the same completed-load
+  evidence, distinguishing typed failures, empty results, and saved sections
+  absent from the latest refresh. Missing sections do not prove a server error:
+  dynamic recommendations may be empty or changed. Normal empty default library
+  feeds remain quiet unless explicitly added. Existing usable cached/partial
+  cards remain visible, with any load warning available in the editor.
+  Warnings are runtime-only, scoped to the current profile, accounts, server
+  users, credentials, and settings; cancellation is not a failure and successful
+  recovery clears the warning. Details expose safe error categories, not URLs,
+  credentials, or response bodies.
   Mobile library discovery follows the effective credential and Plex Home viewer,
   and cancelled lookups cannot restore another viewer's library choices.
   The section catalog enumerates optional recommendations only while the editor

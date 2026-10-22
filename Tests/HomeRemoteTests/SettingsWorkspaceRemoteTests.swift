@@ -994,14 +994,53 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
-    func testHomeReorderAcceptsHeldAndRapidDirectionalInput() throws {
-        #if targetEnvironment(simulator)
-        let app = try launchSettings()
+    func testHomeSectionWarningDetailsAndRetryUseNativeControls() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--home-section-warning-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
         defer { app.terminate() }
-        try focus(section("screensNavigation", in: app), in: app)
+        let details = app.buttons["Details"]
+        XCTAssertTrue(details.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(details, in: app)
         XCUIRemote.shared.press(.select)
-        try focus(app.buttons["settings-page-customize-home"], in: app)
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertTrue(alert.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "serverUnreachable")).firstMatch.exists)
+        try focus(alert.buttons["OK"].firstMatch, in: app)
         XCUIRemote.shared.press(.select)
+        XCTAssertTrue(alert.waitForNonExistence(timeout: 3))
+        let retry = app.buttons["Retry"]
+        try focus(retry, in: app)
+        XCTAssertTrue(hasFocus(retry), app.debugDescription)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.staticTexts["section-warning-retries"].label, "Retries: 1")
+        capture("home-section-native-warning-actions", in: app)
+    }
+
+    func testHomeReorderAcceptsHeldAndRapidDirectionalInput() throws {
+        try verifyHomeReorder(fromHoldMenu: false)
+    }
+
+    func testHomeHoldMenuLiftsSelectedRowAndAcceptsImmediateMovement() throws {
+        try verifyHomeReorder(fromHoldMenu: true)
+    }
+
+    private func verifyHomeReorder(fromHoldMenu: Bool) throws {
+        #if targetEnvironment(simulator)
+        continueAfterFailure = false
+        let app: XCUIApplication
+        if fromHoldMenu {
+            app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+            app.launchArguments = ["--home-section-editor-fixture", "-AppleLanguages", "(en)"]
+            app.launch()
+        } else {
+            app = try launchSettings()
+            try focus(section("screensNavigation", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["settings-page-customize-home"], in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        defer { app.terminate() }
         XCTAssertTrue(app.buttons["home-section-home-continueWatching"].waitForExistence(timeout: 5))
         let controls: Set<String> = [
             "home-section-hero", "home-section-reorder", "home-section-add", "home-section-add-bottom"
@@ -1011,11 +1050,26 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }.count
         XCTAssertGreaterThan(count, 2)
         let reorder = app.buttons["home-section-reorder"]
-        try focus(reorder, in: app)
-        XCUIRemote.shared.press(.select)
         let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
-        try focus(watching, in: app)
-        XCUIRemote.shared.press(.select)
+        if fromHoldMenu {
+            let original = app.buttons["home-section-home-continueWatching"]
+            try focus(original, in: app)
+            XCUIRemote.shared.press(.select, forDuration: 1)
+            let startReorder = app.cells.containing(.other, identifier: "Reorder").firstMatch
+            XCTAssertTrue(startReorder.waitForExistence(timeout: 3), app.debugDescription)
+            XCTAssertTrue(app.cells.containing(.other, identifier: "Remove section").firstMatch.exists)
+            try focus(startReorder, in: app)
+            XCUIRemote.shared.press(.select)
+        } else {
+            try focus(reorder, in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(watching, in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        let lifted = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(watching) && !reorder.isEnabled }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [lifted], timeout: 5), .completed, app.debugDescription)
         XCUIRemote.shared.press(.down, forDuration: 3)
         capture("home-reorder-held-down", in: app)
         XCTAssertTrue(watching.staticTexts[String(count)].exists,
@@ -1056,6 +1110,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertFalse(app.buttons["home-section-home-continueWatching"].exists)
+        if fromHoldMenu { return }
         try focus(app.buttons["home-section-add"], in: app)
         XCUIRemote.shared.press(.select)
         let addWatching = app.buttons["home-add-home-continueWatching"]

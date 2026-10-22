@@ -99,7 +99,11 @@ struct CollectionSectionSettingsView: View {
             .settingsGroupSurface(cornerRadius: 16)
             .accessibilityIdentifier("collection-section-preview")
             Button { choosingSource = true } label: {
-                HomeEditorRowLabel(title: Text("Collection"), subtitle: Text(verbatim: draft.source.title))
+                let choice = HomeRowChoice(collectionSection: draft)
+                HomeEditorRowLabel(
+                    title: Text("Collection"), subtitle: choice.homeEditorSource(in: accounts),
+                    subtitleProvider: choice.homeEditorProvider(in: accounts)
+                )
             }
             .buttonStyle(SettingsFormButtonStyle())
             .accessibilityIdentifier("collection-section-source")
