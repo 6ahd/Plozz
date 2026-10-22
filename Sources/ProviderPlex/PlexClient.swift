@@ -517,13 +517,13 @@ public struct PlexClient: Sendable {
     }
 
     /// `GET /library/metadata/{ratingKey}` — full detail for one item.
-    func metadata(ratingKey: String) async throws -> PlexMetadata {
+    func metadata(ratingKey: String, includeChapters: Bool = false) async throws -> PlexMetadata {
         let endpoint = Endpoint(
             path: "/library/metadata/\(ratingKey)",
             queryItems: [
                 URLQueryItem(name: "includeGuids", value: "1"),
                 URLQueryItem(name: "includePreferences", value: "1")
-            ],
+            ] + (includeChapters ? [URLQueryItem(name: "includeChapters", value: "1")] : []),
             headers: headers
         )
         return try await HTTPResponseDiagnostics.$route.withValue(.itemDetail) {

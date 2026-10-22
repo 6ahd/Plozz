@@ -42,6 +42,14 @@ supported capability remains at parity.
 - **Co-equal with `ProviderPlex`.** Any new `MediaProvider` capability must be
   implemented here whenever it's implemented for Plex (and vice versa).
 
+## Playback chapters
+
+Playback detail's `Chapters` array supplies chapter navigation on both backends.
+Offsets use 100-nanosecond ticks; chapter image paths retain the original array
+index even when invalid entries or Emby intro/credit markers are filtered out.
+Only ordinary chapter entries become `PlaybackRequest.chapters`; the skip-marker
+path remains separate. Missing chapter images never remove navigation entries.
+
 ## Episode identity and order
 
 `DisplayOrder` is retained as `MediaItem.episodeOrdering` for community-marker

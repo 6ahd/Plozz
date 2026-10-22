@@ -1648,6 +1648,23 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 ?? PlaybackRequest.sourceFileName(from: originalSource.Name)
         )
         request.burnedInSubtitleTrackID = source.burnedInSubtitleTrackID
+        request.chapters = MediaChapter.normalized((detail.Chapters ?? []).enumerated().compactMap { index, chapter -> MediaChapter? in
+            // Emby mixes skip boundaries into this array; those are not chapters.
+            let marker = chapter.MarkerType?.lowercased() ?? ""
+            guard marker.isEmpty || marker == "chapter" || marker == "none" else { return nil }
+            guard let ticks = chapter.StartPositionTicks else {
+                PlozzLog.playback.error("Ignoring Jellyfin/Emby chapter without a start position.")
+                return nil
+            }
+            return MediaChapter(
+                start: TimeInterval(ticks) / 10_000_000,
+                title: chapter.Name,
+                imageURL: chapter.ImageTag.flatMap { tag in
+                    guard !tag.isEmpty else { return nil }
+                    return client.chapterImageURL(itemID: detail.Id, index: index, tag: tag)
+                }
+            )
+        }, duration: originalSource.RunTimeTicks.map { TimeInterval($0) / 10_000_000 } ?? mappedItem.runtime)
         request.scrubStillSource = request.originalFileSource
         if let streaming {
             request.streamingOptions = streaming

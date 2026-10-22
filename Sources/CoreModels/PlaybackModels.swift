@@ -321,6 +321,8 @@ public struct PlaybackRequest: Hashable, Sendable {
     public var playSessionID: String?
     public var audioTracks: [MediaTrack]
     public var subtitleTracks: [MediaTrack]
+    /// Optional server-authored chapters. Empty sources expose no chapter controls.
+    public var chapters: [MediaChapter] = []
     /// Provider stream index already encoded into this rendition's video pixels.
     /// The client must not draw it again; changing it requires a new rendition.
     public var burnedInSubtitleTrackID: Int?

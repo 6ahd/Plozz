@@ -10,6 +10,36 @@ import UIKit
 
 @MainActor
 final class StreamingPlaybackTests: XCTestCase {
+    func testChaptersReachControlsSeekThroughTransportAndClearOnStop() async {
+        for paused in [false, true] {
+            let (model, engine, provider) = make()
+            let chapter = MediaChapter(start: 180, title: "Middle")
+            await provider.setChapters([.init(start: 0), chapter])
+            await model.load()
+            XCTAssertEqual(model.controls.infoCard.chapters.map(\.start), [0, 180])
+            model.setPaused(paused)
+            model.seekToChapter(chapter)
+            await wait { engine.currentTime == 180 && !model.controls.isSeeking }
+            XCTAssertEqual(model.controls.intendsPause, paused)
+            XCTAssertEqual(engine.isPaused, paused)
+            model.seekToChapter(.init(start: 240, title: "Not in this video"))
+            XCTAssertEqual(engine.currentTime, 180)
+            await model.stop()
+            XCTAssertTrue(model.controls.infoCard.chapters.isEmpty)
+        }
+    }
+
+    func testQualityReloadReplacesChapterMetadataRatherThanKeepingOutgoingChapters() async {
+        let (model, engine, provider) = make()
+        await provider.setChapters([.init(start: 0), .init(start: 180)])
+        await model.load()
+        await provider.setChapters([])
+        model.changeStreamingOptions(.init(quality: .sd480))
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        XCTAssertTrue(model.controls.infoCard.chapters.isEmpty)
+        await model.stop()
+    }
+
     func testCancelledStopCallerStillReportsAndConcurrentStopJoinsTeardown() async {
         let (model, engine, provider) = make()
         await model.load()
@@ -1149,6 +1179,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
     private var burnedSubtitle = false
     private var compatibilityRendition = false
     private var scrubStillSource: PlaybackSource?
+    private var chapters: [MediaChapter] = []
     private var gate: QualityDecisionGate?
     init(gate: QualityDecisionGate? = nil) { self.gate = gate }
     func installGate(_ gate: QualityDecisionGate) { self.gate = gate }
@@ -1171,6 +1202,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
     func setBurnedSubtitle() { burnedSubtitle = true }
     func setCompatibilityRendition() { compatibilityRendition = true }
     func setScrubStillSource(_ source: PlaybackSource) { scrubStillSource = source }
+    func setChapters(_ chapters: [MediaChapter]) { self.chapters = chapters }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest {
         ordinaryCalls += 1
         return baseRequest()
@@ -1212,6 +1244,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
                         sourceProvider: plexSubtitleRenditions ? .plex : nil)
         if burnedSubtitle { request.burnedInSubtitleTrackID = 6 }
         request.scrubStillSource = scrubStillSource
+        request.chapters = chapters
         return request
     }
     func libraries() async throws -> [MediaLibrary] { [] }

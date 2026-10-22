@@ -197,6 +197,7 @@ public final class InfoCardModel {
     /// Arrives with the item, so it needs no request of its own — and the tab
     /// hides itself when this is empty rather than opening an empty card.
     public var cast: [MediaPerson] = []   // l10n:content — media metadata from the server
+    public var chapters: [MediaChapter] = []
     /// The account the item came from, so a person can be looked up on the server
     /// that actually knows their id. Person ids are per-server, so this cannot be
     /// inferred later.

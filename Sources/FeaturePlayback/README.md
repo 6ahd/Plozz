@@ -77,6 +77,21 @@ watchdog, periodic reload or engine-phase inference is added. See
 
 ## Player appearance
 
+On tvOS, iPhone, and iPad, **Chapters** joins the bottom player tabs only when the
+playback request supplies usable chapter positions. The shared card shows server
+titles (or numbered chapter labels), start times, available server thumbnails,
+and the current chapter. Selecting a chapter closes the card and uses the normal
+seek coordinator, preserving play/pause intent. Existing skip buttons and intro/
+credits controls are unchanged. Mobile tabs scroll horizontally when needed.
+
+Plex, Jellyfin, and Emby supply chapters through their existing playback metadata
+requests; Emby intro/credit markers are excluded. Invalid, duplicate, and
+out-of-duration positions are omitted. Missing thumbnails do not hide chapters.
+Existing episode spoiler protection also applies to chapter names and images.
+Chapters are not synthesized, fetched from external metadata services, or
+extracted from files locally: sources without server chapter metadata (including
+current offline playback) do not show the tab.
+
 On tvOS, the shared Audio menu offers **Reduce Loud Sounds** and **Enhance
 Dialogue** when Apple TV reports support for the current output. These are
 Apple TV-wide settings, not profile preferences or engine capabilities; VOD and
