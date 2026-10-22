@@ -227,7 +227,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 visible += " " + page
                 if page.contains("Skip intros") || page.contains("Use community markers")
                     || page.contains("Version selection") || page.contains("Video buffer")
-                    || page.contains("Live TV buffer") {
+                    || page.contains("Live TV buffer") || page.contains("Autoplay")
+                    || page.contains("Preferred audio language") {
                     let attachment = XCTAttachment(image: image)
                     attachment.name = "Playback-inline-skip-separate-\(separate)-\(Int(offset))"
                     attachment.lifetime = .keepAlways
@@ -239,6 +240,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
                 "Remember audio language per series",
+                "Autoplay next episode", "Autoplay next playlist item",
+                "Show Up Next card", "Time before the end",
                 "Skip intros, credits", "Enable skipping", "Movies", "TV Shows", "Anime",
                 "Show skip button", "Set each marker separately", "Use community markers",
                 "From IntroDB", "your server has none", "Shares",
@@ -254,6 +257,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             XCTAssertFalse(visible.contains("Turn off if playback stutters"), visible)
             XCTAssertFalse(visible.contains("Applies to new playback sessions"), visible)
             XCTAssertFalse(visible.contains("How Plozz picks the audio language"), visible)
+            XCTAssertFalse(visible.contains("The next episode starts when one finishes"), visible)
+            XCTAssertFalse(visible.contains("The player closes when an episode finishes"), visible)
             XCTAssertFalse(visible.contains("Show a Skip button, or skip automatically"), visible)
             XCTAssertFalse(visible.contains("When your server has no intro or credits marker"), visible)
             XCTAssertTrue(playback.settings.trueHDAtmosEnabled)
@@ -262,6 +267,17 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                     XCTAssertTrue(visible.contains(label), "Missing inline per-kind control \(label)")
                 }
             }
+        }
+        playback.settings.autoPlayNextEpisode = false
+        for showCard in [false, true] {
+            playback.settings.showUpNextCard = showCard
+            scroll.setContentOffset(CGPoint(x: 0, y: 540 - scroll.adjustedContentInset.top), animated: false)
+            try await Task.sleep(for: .milliseconds(300))
+            let text = try visibleText(in: window, attachment: "Playback-Up-Next-card-\(showCard)-autoplay-off")
+            XCTAssertTrue(text.contains("Autoplay next episode"), text)
+            XCTAssertTrue(text.contains("Show Up Next card"), text)
+            XCTAssertEqual(text.contains("Time before the end"), showCard, text)
+            XCTAssertFalse(playback.settings.autoPlayNextEpisode, "Showing the card must not enable autoplay.")
         }
     }
 

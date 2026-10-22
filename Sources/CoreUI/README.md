@@ -311,6 +311,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   internal dividers. Grouped steppers inherit
   the same leading inset as their neighboring rows, with no extra resting chip.
   Mobile keeps its existing stack/native-list presentation.
+  `settingsGroupSurface(cornerRadii:)` shares the same paint and accessibility
+  fallbacks for [connected TV control groups](../FeatureSettings/README.md).
 - **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal
   layout when it fits. On tvOS, longer copy switches to a wrapping label above
   its control rather than overlapping it or reducing the shared body font.

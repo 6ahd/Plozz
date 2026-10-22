@@ -597,7 +597,7 @@ struct PlaybackDetailView: View {
             if section == .subtitles { return subtitleRows }
             return [
                 SettingsSplitRow(id: "audio", title: "Audio") {
-                    SettingsControlRows {
+                    SettingsConnectedControlGroups {
                         ForEach(audioRows) { row in
                             VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
                                 row.detail()
@@ -607,12 +607,12 @@ struct PlaybackDetailView: View {
                             }
                         }
                     }
-                },
+                }.groupedContent(),
                 SettingsSplitRow(id: "autoplay-up-next", title: "Autoplay & Up Next") {
-                    SettingsControlRows {
+                    SettingsConnectedControlGroups {
                         ForEach(upNextRows) { $0.detail() }
                     }
-                }
+                }.groupedContent()
             ] + versionSelectionRows + readAheadRows + skipIntroRows + [
                 SettingsSplitRow(id: "seeking", title: "Seeking") {
                     SettingsControlRows {
@@ -943,18 +943,10 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(
                 id: "autoplay-next-episode",
-                title: "Autoplay",
-                description: "Play the next episode automatically.",
+                title: "Autoplay"
             ) {
                 SettingsControlRows(nonTVSpacing: 8) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
-                        Text(playback.settings.autoPlayNextEpisode
-                             ? "The next episode starts when one finishes."
-                             : "The player closes when an episode finishes.")
-                            .settingsHelperText()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
                     Toggle("Autoplay next playlist item", isOn: $playback.settings.autoPlayNextPlaylistItem)
                 }
             },

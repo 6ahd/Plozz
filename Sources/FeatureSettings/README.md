@@ -62,6 +62,14 @@ and output limits.
 **Remember audio language per series** stores only the selected language, not a
 specific audio track or format. Its label needs no explanatory footer.
 
+On TV, related control groups can share one section heading through
+`SettingsConnectedControlGroups`: an 8pt gap and tighter 8pt facing corners keep
+them connected, while the section's outer corners retain the standard radius.
+Audio language controls share the first group and spatial audio the second.
+Autoplay switches share a group, separate from the Up Next card and its
+conditional timing control. These use the existing surfaces and native controls,
+without an enclosing card or changing the independent settings.
+
 **Skip intros, credits & more** uses one profile-scoped master switch on both
 platforms. Turning it off hides configuration without clearing behavior, timing,
 content selections, per-marker overrides, or community-marker consent. Behavior
