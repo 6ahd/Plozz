@@ -328,6 +328,9 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   previous movie's trailer. A confirmed cancelled cinematic Back restores the page that
   remains on the real navigation stack, removes its cover/input guard, and keeps
   its controls focusable. Older transition completions cannot finish a newer pop.
+  Returning to a retained page restores its cached artwork palette without a
+  second crossfade after the cinematic cover lifts. Ordinary artwork changes
+  still crossfade, and hidden pages still release their displayed-artwork owner.
   The bounded debug handoff journal records page membership, return outcomes,
   and hashed trailer ownership so an intermittent failure can be inspected
   without restarting the affected app.

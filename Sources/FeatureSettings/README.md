@@ -31,17 +31,18 @@ iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
 and travels through profile settings transfer. The helper explains the memory
 cost, possible stuttering and loss of overhead sound on the FEL route.
+Audio still plays, including TrueHD and DTS. The warning remains relevant after
+optional height conversion is removed: FEL also decodes otherwise directly
+compatible E-AC-3/JOC spatial audio to channel-based PCM.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
-On tvOS 26+, Playback > **Spatial audio** controls lossy spatial conversion for
-eligible soundtracks, not directly compatible spatial audio. Feature descriptions
-use this neutral name; track metadata, diagnostics and legal notices retain their
-accurate format and dependency names. The `trueHDAtmosEnabled` preference and
-`truehd-atmos` row identity remain unchanged so saved choices and focus survive.
-The short helper covers supported tracks, compatible equipment and stuttering;
-the compatibility documentation retains conversion quality and session timing.
+The optional **Spatial audio** conversion switch and `trueHDAtmosEnabled`
+preference have been removed; old profile values cannot enable the excluded
+engine components. Ordinary channel audio and directly compatible spatial audio
+remain available. Feature descriptions use neutral spatial-audio wording; track
+metadata, diagnostics and legal notices retain accurate format and dependency names.
 See [spatial audio](../../docs/playback-engines.md#spatial-audio) for limitations.
 
 Playback > Advanced > External player is a device-only, default-off preference

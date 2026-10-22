@@ -354977,6 +354977,7 @@
       }
     },
     "Hear overhead sound from supported tracks on compatible equipment. Turn off if playback stutters." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -730949,6 +730950,7 @@
       }
     },
     "Spatial audio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

@@ -159,6 +159,7 @@ fixture with real `XCUIRemote` directional input:
 
 ```sh
 python3 tools/performance.py profile --platform tvOS --sim-id "$PLOZZ_SIM_ID"
+python3 tools/performance.py profile --platform tvOS --sim-id "$PLOZZ_SIM_ID" --workload detail-return
 python3 tools/performance.py report .build/performance/runs/RUN_ID
 ```
 
@@ -168,6 +169,13 @@ starts recording, and only then sends navigation input. The driver attaches to
 that same app without relaunching it. Three traversals must return focus to the
 hero. The runner stops its recorder, terminates its fixture, restores its
 temporary scheme and shuts down the simulator even on failure.
+
+The `detail-return` workload uses native top tabs and eight populated library
+rows. It opens a poster in a deeper row and returns with three rapid Left presses
+for three visits, preserving the profiled app process. The native focus journal
+is retained with the sample; return-stage `at` values use the main-thread
+monotonic clock rather than the journal writer's asynchronous timestamps.
+Animation callbacks do not establish exact presented-frame timing.
 
 `Process Sample` is the default backend and uses macOS's installed `sample`
 tool. The report separates main-thread frames, app-owned main-thread frames and

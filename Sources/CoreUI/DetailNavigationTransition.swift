@@ -46,6 +46,30 @@ public func withCinematicDetailNavigation(for item: MediaItem, _ navigate: () ->
 }
 
 public extension View {
+    @MainActor
+    func cinematicDetailNavigation(path: Binding<NavigationPath>) -> some View {
+        environment(\.detailNavigationPop, {
+            guard !path.wrappedValue.isEmpty else { return false }
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            path.transaction(transaction).wrappedValue.removeLast()
+            return true
+        })
+    }
+
+    @MainActor
+    func cinematicDetailNavigation<Path: RangeReplaceableCollection>(
+        path: Binding<Path>
+    ) -> some View where Path: MutableCollection & RandomAccessCollection, Path.Element: Hashable {
+        environment(\.detailNavigationPop, {
+            guard !path.wrappedValue.isEmpty else { return false }
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            path.transaction(transaction).wrappedValue.removeLast()
+            return true
+        })
+    }
+
     @ViewBuilder
     func cinematicDetailPage(
         isEnabled: Bool, waitsForBackdrop: Bool = false, revealsEpisodesLast: Bool = false
@@ -67,6 +91,17 @@ public extension View {
         #else
         self
         #endif
+    }
+}
+
+private struct DetailNavigationPopKey: EnvironmentKey {
+    static let defaultValue: (@MainActor () -> Bool)? = nil
+}
+
+extension EnvironmentValues {
+    var detailNavigationPop: (@MainActor () -> Bool)? {
+        get { self[DetailNavigationPopKey.self] }
+        set { self[DetailNavigationPopKey.self] = newValue }
     }
 }
 
@@ -292,7 +327,12 @@ public struct DetailTransitionSourceAnchor: UIViewRepresentable {
 
         func requestFocus() -> Bool {
             if let cardFocus {
-                cardFocus.requestFocus(animated: false)
+                if cardFocus.usesNativeFocus, cardFocus.isFocused,
+                   !cardFocus.request.wrappedValue.wantsFocus {
+                    cardFocus.focusState.wrappedValue = true
+                } else {
+                    cardFocus.requestFocus(animated: false)
+                }
                 return true
             }
             guard let focus else { return false }
@@ -373,6 +413,10 @@ public enum DetailTransitionNavigation {
 
     public static var isNavigationInputSuppressed: Bool {
         activeWindow.map { navigationInputEpoch(in: $0) == nil } ?? false
+    }
+
+    static func allowsFocusUpdate(heading: UIFocusHeading, in view: UIView) -> Bool {
+        heading.isEmpty || navigationInputEpoch(in: view) != nil
     }
 
     /// Passive navigation observers must reject consumed input as well as
@@ -670,6 +714,7 @@ public final class TVDetailEntranceSession {
     @ObservationIgnored private var returnNavigationFinished = false
     @ObservationIgnored private var navigationTransitionPending = false
     @ObservationIgnored private var returnHandoffScheduled = false
+    @ObservationIgnored private var returnHandoffFinished = false
     @ObservationIgnored private var returnGeneration: UUID?
     @ObservationIgnored private var returnFrame: DetailReturnFrame?
     @ObservationIgnored private var scrollPositions: [DetailTransitionScrollPosition] = []
@@ -828,12 +873,14 @@ public final class TVDetailEntranceSession {
         pageIsVisible = false
         navigationChrome?.detailDisappeared(chromeToken)
         guard isClosing else { return }
+        HandoffDiagnostics.emit("detail RETURN_PAGE_HIDDEN coordinatorPending=\(navigationTransitionPending)")
         returnNavigationFinished = !navigationTransitionPending
         finishReturnIfReady()
     }
 
     func navigationWillDisappear(using coordinator: any UIViewControllerTransitionCoordinator) {
         guard isClosing else { return }
+        HandoffDiagnostics.emit("detail RETURN_POP_BEGIN animated=\(coordinator.isAnimated) duration=\(coordinator.transitionDuration)")
         let generation = returnGeneration
         navigationTransitionPending = true
         let registered = coordinator.animate(alongsideTransition: nil) { [weak self] context in
@@ -846,6 +893,7 @@ public final class TVDetailEntranceSession {
                 return
             }
             navigationTransitionPending = false
+            HandoffDiagnostics.emit("detail RETURN_POP_FINISHED pageVisible=\(pageIsVisible)")
             returnNavigationFinished = !pageIsVisible
             finishReturnIfReady()
         }
@@ -912,8 +960,12 @@ public final class TVDetailEntranceSession {
         }
     }
 
+    func close(dismiss: DismissAction, pop: (@MainActor () -> Bool)?) {
+        close(pop: pop) { dismiss() }
+    }
+
     /// Pop the real stack under a visual cover; never replace SwiftUI's navigation delegate.
-    func close(dismiss: @escaping @MainActor () -> Void) {
+    func close(pop: (@MainActor () -> Bool)? = nil, dismiss: @escaping @MainActor () -> Void) {
         guard !isClosing else { return }
         guard let window, hasStarted, !UIAccessibility.isReduceMotionEnabled else {
             finishImmediately()
@@ -931,13 +983,14 @@ public final class TVDetailEntranceSession {
         }
         isClosing = true
         returnGeneration = UUID()
-        HandoffDiagnostics.emit("detail RETURN_BEGIN source=\(HandoffDiagnostics.correlationID(sourceKey))")
+        HandoffDiagnostics.emit("detail RETURN_BEGIN source=\(HandoffDiagnostics.correlationID(sourceKey)) at=\(CACurrentMediaTime())")
         navigationChrome?.detailDisappeared(chromeToken)
         backdropRequest?.cancel()
         backdropRequest = nil
         returnMotionFinished = false
         returnNavigationFinished = !waitsForPageAppearance
         returnHandoffScheduled = false
+        returnHandoffFinished = false
         DetailTransitionNavigation.beginSourceRestore(in: window, token: restoreToken, session: self)
         blocksNavigation = true
         sequence?.cancel()
@@ -986,30 +1039,66 @@ public final class TVDetailEntranceSession {
         animation.addCompletion { [weak self] position in
             guard let self, isClosing, position == .end else { return }
             returnMotionFinished = true
+            HandoffDiagnostics.emit("detail RETURN_MOTION_FINISHED at=\(CACurrentMediaTime())")
             finishReturnIfReady()
         }
         animator = animation
         animation.startAnimation()
         CATransaction.flush()
+        HandoffDiagnostics.emit("detail RETURN_POP_REQUESTED at=\(CACurrentMediaTime())")
         var transaction = Transaction()
         transaction.disablesAnimations = true
-        withTransaction(transaction) { dismiss() }
+        withTransaction(transaction) {
+            // DismissAction can animate a native pop despite disablesAnimations.
+            // Mutate the owning path only when the reverse cover is in place.
+            if let pop {
+                if pop() { return }
+                PlozzLog.app.error("Detail return has no bound route; using native dismissal")
+            }
+            dismiss()
+        }
+        HandoffDiagnostics.emit("detail RETURN_POP_REQUEST_RETURNED at=\(CACurrentMediaTime())")
+        finishReturnIfReady()
     }
 
     private func finishReturnIfReady() {
-        guard isClosing, returnMotionFinished, returnNavigationFinished,
-              !returnHandoffScheduled, let cover = overlay else { return }
+        guard isClosing, returnNavigationFinished, let cover = overlay else { return }
         guard let window else {
             finishImmediately()
             return
         }
+        if !returnHandoffScheduled {
+            prepareReturnFocus(in: window, under: cover)
+        }
+        guard returnMotionFinished, returnHandoffFinished else { return }
+        cover.removeFromSuperview()
+        HandoffDiagnostics.emit("detail RETURN_FINISHED source=\(HandoffDiagnostics.correlationID(sourceKey)) at=\(CACurrentMediaTime())")
+        overlay = nil
+        animator = nil
+        releaseInput()
+        DetailTransitionNavigation.endSourceRestore(token: restoreToken)
+        returnArtwork = nil
+        returnBackground = nil
+        destinationArtwork = nil
+        source = nil
+        scrollPositions = []
+        activationGeometry = nil
+        activationWindowSize = nil
+        stage = .complete
+        blocksNavigation = false
+        sequence = nil
+        // The popped page stays hidden for its remaining lifetime.
+    }
+
+    private func prepareReturnFocus(in window: UIWindow, under cover: DetailTransitionOverlay) {
         returnHandoffScheduled = true
         // Navigation unlocks its focus tree after the Core Animation commit.
-        // A main-queue block can run before that deferred reset and lose focus
-        // again. Cross one render boundary after the real pop, under the cover.
+        // Cross that boundary as soon as the pop finishes, while the reverse
+        // artwork is still moving, rather than adding this work after motion.
         returnFrame = DetailReturnFrame { [self] in
             returnFrame = nil
             guard isClosing, overlay === cover else { return }
+            HandoffDiagnostics.emit("detail RETURN_HANDOFF_FRAME at=\(CACurrentMediaTime())")
             UIView.performWithoutAnimation {
                 var transaction = Transaction(animation: nil)
                 transaction.disablesAnimations = true
@@ -1018,29 +1107,16 @@ public final class TVDetailEntranceSession {
                         scrollPositions.forEach { $0.restore(in: window) }
                     }
                     window.layoutIfNeeded()
+                    HandoffDiagnostics.emit("detail RETURN_LAYOUT_FINISHED at=\(CACurrentMediaTime())")
                     restoreReturnFocus(in: window)
                     window.layoutIfNeeded()
                 }
             }
+            HandoffDiagnostics.emit("detail RETURN_FOCUS_REQUESTED at=\(CACurrentMediaTime())")
             DispatchQueue.main.async { [self] in
                 guard isClosing, overlay === cover else { return }
-                cover.removeFromSuperview()
-                HandoffDiagnostics.emit("detail RETURN_FINISHED source=\(HandoffDiagnostics.correlationID(sourceKey))")
-                overlay = nil
-                animator = nil
-                releaseInput()
-                DetailTransitionNavigation.endSourceRestore(token: restoreToken)
-                returnArtwork = nil
-                returnBackground = nil
-                destinationArtwork = nil
-                source = nil
-                scrollPositions = []
-                activationGeometry = nil
-                activationWindowSize = nil
-                stage = .complete
-                blocksNavigation = false
-                sequence = nil
-                // The popped page stays hidden for its remaining lifetime.
+                returnHandoffFinished = true
+                finishReturnIfReady()
             }
         }
     }
@@ -1167,6 +1243,7 @@ private struct TVDetailPageTransition: ViewModifier {
     let revealsEpisodesLast: Bool
     @State private var session = TVDetailEntranceSession()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.detailNavigationPop) private var pop
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
 
@@ -1182,7 +1259,7 @@ private struct TVDetailPageTransition: ViewModifier {
                 )
             }
             .onExitCommand {
-                if isEnabled, !reduceMotion { session.close { dismiss() } }
+                if isEnabled, !reduceMotion { session.close(dismiss: dismiss, pop: pop) }
                 else { dismiss() }
             }
             .onDisappear { session.disappeared() }
@@ -1503,11 +1580,17 @@ final class DetailTransitionInputGuard: UIGestureRecognizer {
     override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool { false }
 
     func releaseWhenIdle() {
+        if phase == .returning {
+            HandoffDiagnostics.emit("detail RETURN_INPUT_RELEASE presses=\(activePresses.count) touches=\(activeTouches.count) at=\(CACurrentMediaTime())")
+        }
         releaseRequested = true
         if activePresses.isEmpty, activeTouches.isEmpty { invalidate() }
     }
 
     func invalidate() {
+        if phase == .returning {
+            HandoffDiagnostics.emit("detail RETURN_INPUT_REMOVED at=\(CACurrentMediaTime())")
+        }
         releaseRequested = false
         let window = view as? UIWindow
         view?.removeGestureRecognizer(self)

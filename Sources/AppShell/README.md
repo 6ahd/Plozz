@@ -218,6 +218,12 @@ Home destination is temporarily available for this explicit return without
 changing the profile's hidden/order preferences. Native navigation and its
 optional exit protection are unchanged.
 
+`HomeTab` applies `NavigationRailRootContentInset` only to its root, before
+registering destinations. Home, Watchlist and library roots retain their sidebar
+clearance while details hide the rail; hiding chrome must not resize retained
+rows or grids. Pushed pages still receive the shell's zero inset and remain
+full-bleed. Native navigation roots keep their zero custom inset.
+
 `NavigationRailEdgeCatcher` passively observes arrow presses and indirect-touch
 swipes. Left at an unresolved content edge opens the sidebar; Right at an
 unresolved sidebar edge returns to the page. Both paths wait for native focus to

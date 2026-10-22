@@ -589,13 +589,14 @@ presentation state and detaches the old player.
   `PlayerViewModel` redacts before logging.
 
 Plozzigen's Audio **Processing** row samples Aether's active audio pipeline
-label, independently of source-video probe availability. `TRUEHD Atmos → APAC
-7.1.4` means the engine created the spatial-conversion pipeline; `TRUEHD → FLAC
-bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing instead.
+label, independently of source-video probe availability. `TRUEHD → FLAC
+bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing.
+The optional height-conversion features and their setting are removed; Plozz
+does not request APAC conversion, including for legacy enabled profiles.
 Stream-copy and software-decoding routes retain the engine's own labels.
 The row is unknown until the engine publishes a pipeline and follows track
 changes, fallbacks, and teardown. Do not infer it from the Atmos source badge,
-the setting, channel count, or requested bridge mode, or parse the label to make
+channel count or requested bridge mode, or parse the label to make
 playback decisions. **System output** reads `AVAudioSession.renderingMode`, and
 **Connection** reads fixed output-port types (HDMI, AirPlay, Bluetooth, etc.).
 Both refresh while diagnostics is open, on every playback engine. Unreported
@@ -603,8 +604,7 @@ values are omitted, never inferred from the source, channel count, settings, or
 an older sample. No personal device names or route identifiers are collected.
 Descriptive output labels are localized; format and connection brands such as
 Dolby Atmos and AirPlay remain verbatim in both layouts.
-APAC's 7.1.4 is an intermediate processing layout; the system's rendering mode
-is stronger evidence of delivery, but neither detects the physical speaker layout.
+The system's rendering mode does not detect the physical speaker layout.
 
 The TV diagnostics use three columns capped at 1280 points (two-thirds of a
 1920-point TV viewport), above the measured visible playback controls, including
