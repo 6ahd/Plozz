@@ -109,7 +109,7 @@ public struct WebDAVClient: Sendable {
         )
     }
 
-    /// Establishes a GET validator and size with a bounded one-byte probe.
+    /// Establishes a GET validator and size with a bounded two-byte probe.
     /// Same-origin hops remain root-bound; external HTTPS media hops use an
     /// isolated anonymous session. Its final URL lives only in the source lease.
     public func probeRange(
@@ -126,7 +126,7 @@ public struct WebDAVClient: Sendable {
             sessionKey: sessionKey,
             credential: credential,
             trustPolicy: trustPolicy,
-            maxResponseBytes: 1
+            maxResponseBytes: RangeProbe.probeByteCount
         )
         let (data, response) = (result.data, result.response)
         try validateAuthenticationStatus(response)

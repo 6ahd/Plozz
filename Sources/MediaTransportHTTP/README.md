@@ -32,7 +32,7 @@ and byte-source contracts live in `MediaTransportCore`.
   extension properties cannot replace file identity or mark a file as a folder.
   CDATA and ordinary XML text are handled equivalently.
 - **Range safety**: identity encoding, exact `206`, matching `Content-Range`
-  offsets/total and body length. A one-byte GET establishes the actual
+  offsets/total and body length. A two-byte GET (clamped to EOF) establishes the actual
   representation's strongest usable validator. Every later read sends
   `If-Match` for a strong ETag, or `If-Unmodified-Since` for Last-Modified, and
   requires the same response validator. Weak ETags alone are insufficient.
@@ -94,7 +94,7 @@ reads, so a date-based locator cannot skip its modification-time comparison.
 Last-Modified is **change-detecting, not immutable**: it has one-second
 precision and cannot detect a server replacing bytes while preserving both
 timestamp and size. Strong ETags remain preferred. The metadata recheck adds
-a PROPFIND per open; missing DAV validators add a one-byte GET during locator preparation.
+a PROPFIND per open; missing DAV validators add a two-byte GET during locator preparation.
 No full-file download or mandatory HEAD is introduced. Each playback window
 uses one validated range, up to 32 MiB. The transport reader can overlap
 consumption with one bounded next window rather than doubling HTTP requests.
@@ -156,6 +156,10 @@ environment with `shouldUseLaunchSchemeArgsEnv="NO"`; keep credentials outside G
 The configuration contains `local` and `publicTargets` (each with `name`, `url`,
 `username`, `password`, and optional `expectedStatus`), plus `files` (relative
 fixture paths), `size` (bytes per fixture), and `prefix` (base64 first 1,024 bytes).
+Optional `additionalOwnedTargets` runs the same full fixture checks against more
+server implementations in one invocation. Seed each with identical files.
+Set a target's optional `digestOnly` to `true` to prohibit Basic fallback while
+testing a real Digest server.
 Use a trailing-slash local root and seed the four encoding/nested-path fixtures
 before running. The test only reads; it never uploads to public servers.
 
@@ -170,3 +174,10 @@ the log distinguishes these outcomes and unexercised range reads.
 The separate loopback regression in `WebDAVClientIntegrationTests` reproduces
 IIS's combined Negotiate/NTLM/Basic challenge without a public-server dependency,
 including repeated reads and rejection under Digest-only policy.
+
+The owned matrix also covers Apache Digest authentication, rclone with MD5 ETags,
+and Nextcloud/SabreDAV. Nextcloud 32.0.15 returned the entire resource for
+`Range: bytes=0-0` despite HTTP 206. Probes therefore request `bytes=0-1`, retain
+a strict two-byte response cap, and require exact offsets and body length
+(or one byte when the total resource length is one). This avoids the zero-end
+quirk without accepting whole-file responses or relaxing validator checks.

@@ -328,6 +328,67 @@ final class WebDAVClientIntegrationTests: XCTestCase {
 
     // MARK: - Probe + read range flow
 
+    func testProbeAvoidsSabreDAVZeroEndQuirkOnRealConnections() async throws {
+        for size in [1, 2, 4096] {
+            let payload = Data(repeating: 42, count: size)
+            let server = try LoopbackHTTPServer { request in
+                let end = request.headers["range"] == "bytes=0-0" ? size - 1 : min(1, size - 1)
+                return .init(
+                    status: 206,
+                    headers: ["ETag": "\"fixture\"", "Content-Range": "bytes 0-\(end)/\(size)"],
+                    body: Data(payload.prefix(end + 1))
+                )
+            }
+            let url = try await server.start().appendingPathComponent("fixture")
+            let origin = try XCTUnwrap(TransportOrigin(url: url))
+            let root = try XCTUnwrap(WebDAVRoot(origin: origin, rawPath: "/"))
+            let registry = TransportSessionRegistry()
+            let client = WebDAVClient(registry: registry)
+            do {
+                let result = try await client.probeRange(
+                    root: root, url: url, sessionKey: makeKey(origin: origin),
+                    credential: .anonymous, trustPolicy: .system
+                )
+                XCTAssertEqual(result.totalLength, Int64(size))
+                let requests = await server.requests
+                XCTAssertEqual(requests.map { $0.headers["range"] }, ["bytes=0-1"])
+                await registry.drainAll()
+                await server.stop()
+            } catch {
+                await registry.drainAll()
+                await server.stop()
+                throw error
+            }
+        }
+    }
+
+    func testProbeRejectsServerBodyExceedingTwoByteCap() async throws {
+        let origin = TransportOrigin(url: URL(string: "https://nas.example.com/")!)!
+        let url = URL(string: "https://nas.example.com/dav/movie.mkv")!
+        for headers in [
+            ["ETag": "\"e\"", "Content-Range": "bytes 0-999/1000", "Content-Length": "1000"],
+            ["ETag": "\"e\"", "Content-Range": "bytes 0-999/1000"]
+        ] {
+            let registry = TransportSessionRegistry(testProtocolClasses: [StubURLProtocol.self])
+            let client = WebDAVClient(registry: registry)
+            StubURLProtocol.queue(
+                StubResponse(statusCode: 206, headers: headers, body: Data(repeating: 0, count: 1000)),
+                for: url
+            )
+            do {
+                _ = try await client.probeRange(
+                    root: WebDAVRoot(origin: origin, normalizedPath: "/dav"),
+                    url: url, sessionKey: makeKey(origin: origin),
+                    credential: .anonymous, trustPolicy: .system
+                )
+                XCTFail("Oversized probe must not become a usable representation")
+            } catch let error as TransportError {
+                XCTAssertEqual(error, .responseTooLarge(limitBytes: 2))
+            }
+            await registry.drainAll()
+        }
+    }
+
     func testProbeThenReadRangeSendsExactHeadersAndValidates() async throws {
         let origin = TransportOrigin(url: URL(string: "https://nas.example.com/")!)!
         let url = URL(string: "https://nas.example.com/dav/movies/Show.mkv")!
@@ -339,8 +400,8 @@ final class WebDAVClientIntegrationTests: XCTestCase {
         StubURLProtocol.queue(
             StubResponse(
                 statusCode: 206,
-                headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-0/1000"],
-                body: Data([0x00]),
+                headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-1/1000"],
+                body: Data([0x00, 0x00]),
                 onRequest: { request in
                     probeRange.set(request.value(forHTTPHeaderField: "Range"))
                     probeEncoding.set(request.value(forHTTPHeaderField: "Accept-Encoding"))
@@ -356,7 +417,7 @@ final class WebDAVClientIntegrationTests: XCTestCase {
             credential: .anonymous,
             trustPolicy: .system
         )
-        XCTAssertEqual(probeRange.get(), "bytes=0-0")
+        XCTAssertEqual(probeRange.get(), "bytes=0-1")
         XCTAssertEqual(probeEncoding.get(), "identity")
         XCTAssertEqual(try XCTUnwrap(probeResult.etag).opaqueTag, "strong-1")
         XCTAssertEqual(probeResult.totalLength, 1000)
@@ -402,8 +463,8 @@ final class WebDAVClientIntegrationTests: XCTestCase {
         StubURLProtocol.queue(
             StubResponse(
                 statusCode: 206,
-                headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-0/100"],
-                body: Data([0])
+                headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-1/100"],
+                body: Data([0, 0])
             ),
             for: finalURL
         )

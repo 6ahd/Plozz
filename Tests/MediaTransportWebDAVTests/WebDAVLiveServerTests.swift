@@ -12,16 +12,19 @@ final class WebDAVLiveServerTests: XCTestCase {
         let username: String
         let password: String
         let expectedStatus: Int?
+        let digestOnly: Bool?
 
         var credential: WebDAVCredential {
             username.isEmpty ? .anonymous : .password(
-                username: username, password: password, policy: .basicAllowed
+                username: username, password: password,
+                policy: digestOnly == true ? .digestOnly : .basicAllowed
             )
         }
     }
 
     private struct Configuration: Decodable {
         let local: Target
+        let additionalOwnedTargets: [Target]?
         let files: [String]
         let size: Int64
         let prefix: Data
@@ -48,8 +51,17 @@ final class WebDAVLiveServerTests: XCTestCase {
 
     func testOwnedServerEncodingRecursionAndValidatedMediaRanges() async throws {
         let config = try configuration()
-        let target = config.local
         XCTAssertEqual(config.prefix.count, 1024)
+        for target in [config.local] + (config.additionalOwnedTargets ?? []) {
+            do {
+                try await verifyOwnedServer(target, configuration: config)
+            } catch {
+                XCTFail("\(target.name): \(error)")
+            }
+        }
+    }
+
+    private func verifyOwnedServer(_ target: Target, configuration config: Configuration) async throws {
         let (root, key) = try rootAndKey(target)
         let registry = TransportSessionRegistry()
         let client = WebDAVClient(registry: registry)
@@ -62,11 +74,11 @@ final class WebDAVLiveServerTests: XCTestCase {
             var files: [WebDAVEntry] = []
             while let path = pending.popLast() {
                 guard visited.insert(path).inserted else {
-                    XCTFail("Directory repeated")
+                    XCTFail("\(target.name): directory repeated")
                     break
                 }
                 guard visited.count <= 16 else {
-                    XCTFail("Directory traversal exceeded its fixture bound")
+                    XCTFail("\(target.name): directory traversal exceeded its fixture bound")
                     break
                 }
                 let children = try await client.listChildren(
@@ -74,7 +86,10 @@ final class WebDAVLiveServerTests: XCTestCase {
                     sessionKey: key, credential: target.credential, trustPolicy: .system
                 )
                 for entry in children {
-                    XCTAssertFalse(WebDAVPathPolicy.isSelfEntry(resolvedPath: entry.resolvedPath, requestPath: path))
+                    XCTAssertFalse(
+                        WebDAVPathPolicy.isSelfEntry(resolvedPath: entry.resolvedPath, requestPath: path),
+                        target.name
+                    )
                     if entry.isCollection {
                         pending.append(entry.resolvedPath)
                     } else {
@@ -82,28 +97,30 @@ final class WebDAVLiveServerTests: XCTestCase {
                     }
                 }
             }
-            XCTAssertEqual(visited.count, 5, "Root plus four nested collections")
+            XCTAssertEqual(visited.count, 5, "\(target.name): root plus four nested collections")
             XCTAssertEqual(
                 Set(files.map(\.resolvedPath)),
-                Set(config.files.map { root.path + $0 })
+                Set(config.files.map { root.path + $0 }),
+                target.name
             )
             for entry in files {
-                XCTAssertEqual(entry.contentLength, config.size)
+                XCTAssertEqual(entry.contentLength, config.size, target.name)
                 let url = try XCTUnwrap(root.origin.url(path: entry.resolvedPath))
                 let representation = try await client.probeRange(
                     root: root, url: url, sessionKey: key,
                     credential: target.credential, trustPolicy: .system
                 )
-                XCTAssertEqual(representation.totalLength, config.size)
+                XCTAssertEqual(representation.totalLength, config.size, target.name)
                 for _ in 0..<2 {
                     let bytes = try await client.readRange(
                         url: representation.resourceURL, start: 0, end: 1023,
                         representation: representation, sessionKey: key,
                         credential: target.credential, trustPolicy: .system
                     )
-                    XCTAssertEqual(bytes, config.prefix)
+                    XCTAssertEqual(bytes, config.prefix, target.name)
                 }
             }
+            print("WEBDAV_LIVE \(target.name): checked \(visited.count) collections, \(files.count) files, repeated exact-byte ranges")
             await registry.drainAll()
         } catch {
             await registry.drainAll()
