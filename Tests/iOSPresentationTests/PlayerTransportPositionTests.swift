@@ -11,6 +11,44 @@ import XCTest
 
 @MainActor
 final class PlayerTransportPositionTests: XCTestCase {
+    func testLivePresentationControlsWithoutExternalRoutesHaveNoStopButtonOrEmptyPill() async throws {
+        let engine = try PlozzigenVideoEngine()
+        defer { engine.stop() }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for permitsExternalPresentation in [true, false] {
+            var invalidate: (@MainActor () -> Void)?
+            let context = LiveChannelPresentationContext(
+                engine: engine, sessionID: UUID(),
+                permitsExternalPresentation: permitsExternalPresentation,
+                isVisible: true, showsControls: true, intendsPlayback: false,
+                hasSelectedSubtitle: false,
+                continuationChanged: { _ in }, restoreUI: { true },
+                registerInvalidation: { invalidate = $0 },
+                stopPlayback: { XCTFail("Presentation controls must not stop playback.") }
+            )
+            let host = UIHostingController(rootView: PlozziOSLivePresentationControls(context: context))
+            host.safeAreaRegions = []
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(100))
+            let size = host.sizeThatFits(in: CGSize(width: 400, height: 100))
+            XCTAssertEqual(size.width, 0, accuracy: 0.5, "No Stop button or empty glass group may remain.")
+            XCTAssertEqual(size.height, 0, accuracy: 0.5)
+            XCTAssertNotNil(invalidate, "The presentation lifecycle must stay mounted without visible controls.")
+            invalidate?()
+            window.rootViewController = nil
+        }
+    }
+
     func testVODCaptionsClearTheActualCenterControlsOrRetainTheirOriginalPosition() async throws {
         let model = PlayerViewModel(provider: LayoutProvider(), itemID: "fixture")
         model.controls.duration = 1200

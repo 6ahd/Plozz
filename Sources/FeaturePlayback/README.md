@@ -105,7 +105,10 @@ compatibility and App Review risk. iOS/iPadOS controls are unchanged.
 
 Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
-progress remain white in both appearances. The controls scrim dims the video
+progress remain white in both appearances. Mobile Live TV's top presentation
+group contains only available Picture in Picture and AirPlay controls, with no
+separate Stop button. Pause/resume, player dismissal, and session cleanup retain
+their existing behavior. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
 without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now/Guide
 cards use that same native media (`clear`) material, without a colored backing or an added border;
