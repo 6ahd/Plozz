@@ -18,15 +18,17 @@ final class ExtendedArtworkGeometryTests: XCTestCase {
         for width in [CGFloat(90), 112, 132, 220, 280, 300, 420] {
             let height = width / ContinueWatchingCardShape.portraitAspectRatio
             let geometry = ExtendedArtworkGeometry(
-                slot: CGSize(width: width, height: height), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+                slot: CGSize(width: width, height: height), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare
             )
-            XCTAssertEqual(geometry.renderedWidth, width, accuracy: 0.001)
-            XCTAssertEqual(geometry.pictureHeight, width * 1.5, accuracy: 0.001)
-            XCTAssertEqual(height, width * 1.65, accuracy: 0.001)
-            XCTAssertEqual(geometry.reflectionHeight, width * 1.5 * 0.20 / 2, accuracy: 0.001)
-            XCTAssertLessThan(height, width * 1.8, "Detailed cards must be shorter than the previous treatment.")
+            XCTAssertEqual(height, width * 1.5, accuracy: 0.001)
+            XCTAssertEqual(geometry.renderedWidth / geometry.pictureHeight, 2.0 / 3.0, accuracy: 0.001)
+            XCTAssertEqual(geometry.renderedWidth, width / 1.1, accuracy: 0.001)
+            XCTAssertEqual(geometry.renderedWidth + geometry.sideReflectionWidth * 2, width, accuracy: 0.001)
+            XCTAssertGreaterThan(geometry.sideReflectionWidth, 0)
             XCTAssertEqual(geometry.reflectionHeight,
-                           width * 1.5 * PlozzTheme.Metrics.continueWatchingPortraitReflectionShare, accuracy: 0.001)
+                           geometry.pictureHeight * PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
+                           accuracy: 0.001)
             XCTAssertEqual(geometry.reflectionStart, ContinueWatchingCardShape.portraitGeometry.reflectionStart,
                            accuracy: 0.001)
         }

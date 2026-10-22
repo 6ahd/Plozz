@@ -657,6 +657,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                     image: image, size: size, scale: scale,
                     artworkAspectRatio: portraitBlur != nil ? 2.0 / 3.0 : 16.0 / 9.0,
                     sideCrop: portraitBlur != nil ? 0 : PlozzTheme.Metrics.continueWatchingArtworkSideCrop,
+                    minimumReflectionShare: portraitBlur != nil
+                        ? PlozzTheme.Metrics.continueWatchingPortraitReflectionShare : 0,
                     progressivelyBlursReflection: portraitBlur ?? false
                 )
                 if prepared == nil { original = nil }

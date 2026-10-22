@@ -12,12 +12,14 @@ Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
 
-Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
-extension 10% of the complete 2:3 poster's height (half the previous extension).
-Only this band gradually blurs as it darkens;
-the poster stays sharp. Native TV caches the finished reflection, including its
-blur treatment in the cache identity; Reduce Transparency retains the unblurred
-fallback. Landscape reflection is unchanged.
+Continue Watching portrait cards reuse `PosterCardView` at ordinary 2:3 poster
+dimensions. Detailed fits the complete poster above a bottom reflection 10% of
+the fitted picture's height, filling the narrow left/right gaps with mirrored
+poster edges rather than cropping or stretching the artwork. Only the bottom
+band gradually blurs as it darkens; the poster stays sharp. Native TV caches the
+finished reflection, including the reserved band and blur treatment in the cache
+identity; Reduce Transparency retains the unblurred fallback. Landscape reflection
+is unchanged.
 Progress only uses the ordinary 2:3 poster and existing
 `MediaCardPlaybackIndicators` white bar, including shared thickness, focus,
 insets, watch-state rules and download badges; it does not create another bar style.

@@ -183,7 +183,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                     if style == .borderless {
                         let native = try XCTUnwrap(nativePoster(in: window))
                         XCTAssertEqual(native.bounds.height / native.bounds.width,
-                                       1 / details.cardAspectRatio, accuracy: 0.02)
+                                       1.5, accuracy: 0.02, "Both treatments must match a normal poster.")
                     }
                     #endif
                     let text = try recognizedText(window)

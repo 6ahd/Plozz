@@ -183,10 +183,11 @@ public struct ContinueWatchingArtworkSwatch: View {
             ExtendedArtworkFill(picture: seriesPicture(width: width))
         case .portraitPosters:
             if usesProgressOnlyPortrait {
-                posterPicture(width: width)
+                posterPicture()
             } else {
                 ExtendedArtworkFill(
-                    picture: posterPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    picture: posterPicture(), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    minimumReflectionShare: PlozzTheme.Metrics.continueWatchingPortraitReflectionShare,
                     progressivelyBlursReflection: !reduceTransparency
                 )
             }
@@ -216,8 +217,9 @@ public struct ContinueWatchingArtworkSwatch: View {
         }
     }
 
-    private func posterPicture(width: CGFloat) -> some View {
+    private func posterPicture() -> some View {
         GeometryReader { geometry in
+            let width = geometry.size.width
             let height = geometry.size.height
             ZStack {
                 LinearGradient(
