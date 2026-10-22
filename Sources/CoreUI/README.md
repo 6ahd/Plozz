@@ -6,6 +6,16 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`PlozzStartupLogo` starts from a smile and rotates through wink, delight, and
+surprise on successive cold launches. The device-local choice is saved once per
+process when animation first becomes active; view remounts and foreground
+transitions reuse it. Reduce Motion leaves the smile and does not advance the
+rotation. Each selected expression begins at 0.25 seconds and reports intro completion
+from the animation timeline at 0.7 seconds. The optional completion is one-shot,
+does not advance in inactive scenes, and fires immediately with Reduce Motion.
+The shell may retain the launch presentation for that intro without delaying
+startup work. Longer loading keeps the existing eight-second expression loop.
+
 Loading placeholders share `shimmering()`. Its static gradient band is rasterized
 before the animated translation, avoiding repeated gradient work without
 rasterizing the placeholder content or changing the sweep, masking, or intensity.

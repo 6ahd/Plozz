@@ -632,6 +632,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             }
             scroll.setContentOffset(.zero, animated: false)
             models.heroSettingsModel.settings.sources = [.featured, .watchlist]
+            models.heroSettingsModel.settings.setEnabled(.featured, enabled: true)
             let selected = try await self.capture(window, name: "hero-selected-source-summary", includeMaster: true)
             XCTAssertTrue(selected.contains("Discovery"), selected)
             XCTAssertTrue(selected.contains("Watchlist"), selected)
@@ -647,7 +648,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
 
     func testNestedDiscoveryReturnsToTitleSourcesWithoutPoppingTheHeroPage() async throws {
         let namespace = "HeroNestedHosted.\(UUID())"
-        let models = ProfileSettingsModel(namespace: namespace)
+        let models = ProfileSettingsModel(namespace: namespace, isSeerrConfigured: { true })
         defer {
             for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
                 UserDefaults.standard.removeObject(forKey: key)

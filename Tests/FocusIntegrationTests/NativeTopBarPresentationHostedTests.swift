@@ -9,6 +9,66 @@ import XCTest
 
 @MainActor
 final class NativeTopBarPresentationHostedTests: XCTestCase {
+    func testSettingsReturnThenRapidSearchLiveTVHomeKeepsNativeTabsAlive() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let model = TransitionModel()
+        let host = UIHostingController(rootView: SettingsReturnFixture(model: model))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        func tabController(_ controller: UIViewController) -> UITabBarController? {
+            if let tabs = controller as? UITabBarController { return tabs }
+            return controller.children.lazy.compactMap { tabController($0) }.first
+        }
+        let ready = ContinuousClock.now + .seconds(5)
+        while tabController(host)?.viewControllers?.count != 4, ContinuousClock.now < ready {
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let tabs = try XCTUnwrap(tabController(host))
+        let originalControllers = try XCTUnwrap(tabs.viewControllers).map(ObjectIdentifier.init)
+        XCTAssertEqual(originalControllers.count, 4)
+        XCTAssertEqual(Set(originalControllers).count, 4)
+
+        // The production failures ended with 410 ms and 690 ms Live TV -> Home gaps.
+        for milliseconds in [20, 100, 410, 690] {
+            for _ in 0..<5 {
+                for destination in [
+                    NavigationRailDestination.settings, .search, .liveTV, .home
+                ] {
+                    model.selection = destination
+                    window.layoutIfNeeded()
+                    try await Task.sleep(for: .milliseconds(milliseconds))
+                }
+                XCTAssertTrue(tabController(host) === tabs)
+                XCTAssertEqual(tabs.viewControllers?.map(ObjectIdentifier.init), originalControllers)
+            }
+        }
+        let settled = ContinuousClock.now + .seconds(5)
+        while tabs.selectedIndex != 0 || tabs.transitionCoordinator != nil {
+            guard ContinuousClock.now < settled else {
+                XCTFail("The native Home transition did not settle.")
+                return
+            }
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(model.selection, .home)
+        XCTAssertTrue(tabs.selectedViewController === tabs.viewControllers?.first)
+    }
+
     func testRapidNativeTabChangesAndDetailReturnsKeepDistinctControllers() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -52,6 +112,31 @@ final class NativeTopBarPresentationHostedTests: XCTestCase {
     final class TransitionModel {
         var selection = NavigationRailDestination.home
         var path: [String] = []
+    }
+
+    private struct SettingsReturnFixture: View {
+        @Bindable var model: TransitionModel
+
+        var body: some View {
+            SettingsNavigationShell(style: .tabBar, showsSettings: model.selection == .settings) { _ in
+                NativeTopBarNavigation(
+                    destinations: [.home, .search, .liveTV, .settings], selection: $model.selection,
+                    preventsAccidentalExit: false,
+                    content: { destination, _ in
+                        AnyView(NavigationStack {
+                            if destination == .settings {
+                                Color.clear
+                            } else {
+                                Text(verbatim: destination.storageValue)
+                            }
+                        })
+                    },
+                    label: { AnyView(Label($0.storageValue, systemImage: "square")) }
+                )
+            } settings: {
+                NavigationStack { Text(verbatim: "Settings") }
+            }
+        }
     }
 
     private struct TransitionFixture: View {

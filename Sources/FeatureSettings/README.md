@@ -7,6 +7,19 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Diagnostic reporting requires an explicit device-wide choice on every build
+channel. `CrashReportingConsentView` appears before first-time setup or normal
+startup when the build has a reporting endpoint and the current consent version
+has not been answered. Existing users, including prior opt-ins and opt-outs, are
+asked once after this migration; reporting stays off until they choose to share.
+Either choice continues setup and survives relaunch and profile switching.
+Help & Diagnostics can change it later. Consent is not synced or transferred.
+The prompt and its primary Share Diagnostics and secondary Don't Share actions
+use the shared Settings card above a separate bottom privacy footer, with
+48-point content insets on tvOS and the standard card insets on mobile.
+Its GitHub-marked link opens the repository
+on mobile or a scannable QR sheet on Apple TV; opening it does not grant consent.
+
 On tvOS, Video buffer and Live TV buffer use the shared `SettingsMenuRow`: one
 compact row showing the current value, with choices in the native menu and help
 text below. Opening, focusing, or cancelling the menu does not save a choice;

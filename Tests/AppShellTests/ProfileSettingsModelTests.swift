@@ -10,6 +10,33 @@ import CoreModels
 /// as immutable and never rebuilt.
 @MainActor
 final class ProfileSettingsModelTests: XCTestCase {
+    func testRebuildingKeepsAutomaticDiscoveryAndExplicitChoicesProfileScoped() {
+        let first = "Discovery.first.\(UUID())"
+        let second = "Discovery.second.\(UUID())"
+        defer {
+            for namespace in [first, second] {
+                UserDefaults.standard.removeObject(forKey: SettingsKey.scoped("com.plozz.heroSettings", namespace: namespace))
+            }
+        }
+        var configured = false
+        let model = ProfileSettingsModel(namespace: first, isSeerrConfigured: { configured })
+        XCTAssertFalse(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+        configured = true
+        XCTAssertTrue(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+        model.heroSettingsModel.settings.setEnabled(.featured, enabled: false)
+        model.rebuild(namespace: second)
+        XCTAssertTrue(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+        configured = false
+        XCTAssertFalse(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+        model.heroSettingsModel.settings.setEnabled(.featured, enabled: true)
+        model.rebuild(namespace: first)
+        configured = true
+        XCTAssertFalse(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+        model.rebuild(namespace: second)
+        configured = false
+        XCTAssertTrue(model.heroSettingsModel.effectiveSettings.isEnabled(.featured))
+    }
+
     func testRebuildingKeepsTheLiveDiscoveryPolicyIncludingPreviouslyRetainedModels() {
         var isKids = false
         let model = ProfileSettingsModel(namespace: "policy-a", allowsDiscovery: { !isKids })

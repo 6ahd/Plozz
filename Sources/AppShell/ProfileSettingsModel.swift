@@ -97,6 +97,7 @@ public final class ProfileSettingsModel {
     /// not be rebuilt on profile switch.
     public let usesInjectedModels: Bool
     private let allowsDiscovery: @MainActor () -> Bool
+    private let isSeerrConfigured: @MainActor () -> Bool
 
     /// Builds the per-profile settings facet. When the caller supplies any settings
     /// model, all models are treated as injected (test path) and never rebuilt on
@@ -108,6 +109,7 @@ public final class ProfileSettingsModel {
     public init(
         namespace ns: String?,
         allowsDiscovery: @escaping @MainActor () -> Bool = { true },
+        isSeerrConfigured: @escaping @MainActor () -> Bool = { false },
         subtitleBehaviorModel: SubtitleBehaviorModel? = nil,
         subtitleStyleModel: SubtitleStyleModel? = nil,
         spoilerModel: SpoilerSettingsModel? = nil,
@@ -148,6 +150,7 @@ public final class ProfileSettingsModel {
             || nightShiftModel != nil
         self.usesInjectedModels = injected
         self.allowsDiscovery = allowsDiscovery
+        self.isSeerrConfigured = isSeerrConfigured
 
         // Single source of truth for constructing all sub-models: injected models
         // are used as-is, the rest are built scoped to `ns`. `rebuild(namespace:)`
@@ -186,6 +189,7 @@ public final class ProfileSettingsModel {
         self.appLanguageModel = models.appLanguageModel
         self.themeModel = models.themeModel
         models.heroModels.home.setDiscoveryPolicy(allowsDiscovery)
+        models.heroModels.home.setSeerrConnection(isSeerrConfigured)
         self.heroModels = models.heroModels
         self.diagnosticsModel = models.diagnosticsModel
         self.musicPlayerModel = models.musicPlayerModel
@@ -215,6 +219,7 @@ public final class ProfileSettingsModel {
         themeModel = models.themeModel
         heroModels = models.heroModels
         heroModels.home.setDiscoveryPolicy(allowsDiscovery)
+        heroModels.home.setSeerrConnection(isSeerrConfigured)
         diagnosticsModel = models.diagnosticsModel
         musicPlayerModel = models.musicPlayerModel
         homeLibraryVisibilityModel = models.homeLibraryVisibilityModel

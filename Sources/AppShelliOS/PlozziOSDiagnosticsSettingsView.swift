@@ -58,7 +58,7 @@ struct PlozziOSDiagnosticsSettingsView: View {
             SettingsSectionGroup {
                 Toggle(
                     "Share Crash Reports",
-                    isOn: $crashReporting.settings.isEnabled
+                    isOn: $crashReporting.isEnabled
                 )
                 .disabled(!appModel.crashReportingController.isConfigured)
             } footer: {
@@ -86,7 +86,7 @@ struct PlozziOSDiagnosticsSettingsView: View {
                 }
                 .disabled(
                     !appModel.crashReportingController.isConfigured
-                        || !crashReporting.settings.isEnabled
+                        || !crashReporting.isEnabled
                 )
 
                 if let sendStatus {
@@ -116,7 +116,7 @@ struct PlozziOSDiagnosticsSettingsView: View {
         }
         .settingsPageSurface()
         .navigationTitle("Help & Diagnostics")
-        .onChange(of: crashReporting.settings.isEnabled) {
+        .onChange(of: crashReporting.isEnabled) {
             appModel.applyCrashReportingPreference()
             sendStatus = nil
         }
