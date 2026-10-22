@@ -180483,6 +180483,226 @@
         }
       }
     },
+    "Change anytime in Settings > Help & Diagnostics." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك تغيير اختيارك في أي وقت من الإعدادات > المساعدة والتشخيص."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете да промените избора си по всяко време в Настройки > Помощ и диагностика."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pots canviar l’opció en qualsevol moment a Configuració > Ajuda i diagnòstics."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volbu můžete kdykoli změnit v Nastavení > Nápověda a diagnostika."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan altid ændre dit valg i Indstillinger > Hjælp og diagnostik."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst deine Auswahl jederzeit unter Einstellungen > Hilfe & Diagnose ändern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αλλάξτε την επιλογή σας οποιαδήποτε στιγμή στις Ρυθμίσεις > Βοήθεια και διαγνωστικά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puedes cambiarlo cuando quieras en Ajustes > Ayuda y diagnóstico."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هر زمان بخواهید می‌توانید انتخاب خود را در تنظیمات > کمک و تشخیص‌ها تغییر دهید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit muuttaa valintaa milloin tahansa kohdassa Asetukset > Ohjeet ja diagnostiikka."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez changer d’avis à tout moment dans Réglages > Aide et diagnostics."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר לשנות את הבחירה בכל עת בהגדרות > עזרה ואבחון."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कभी भी सेटिंग्स > सहायता और डायग्नोस्टिक्स में बदलें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Promijenite bilo kada u odjeljku Postavke > Pomoć i dijagnostika."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bármikor módosítható itt: Beállítások > Súgó és diagnosztika."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ubah kapan saja di Pengaturan > Bantuan & Diagnostik."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi modificare la scelta in qualsiasi momento in Impostazioni > Assistenza e diagnostica."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "設定 > ヘルプと診断でいつでも変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "설정 > 도움말 및 진단에서 언제든지 변경할 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Boleh diubah pada bila-bila masa dalam Tetapan > Bantuan & Diagnostik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan endres når som helst i Innstillinger > Hjelp og diagnostikk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt dit altijd wijzigen in Instellingen > Hulp en diagnostiek."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz to zmienić w dowolnej chwili w sekcji Ustawienia > Pomoc i diagnostyka."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Altere quando quiser em Ajustes > Ajuda e diagnóstico."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți modifica oricând opțiunea în Setări > Ajutor și diagnosticare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можно изменить в любой момент в разделе «Настройки» > «Помощь и диагностика»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voľbu môžete kedykoľvek zmeniť v časti Nastavenia > Pomoc a diagnostika."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "To lahko kadar koli spremenite v razdelku Nastavitve > Pomoč in diagnostika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Možete promeniti u bilo kom trenutku u odeljku Podešavanja > Pomoć i dijagnostika."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan ändra detta när som helst under Inställningar > Hjälp och diagnostik."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปลี่ยนได้ทุกเมื่อในการตั้งค่า > ความช่วยเหลือและการวินิจฉัย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayarlar > Yardım ve tanılama bölümünden istediğiniz zaman değiştirebilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Змінити вибір можна будь-коли в меню Налаштування > Допомога й діагностика."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn có thể thay đổi bất cứ lúc nào trong Cài đặt > Hỗ trợ & Chẩn đoán."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可随时在“设置 > 帮助与诊断”中更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可隨時在「設定 > 說明與診斷」中更改。"
+          }
+        }
+      }
+    },
     "Change quality" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -278001,6 +278221,226 @@
         }
       }
     },
+    "Don't Share" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عدم الإرسال"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не изпращай"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No enviïs"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neodesílat"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send ikke"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nicht senden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Να μη σταλούν"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No enviar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال نشود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Älä lähetä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne pas envoyer"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא לשלוח"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "न भेजें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne šalji"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem küldök"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jangan Kirim"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non inviare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "送信しない"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "보내지 않기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jangan Hantar"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikke send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niet versturen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie wysyłaj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não enviar"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu trimite"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не отправлять"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neposielať"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne pošiljaj"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne šalji"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka inte"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่ส่ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gönderme"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не надсилати"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không gửi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不发送"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不傳送"
+          }
+        }
+      }
+    },
     "Don't include passwords or access tokens in this template." : {
       "localizations" : {
         "ar" : {
@@ -358721,6 +359161,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "說明與診斷"
+          }
+        }
+      }
+    },
+    "Help improve Plozz?" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هل تود المساعدة في تحسين Plozz؟"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ще помогнете ли да подобрим Plozz?"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vols ajudar a millorar Plozz?"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomůžete vylepšit Plozz?"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vil du hjælpe med at forbedre Plozz?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Möchtest du helfen, Plozz zu verbessern?"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Θέλετε να βοηθήσετε στη βελτίωση του Plozz;"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Quieres ayudar a mejorar Plozz?"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "می‌خواهید به بهبود Plozz کمک کنید؟"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Autatko parantamaan Plozzia?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aider à améliorer Plozz ?"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לעזור לשפר את Plozz?"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz को बेहतर बनाने में मदद करेंगे?"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite li pomoći poboljšati Plozz?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Segít a Plozz fejlesztésében?"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingin membantu meningkatkan Plozz?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vuoi contribuire a migliorare Plozz?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozzの改善に協力しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz 개선에 참여하시겠어요?"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingin membantu menambah baik Plozz?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vil du bidra til å forbedre Plozz?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz helpen verbeteren?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chcesz pomóc ulepszyć Plozz?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quer ajudar a melhorar o Plozz?"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne ajuți să îmbunătățim Plozz?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Помочь улучшить Plozz?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomôžete zlepšiť Plozz?"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite pomagati izboljšati Plozz?"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite da pomognete da Plozz bude bolji?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vill du hjälpa till att förbättra Plozz?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ช่วยปรับปรุง Plozz ไหม?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz'u iyileştirmeye yardımcı olur musunuz?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Допоможете покращити Plozz?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giúp cải thiện Plozz?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "愿意帮助改进 Plozz 吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "願意協助改善 Plozz 嗎？"
           }
         }
       }
@@ -507143,6 +507803,226 @@
         }
       }
     },
+    "Open GitHub repo" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فتح مستودع الشفرة على GitHub"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отваряне на хранилището в GitHub"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obre el repositori a GitHub"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otevřít repozitář na GitHubu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åbn kildekodelageret på GitHub"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-Repository öffnen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Άνοιγμα αποθετηρίου στο GitHub"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir repositorio en GitHub"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن مخزن کد در GitHub"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avaa GitHub-lähdekoodivarasto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouvrir le dépôt GitHub"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פתיחת מאגר הקוד ב־GitHub"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub रिपॉज़िटरी खोलें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori GitHub repozitorij"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-tároló megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka repositori GitHub"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apri il repository GitHub"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHubリポジトリを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 저장소 열기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka repositori GitHub"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åpne kodelageret på GitHub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-repository openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otwórz repozytorium w serwisie GitHub"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir repositório no GitHub"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deschide depozitul de cod pe GitHub"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Открыть репозиторий на GitHub"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvoriť repozitár na platforme GitHub"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odpri repozitorij na platformi GitHub"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori repozitorijum na platformi GitHub"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Öppna kodarkivet på GitHub"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดคลังซอร์สโค้ดบน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub deposunu aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відкрити репозиторій на GitHub"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mở kho mã nguồn trên GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打开 GitHub 源代码仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開啟 GitHub 原始碼儲存庫"
+          }
+        }
+      }
+    },
     "Open Jellyfin on another device, choose **Quick Connect**, and enter this code." : {
       "localizations" : {
         "ar" : {
@@ -554763,6 +555643,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Plozz 會管理此頻道的排程。請使用「Plozz 頻道」開關控制自動頻道列表。"
+          }
+        }
+      }
+    },
+    "Plozz on GitHub" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz على GitHub"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz в GitHub"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz a GitHub"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na GitHubu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz auf GitHub"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το Plozz στο GitHub"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz en GitHub"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz در GitHub"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz GitHubissa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz sur GitHub"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz ב־GitHub"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub पर Plozz"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na GitHubu"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz a GitHubon"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz di GitHub"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz su GitHub"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub上のPlozz"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub의 Plozz"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz di GitHub"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz op GitHub"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz w serwisie GitHub"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz no GitHub"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz pe GitHub"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz на GitHub"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platforme GitHub"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platformi GitHub"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platformi GitHub"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz บน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub'da Plozz"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz на GitHub"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz trên GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 上的 Plozz"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 上的 Plozz"
           }
         }
       }
@@ -613952,6 +615052,226 @@
         }
       }
     },
+    "Reports include technical error details, app and device information, and diagnostics such as timing and memory use. They are sent to the developer through Sentry only when reporting is enabled." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تتضمن التقارير تفاصيل تقنية عن الأخطاء ومعلومات عن التطبيق والجهاز وبيانات تشخيصية مثل قياسات الوقت واستخدام الذاكرة. وتُرسل إلى المطوّر عبر Sentry فقط عند تفعيل إرسال التقارير."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отчетите включват технически подробности за грешките, информация за приложението и устройството, както и диагностични данни, като времеви измервания и използване на паметта. Те се изпращат до разработчика чрез Sentry само когато изпращането на отчети е включено."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Els informes inclouen detalls tècnics dels errors, informació de l’app i del dispositiu i dades de diagnòstic, com ara mesures de temps i ús de memòria. Només s’envien al desenvolupador a través de Sentry quan l’enviament d’informes està activat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hlášení obsahují technické podrobnosti o chybách, informace o aplikaci a zařízení a diagnostické údaje, například měření času a využití paměti. Hlášení se odesílají vývojáři přes Sentry pouze tehdy, když je odesílání hlášení zapnuté."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporterne indeholder tekniske fejloplysninger, oplysninger om appen og enheden samt diagnostik såsom tidsmålinger og hukommelsesforbrug. De sendes kun til udvikleren via Sentry, når rapportering er slået til."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Berichte enthalten technische Fehlerdetails, Informationen zur App und zum Gerät sowie Diagnosedaten wie Zeitmessungen und Speichernutzung. Sie werden nur dann über Sentry an den Entwickler gesendet, wenn das Senden von Berichten aktiviert ist."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι αναφορές περιλαμβάνουν τεχνικές λεπτομέρειες σφαλμάτων, πληροφορίες για την εφαρμογή και τη συσκευή, καθώς και διαγνωστικά δεδομένα, όπως μετρήσεις χρόνου και χρήση μνήμης. Αποστέλλονται στον προγραμματιστή μέσω του Sentry μόνο όταν η αποστολή αναφορών είναι ενεργοποιημένη."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los informes incluyen detalles técnicos de los errores, información de la app y del dispositivo y datos de diagnóstico, como mediciones de tiempo y uso de memoria. Solo se envían al desarrollador a través de Sentry cuando el envío de informes está activado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "گزارش‌ها شامل جزئیات فنی خطاها، اطلاعات برنامه و دستگاه و داده‌های عیب‌یابی مانند اندازه‌گیری زمان و میزان استفاده از حافظه هستند. این گزارش‌ها فقط زمانی از طریق Sentry برای توسعه‌دهنده فرستاده می‌شوند که ارسال گزارش فعال باشد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raportit sisältävät virheiden teknisiä tietoja, sovelluksen ja laitteen tietoja sekä diagnostiikkatietoja, kuten ajoitus- ja muistinkäyttötietoja. Ne lähetetään kehittäjälle Sentryn kautta vain, kun raportointi on käytössä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les rapports incluent des détails techniques sur les erreurs, des informations sur l’app et l’appareil, ainsi que des données de diagnostic comme des mesures de temps et l’utilisation de la mémoire. Ils sont envoyés au développeur via Sentry uniquement lorsque l’envoi de rapports est activé."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הדוחות כוללים פרטים טכניים על שגיאות, מידע על היישום והמכשיר ונתוני אבחון כגון מדידות זמן ושימוש בזיכרון. הם נשלחים למפתח דרך Sentry רק כאשר שליחת הדוחות מופעלת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "रिपोर्ट में त्रुटियों के तकनीकी विवरण, ऐप और डिवाइस की जानकारी, और प्रक्रियाओं में लगने वाले समय व मेमोरी के उपयोग जैसे डायग्नोस्टिक डेटा शामिल होते हैं। रिपोर्ट भेजना चालू होने पर ही इन्हें Sentry के ज़रिए डेवलपर को भेजा जाता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izvješća sadrže tehničke pojedinosti o pogreškama, informacije o aplikaciji i uređaju te dijagnostičke podatke poput trajanja operacija i upotrebe memorije. Šalju se razvojnom programeru putem servisa Sentry samo kada je slanje izvješća omogućeno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A jelentések a hibák technikai részleteit, az alkalmazás és az eszköz adatait, valamint diagnosztikai adatokat, például a műveletek időtartamát és a memóriahasználatot tartalmazzák. Csak akkor jutnak el a fejlesztőhöz a Sentry szolgáltatáson keresztül, ha a jelentésküldés engedélyezve van."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laporan mencakup detail teknis kesalahan, informasi aplikasi dan perangkat, serta data diagnostik seperti durasi proses dan penggunaan memori. Laporan dikirim kepada pengembang melalui Sentry hanya saat pelaporan diaktifkan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le segnalazioni includono dettagli tecnici sugli errori, informazioni sull’app e sul dispositivo e dati diagnostici come tempi di esecuzione e utilizzo della memoria. Vengono inviate allo sviluppatore tramite Sentry solo quando l’invio delle segnalazioni è abilitato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "レポートには、エラーの技術的な詳細、アプリやデバイスの情報、処理時間やメモリ使用量などの診断データが含まれます。レポート送信が有効な場合にのみ、Sentryを通じて開発者に送信されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "보고서에는 오류의 기술적 세부 정보, 앱 및 기기 정보, 소요 시간과 메모리 사용량 등의 진단 정보가 포함됩니다. 보고 기능을 켠 경우에만 Sentry를 통해 개발자에게 전송됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laporan merangkumi butiran teknikal tentang ralat, maklumat aplikasi dan peranti serta diagnostik seperti ukuran masa dan penggunaan memori. Laporan ini dihantar kepada pembangun melalui Sentry hanya apabila pelaporan diaktifkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapportene inneholder tekniske feildetaljer, app- og enhetsinformasjon og diagnostikk som tidsmålinger og minnebruk. De sendes til utvikleren via Sentry bare når rapportering er aktivert."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporten bevatten technische foutdetails, informatie over de app en het apparaat, en diagnostische gegevens zoals tijdmetingen en geheugengebruik. Ze worden alleen via Sentry naar de ontwikkelaar verstuurd als rapportage is ingeschakeld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raporty zawierają techniczne szczegóły błędów, informacje o aplikacji i urządzeniu oraz dane diagnostyczne, takie jak pomiary czasu i zużycie pamięci. Są wysyłane do dewelopera za pośrednictwem Sentry tylko wtedy, gdy raportowanie jest włączone."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os relatórios incluem detalhes técnicos dos erros, informações sobre o app e o dispositivo e dados de diagnóstico, como medições de tempo e uso de memória. Eles são enviados ao desenvolvedor pelo Sentry somente quando o envio de relatórios está ativado."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapoartele includ detalii tehnice despre erori, informații despre aplicație și dispozitiv, precum și date de diagnosticare, cum ar fi măsurători de timp și utilizarea memoriei. Sunt trimise dezvoltatorului prin Sentry doar când raportarea este activată."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отчёты содержат технические сведения об ошибках, информацию о приложении и устройстве, а также диагностические данные, например замеры времени и использования памяти. Они отправляются разработчику через Sentry только при включённой отправке отчётов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hlásenia obsahujú technické podrobnosti o chybách, informácie o aplikácii a zariadení a diagnostické údaje, napríklad časové merania a využitie pamäte. Vývojárovi sa posielajú cez Sentry iba vtedy, keď je odosielanie hlásení zapnuté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poročila vključujejo tehnične podrobnosti o napakah, podatke o aplikaciji in napravi ter diagnostične podatke, kot so časovne meritve in poraba pomnilnika. Razvijalcu se pošiljajo prek storitve Sentry samo, ko je poročanje omogočeno."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izveštaji sadrže tehničke detalje o greškama, podatke o aplikaciji i uređaju, kao i dijagnostičke podatke, poput merenja vremena i korišćenja memorije. Šalju se programeru putem servisa Sentry samo kada je slanje izveštaja uključeno."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporterna innehåller teknisk information om fel, app- och enhetsinformation samt diagnostik som tidsmätningar och minnesanvändning. De skickas till utvecklaren via Sentry endast när rapportering är aktiverad."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "รายงานประกอบด้วยรายละเอียดทางเทคนิคของข้อผิดพลาด ข้อมูลแอปและอุปกรณ์ และข้อมูลวินิจฉัย เช่น ระยะเวลาการทำงานและการใช้หน่วยความจำ รายงานจะส่งถึงผู้พัฒนาผ่าน Sentry เฉพาะเมื่อเปิดใช้การส่งรายงานเท่านั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raporlar, teknik hata ayrıntıları, uygulama ve cihaz bilgileri ile süre ölçümleri ve bellek kullanımı gibi tanılama verileri içerir. Yalnızca raporlama etkin olduğunda Sentry üzerinden geliştiriciye gönderilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звіти містять технічні відомості про помилки, інформацію про застосунок і пристрій, а також діагностичні дані, як-от показники часу та використання пам’яті. Вони надсилаються розробнику через Sentry лише тоді, коли надсилання звітів увімкнено."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Báo cáo bao gồm chi tiết kỹ thuật về lỗi, thông tin ứng dụng và thiết bị, cùng dữ liệu chẩn đoán như thời gian xử lý và mức sử dụng bộ nhớ. Báo cáo chỉ được gửi đến nhà phát triển qua Sentry khi tính năng gửi báo cáo được bật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "报告包含错误相关的技术详情、应用和设备信息，以及耗时、内存使用情况等诊断数据。仅在开启报告发送功能时，才会通过 Sentry 将报告发送给开发者。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "報告包含與錯誤相關的技術細節、應用程式與裝置資訊，以及耗時、記憶體用量等診斷資料。僅在啟用報告傳送功能時，才會透過 Sentry 將報告傳送給開發者。"
+          }
+        }
+      }
+    },
     "Request" : {
       "comment" : "Primary Seerr request action for an unowned discovery title on Home and detail heroes, also reused for the same action in accessibility labels and VoiceOver actions.",
       "localizations" : {
@@ -659406,6 +660726,226 @@
         }
       }
     },
+    "Scan to open the Plozz GitHub repo." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "امسح رمز QR لفتح مستودع Plozz على GitHub."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканирайте QR кода, за да отворите хранилището на Plozz в GitHub."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escaneja el codi QR per obrir el repositori de Plozz a GitHub."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naskenováním QR kódu otevřete repozitář Plozz na GitHubu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scan QR-koden for at åbne Plozz' kildekodelager på GitHub."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scanne den QR-Code, um das GitHub-Repository von Plozz zu öffnen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Σαρώστε τον κωδικό QR για να ανοίξετε το αποθετήριο του Plozz στο GitHub."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escanea el código QR para abrir el repositorio de Plozz en GitHub."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کد QR را اسکن کنید تا مخزن کد Plozz در GitHub باز شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skannaa QR-koodi avataksesi Plozzin lähdekoodivaraston GitHubissa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scannez le code QR pour ouvrir le dépôt GitHub de Plozz."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "סרקו את קוד ה־QR לפתיחת מאגר הקוד של Plozz ב־GitHub."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz की GitHub रिपॉज़िटरी खोलने के लिए QR कोड स्कैन करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte QR kod za otvaranje repozitorija aplikacije Plozz na GitHubu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Olvassa be a QR-kódot a Plozz GitHub-tárolójának megnyitásához."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pindai kode QR untuk membuka repositori GitHub Plozz."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scansiona il codice QR per aprire il repository GitHub di Plozz."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "PlozzのGitHubリポジトリを開くには、QRコードをスキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "QR 코드를 스캔하여 Plozz의 GitHub 저장소를 여세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imbas kod QR untuk membuka repositori Plozz di GitHub."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skann QR-koden for å åpne kodelageret til Plozz på GitHub."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scan de QR-code om de GitHub-repository van Plozz te openen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zeskanuj kod QR, aby otworzyć repozytorium Plozz w serwisie GitHub."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escaneie o código QR para abrir o repositório do Plozz no GitHub."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scanează codul pentru a deschide depozitul de cod Plozz de pe GitHub."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отсканируйте код, чтобы открыть репозиторий Plozz на GitHub."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naskenujte kód a otvorte repozitár Plozz na platforme GitHub."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte kodo, da odprete repozitorij Plozz na platformi GitHub."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte kod da otvorite repozitorijum Plozz na platformi GitHub."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skanna koden för att öppna Plozz kodarkiv på GitHub."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สแกนคิวอาร์โค้ดเพื่อเปิดคลังซอร์สโค้ดของ Plozz บน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz'un GitHub deposunu açmak için QR kodunu tarayın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відскануйте QR-код, щоб відкрити репозиторій Plozz на GitHub."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quét mã QR để mở kho mã nguồn Plozz trên GitHub."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "扫描二维码，打开 Plozz 的 GitHub 源代码仓库。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "掃描 QR 碼，開啟 Plozz 的 GitHub 原始碼儲存庫。"
+          }
+        }
+      }
+    },
     "Scan to report\na bug" : {
       "localizations" : {
         "ar" : {
@@ -678996,6 +680536,226 @@
         }
       }
     },
+    "Send diagnostics when something goes wrong to help improve reliability and performance." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أرسل بيانات التشخيص عند حدوث مشكلة للمساعدة في تحسين الموثوقية والأداء."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращайте диагностични данни при проблем, за да помогнете за подобряването на надеждността и производителността."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envia dades de diagnòstic quan hi hagi algun problema per ajudar a millorar la fiabilitat i el rendiment."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílejte diagnostické údaje při potížích a pomozte zlepšit spolehlivost a výkon."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostik, når noget går galt, for at hjælpe med at forbedre pålidelighed og ydeevne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sende Diagnosedaten, wenn etwas schiefläuft, um Zuverlässigkeit und Leistung zu verbessern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Στείλτε διαγνωστικά δεδομένα όταν προκύπτει κάποιο πρόβλημα, για να βοηθήσετε στη βελτίωση της αξιοπιστίας και της απόδοσης."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envía datos de diagnóstico cuando algo falle para ayudar a mejorar la fiabilidad y el rendimiento."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هنگام بروز مشکل، اطلاعات عیب‌یابی را ارسال کنید تا به بهبود قابلیت اطمینان و عملکرد کمک کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetä diagnostiikkatietoja ongelmatilanteissa, jotta sovelluksen luotettavuutta ja suorituskykyä voidaan parantaa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoyez des données de diagnostic en cas de problème pour aider à améliorer la fiabilité et les performances."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שלחו נתוני אבחון כשמשהו משתבש כדי לעזור לשפר את האמינות והביצועים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समस्या होने पर डायग्नोस्टिक डेटा भेजकर विश्वसनीयता और परफ़ॉर्मेंस बेहतर बनाने में मदद करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošaljite dijagnostičke podatke kada nešto pođe po zlu kako biste pomogli poboljšati pouzdanost i performanse."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiba esetén küldjön diagnosztikai adatokat, hogy segítsen javítani a megbízhatóságot és a teljesítményt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirim data diagnostik saat terjadi masalah untuk membantu meningkatkan keandalan dan kinerja."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Invia dati diagnostici quando qualcosa va storto per contribuire a migliorare affidabilità e prestazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "問題が発生したときに診断データを送信して、信頼性とパフォーマンスの向上にご協力ください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "문제가 발생했을 때 진단 정보를 보내 안정성과 성능을 개선하는 데 도움을 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hantar diagnostik apabila berlaku masalah untuk membantu meningkatkan kebolehpercayaan dan prestasi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostikk når noe går galt, for å bidra til bedre pålitelighet og ytelse."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstuur diagnostische gegevens als er iets misgaat om de betrouwbaarheid en prestaties te helpen verbeteren."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłaj dane diagnostyczne, gdy wystąpi problem, aby pomóc poprawić niezawodność i wydajność."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envie dados de diagnóstico quando algo der errado para ajudar a melhorar a confiabilidade e o desempenho."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimite date de diagnosticare când ceva nu funcționează corect, pentru a ajuta la îmbunătățirea fiabilității și performanței."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправляйте диагностические данные при возникновении проблем, чтобы помочь повысить надёжность и производительность."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posielajte diagnostické údaje, keď sa niečo pokazí, a pomôžte zlepšiť spoľahlivosť a výkon."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ko gre kaj narobe, pošljite diagnostične podatke in pomagajte izboljšati zanesljivost in zmogljivost."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šaljite dijagnostičke podatke kada nešto pođe po zlu kako biste pomogli da se poboljšaju pouzdanost i performanse."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka diagnostik när något går fel för att hjälpa till att förbättra tillförlitlighet och prestanda."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งข้อมูลวินิจฉัยเมื่อเกิดปัญหา เพื่อช่วยปรับปรุงความเสถียรและประสิทธิภาพ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Güvenilirliği ve performansı iyileştirmeye yardımcı olmak için sorun oluştuğunda tanılama verilerini gönderin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилайте діагностичні дані в разі проблем, щоб допомогти покращити надійність і продуктивність."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gửi dữ liệu chẩn đoán khi có sự cố để giúp cải thiện độ ổn định và hiệu suất."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "出现问题时发送诊断数据，帮助提高可靠性和性能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "發生問題時傳送診斷資料，協助改善可靠性與效能。"
+          }
+        }
+      }
+    },
     "Send recent app logs to help diagnose a problem. Logins, servers, and media titles are excluded." : {
       "localizations" : {
         "ar" : {
@@ -679873,6 +681633,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "已傳送"
+          }
+        }
+      }
+    },
+    "Sent through Sentry. No logins, server addresses, or viewing history." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تُرسل عبر Sentry. لا تتضمن بيانات تسجيل الدخول أو عناوين الخوادم أو سجل المشاهدة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращат се чрез Sentry. Без данни за вход, адреси на сървъри или история на гледане."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’envien a través de Sentry. Sense credencials d’accés, adreces de servidors ni historial de visualitzacions."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesíláno přes Sentry. Bez přihlašovacích údajů, adres serverů a historie sledování."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sendes via Sentry. Ingen loginoplysninger, serveradresser eller visningshistorik."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Über Sentry gesendet. Ohne Anmeldedaten, Serveradressen oder Wiedergabeverlauf."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποστολή μέσω Sentry. Χωρίς διαπιστευτήρια σύνδεσης, διευθύνσεις διακομιστών ή ιστορικό προβολής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se envían a través de Sentry. Sin credenciales de acceso, direcciones de servidores ni historial de visualización."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "از طریق Sentry ارسال می‌شود. بدون اطلاعات ورود، نشانی سرورها یا سابقهٔ تماشا."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetetään Sentryn kautta. Ei kirjautumistietoja, palvelinosoitteita eikä katseluhistoriaa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoi via Sentry. Sans identifiants de connexion, adresses de serveurs ni historique de visionnage."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הנתונים נשלחים דרך Sentry. ללא פרטי התחברות, כתובות שרתים או היסטוריית צפייה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry के ज़रिए भेजा जाता है। लॉगिन क्रेडेंशियल, सर्वर के पते या देखने का इतिहास शामिल नहीं होता।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalje se putem servisa Sentry. Bez podataka za prijavu, adresa poslužitelja i povijesti gledanja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Küldés a Sentry szolgáltatáson keresztül. Bejelentkezési adatok, szervercímek és megtekintési előzmények nélkül."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dikirim melalui Sentry. Tanpa kredensial login, alamat server, atau riwayat tontonan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inviati tramite Sentry. Senza credenziali di accesso, indirizzi dei server o cronologia di visione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentryを通じて送信されます。ログイン用の認証情報、サーバーアドレス、視聴履歴は含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry를 통해 전송됩니다. 로그인 인증 정보, 서버 주소, 시청 기록은 포함되지 않습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dihantar melalui Sentry. Tiada bukti kelayakan log masuk, alamat pelayan atau sejarah tontonan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sendes via Sentry. Ingen påloggingsopplysninger, serveradresser eller seerhistorikk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstuurd via Sentry. Zonder inloggegevens, serveradressen of kijkgeschiedenis."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłane za pośrednictwem Sentry. Bez danych logowania, adresów serwerów ani historii oglądania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviados pelo Sentry. Sem dados de login, endereços de servidores ou histórico de visualização."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimise prin Sentry. Fără date de autentificare, adrese de server sau istoric de vizionare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправка через Sentry. Без данных для входа, адресов серверов и истории просмотра."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odosielané cez Sentry. Bez prihlasovacích údajov, adries serverov či histórie sledovania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslano prek storitve Sentry. Brez prijavnih podatkov, naslovov strežnikov ali zgodovine ogledov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalju se putem servisa Sentry. Bez podataka za prijavu, adresa servera ili istorije gledanja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skickas via Sentry. Utan inloggningsuppgifter, serveradresser eller visningshistorik."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งผ่าน Sentry โดยไม่มีข้อมูลรับรองการเข้าสู่ระบบ ที่อยู่เซิร์ฟเวอร์ หรือประวัติการรับชม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry üzerinden gönderilir. Giriş bilgileri, sunucu adresleri veya izleme geçmişi içermez."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Дані надсилаються через Sentry. Без облікових даних для входу, адрес серверів чи історії переглядів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Được gửi qua Sentry. Không bao gồm thông tin đăng nhập, địa chỉ máy chủ hay lịch sử xem."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通过 Sentry 发送。不包含登录凭据、服务器地址或观看记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "透過 Sentry 傳送。不包含登入憑證、伺服器位址或觀看記錄。"
           }
         }
       }
@@ -691580,6 +693560,226 @@
         }
       }
     },
+    "Share Diagnostics" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إرسال بيانات التشخيص"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращане на диагностични данни"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envia dades de diagnòstic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílat diagnostiku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostik"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnosedaten senden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποστολή διαγνωστικών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviar datos de diagnóstico"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال اطلاعات عیب‌یابی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetä diagnostiikkatietoja"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoyer des données de diagnostic"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שליחת נתוני אבחון"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "डायग्नोस्टिक्स भेजें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošalji dijagnostiku"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnosztika küldése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirim Diagnostik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Invia dati diagnostici"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "診断データを送信"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "진단 정보 보내기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hantar Diagnostik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostikk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnostische gegevens versturen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłaj dane diagnostyczne"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviar dados de diagnóstico"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimite date de diagnosticare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправлять данные диагностики"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posielať diagnostické údaje"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošiljaj diagnostične podatke"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalji dijagnostičke podatke"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka diagnostik"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งข้อมูลวินิจฉัย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tanılama verilerini gönder"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилати діагностичні дані"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gửi dữ liệu chẩn đoán"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "发送诊断数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "傳送診斷資料"
+          }
+        }
+      }
+    },
     "Share details" : {
       "localizations" : {
         "ar" : {
@@ -693785,6 +695985,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "共享項目"
+          }
+        }
+      }
+    },
+    "Sharing is optional and does not change any app features. Sending recent activity logs is a separate action in Settings." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إرسال بيانات التشخيص اختياري ولا يغيّر أيًا من ميزات التطبيق. أما إرسال سجلات النشاط الأخيرة فهو إجراء منفصل في الإعدادات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращането е по избор и не променя функциите на приложението. Изпращането на журналите за скорошна активност е отделно действие в Настройки."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’enviament és opcional i no modifica cap funció de l’app. Enviar els registres d’activitat recents és una acció separada a Configuració."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílání je volitelné a nemění žádné funkce aplikace. Odeslání posledních záznamů o aktivitě je samostatná akce v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er valgfrit at sende diagnostik, og det ændrer ingen funktioner i appen. Logfiler med den seneste aktivitet sendes via en separat handling i Indstillinger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Das Senden ist freiwillig und ändert keine App-Funktionen. Das Senden von Protokollen der letzten Aktivitäten ist eine separate Aktion in den Einstellungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η αποστολή είναι προαιρετική και δεν αλλάζει καμία λειτουργία της εφαρμογής. Η αποστολή πρόσφατων αρχείων καταγραφής δραστηριότητας είναι ξεχωριστή ενέργεια στις Ρυθμίσεις."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El envío es opcional y no cambia ninguna función de la app. Enviar registros de actividad recientes es una acción independiente en Ajustes."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال این اطلاعات اختیاری است و هیچ‌یک از قابلیت‌های برنامه را تغییر نمی‌دهد. ارسال گزارش‌های فعالیت اخیر، اقدامی جداگانه در تنظیمات است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähettäminen on vapaaehtoista eikä muuta sovelluksen toimintoja. Viimeaikaisten toimintalokien lähettäminen on erillinen toiminto Asetukset-valikossa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’envoi est facultatif et ne change aucune fonctionnalité de l’app. L’envoi des journaux d’activité récents est une action distincte dans Réglages."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "השליחה אינה חובה ואינה משנה אף תכונה ביישום. שליחת יומני פעילות מהזמן האחרון היא פעולה נפרדת בהגדרות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "डायग्नोस्टिक्स भेजना वैकल्पिक है और इससे ऐप की कोई सुविधा नहीं बदलती। हाल की गतिविधि के लॉग भेजने के लिए सेटिंग्स में अलग कार्रवाई करनी होती है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slanje je neobavezno i ne mijenja nijednu značajku aplikacije. Zapisnike nedavnih aktivnosti šaljete ručno, zasebnom radnjom u odjeljku Postavke."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az adatküldés választható, és nem módosítja az alkalmazás funkcióit. A legutóbbi tevékenységek naplóit külön, manuálisan küldheti el a Beállítások menüből."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pengiriman data diagnostik bersifat opsional dan tidak mengubah fitur aplikasi apa pun. Log aktivitas terbaru dikirim secara manual dan terpisah di Pengaturan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’invio è facoltativo e non modifica alcuna funzione dell’app. I registri delle attività recenti si inviano manualmente con un’azione separata in Impostazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "送信は任意で、アプリの機能は変わりません。最近のアクティビティログの送信は、設定から別途手動で行います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "진단 정보 전송은 선택 사항이며 앱 기능에는 영향을 주지 않습니다. 최근 활동 로그는 설정에서 별도로 직접 보낼 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penghantaran diagnostik adalah pilihan dan tidak mengubah sebarang ciri aplikasi. Log aktiviti terkini boleh dihantar secara manual melalui tindakan berasingan dalam Tetapan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sending er valgfritt og endrer ingen appfunksjoner. Logger over nylig aktivitet sendes manuelt via en egen handling i Innstillinger."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Het versturen van diagnostische gegevens is optioneel en verandert niets aan de functies van de app. Recente activiteitenlogs verstuur je handmatig via een aparte actie in Instellingen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłanie danych jest opcjonalne i nie zmienia żadnych funkcji aplikacji. Wysyłanie dzienników ostatniej aktywności to osobna czynność wykonywana ręcznie w sekcji Ustawienia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O envio é opcional e não altera nenhum recurso do app. O envio de logs de atividades recentes é uma ação manual separada em Ajustes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimiterea este opțională și nu modifică funcțiile aplicației. Jurnalele de activitate recentă se trimit separat, manual, din Setări."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправка необязательна и не влияет на функции приложения. Журналы недавней активности отправляются отдельно вручную в разделе «Настройки»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odosielanie je dobrovoľné a nemení žiadne funkcie aplikácie. Denníky nedávnej aktivity môžete odoslať samostatne a manuálne v časti Nastavenia."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošiljanje ni obvezno in ne vpliva na funkcije aplikacije. Dnevnike nedavne dejavnosti lahko pošljete ločeno in ročno v razdelku Nastavitve."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slanje nije obavezno i ne menja nijednu funkciju aplikacije. Dnevnike nedavnih aktivnosti možete poslati zasebno i ručno iz odeljka Podešavanja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det är frivilligt att skicka diagnostik och inga appfunktioner påverkas. Loggar över den senaste aktiviteten skickas manuellt som en separat åtgärd i Inställningar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณเลือกได้ว่าจะส่งหรือไม่ โดยไม่เปลี่ยนแปลงฟีเจอร์ใดของแอป ส่วนบันทึกกิจกรรมล่าสุดต้องส่งแยกต่างหากด้วยตนเองในการตั้งค่า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gönderim isteğe bağlıdır ve uygulamanın hiçbir özelliğini değiştirmez. Son etkinlik günlüklerini göndermek, Ayarlar'da ayrıca başlattığınız bir işlemdir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилання даних добровільне й не змінює жодних функцій застосунку. Журнали нещодавньої активності надсилаються окремо вручну в розділі «Налаштування»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Việc gửi dữ liệu là tùy chọn và không thay đổi bất kỳ tính năng nào của ứng dụng. Gửi nhật ký hoạt động gần đây là một thao tác thủ công riêng trong Cài đặt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "是否发送由你决定，不会改变任何应用功能。发送近期活动日志是“设置”中的另一项手动操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "是否傳送由你決定，不會改變任何應用程式功能。傳送近期活動記錄是「設定」中的另一項手動操作。"
           }
         }
       }

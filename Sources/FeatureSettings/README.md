@@ -14,8 +14,9 @@ has not been answered. Existing users, including prior opt-ins and opt-outs, are
 asked once after this migration; reporting stays off until they choose to share.
 Either choice continues setup and survives relaunch and profile switching.
 Help & Diagnostics can change it later. Consent is not synced or transferred.
-The primary Share Diagnostics action and secondary Don't Share action sit above
-a separate bottom privacy footer. Its GitHub-marked link opens the repository
+The prompt and its primary Share Diagnostics and secondary Don't Share actions
+use the shared Settings card above a separate bottom privacy footer.
+Its GitHub-marked link opens the repository
 on mobile or a scannable QR sheet on Apple TV; opening it does not grant consent.
 
 On tvOS, Video buffer and Live TV buffer use the shared `SettingsMenuRow`: one

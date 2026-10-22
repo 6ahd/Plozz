@@ -17,7 +17,11 @@ public struct CrashReportingConsentView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Spacer(minLength: 32)
-                    CrashReportingConsentPrompt(onChoice: onChoice)
+                    SettingsPanel {
+                        CrashReportingConsentPrompt(onChoice: onChoice)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .accessibilityIdentifier("diagnostics-consent-card")
                     Spacer(minLength: 72)
                     CrashReportingConsentFooter()
                 }
