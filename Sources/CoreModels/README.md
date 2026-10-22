@@ -78,6 +78,15 @@ first completion timestamp. Ending that session allows a new rewatch key; there
 is no day-wide WeTrakr suppression. Older outboxes without these fields remain
 readable and retain their original retry-key derivation.
 
+Failed server targets in the watch outbox have independent persisted retry
+deadlines: 30 seconds initially, doubling to a 15-minute maximum, or longer when
+the server explicitly requests it. Existing drain triggers retry once the deadline
+passes; no polling timer is added. Coalescing preserves the cooldown while keeping
+the latest desired state, and relaunching cannot reset it. Successful destinations
+and tracker mirrors are not held behind a failed server. Cancellation is not a
+server failure, and authorization is still checked before any retry. Legacy
+outboxes without retry metadata remain readable and immediately eligible.
+
 | Concept | Entry point |
 | --- | --- |
 | Provider abstraction | `MediaProvider`, `ProviderKind`, `ProviderRegistry` |
