@@ -638,10 +638,10 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(id: "read-ahead", title: "Video buffer") {
                 PlaybackReadAheadControl()
-            },
+            }.labeledControl(),
             SettingsSplitRow(id: "live-buffer", title: "Live TV buffer") {
                 LivePlaybackBufferControl()
-            }
+            }.labeledControl()
         ]
     }
 
@@ -799,10 +799,10 @@ struct PlaybackDetailView: View {
         if #available(tvOS 26.0, *) {
             rows.append(SettingsSplitRow(
                 id: "truehd-atmos",
-                title: "Spatial audio",
-                description: "Adds overhead sound to supported tracks on compatible equipment using lossy conversion. Turn off if playback stutters or seeking is slow. Applies to new playback sessions."
+                title: "Spatial audio (height channel support)",
+                description: "Converts TrueHD Atmos and DTS:X to Apple spatial audio (lossy)."
             ) {
-                Toggle("Spatial audio", isOn: $playback.settings.trueHDAtmosEnabled)
+                Toggle("Spatial audio (height channel support)", isOn: $playback.settings.trueHDAtmosEnabled)
                     .accessibilityIdentifier("spatial-audio-toggle")
             })
         }

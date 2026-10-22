@@ -16,13 +16,17 @@ public struct PlaybackReadAheadControl: View {
 
     public var body: some View {
         #if os(tvOS)
-        VStack(alignment: .leading, spacing: 28) {
-            SettingsOptionList(options: PlaybackReadAhead.allCases, selection: $selection) {
-                Text($0.title)
+        SettingsControlRows {
+            SettingsMenuRow(title: "Video buffer", value: Text(selection.title)) {
+                Picker("Video buffer", selection: $selection) {
+                    ForEach(PlaybackReadAhead.allCases, id: \.self) {
+                        Text($0.title).tag($0)
+                    }
+                }
             }
+            .accessibilityIdentifier("playback-read-ahead")
             PlaybackReadAheadHelp()
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .settingsHelperText()
         }
         #else
         SettingsSectionGroup {
@@ -59,11 +63,16 @@ public struct LivePlaybackBufferControl: View {
 
     public var body: some View {
         #if os(tvOS)
-        VStack(alignment: .leading, spacing: 28) {
-            SettingsOptionList(options: LivePlaybackBuffer.allCases, selection: $selection) {
-                Text($0.title)
+        SettingsControlRows {
+            SettingsMenuRow(title: "Live TV buffer", value: Text(selection.title)) {
+                Picker("Live TV buffer", selection: $selection) {
+                    ForEach(LivePlaybackBuffer.allCases, id: \.self) {
+                        Text($0.title).tag($0)
+                    }
+                }
             }
-            help.font(.callout).foregroundStyle(.secondary)
+            .accessibilityIdentifier("live-playback-buffer")
+            help.settingsHelperText()
         }
         #else
         SettingsSectionGroup {

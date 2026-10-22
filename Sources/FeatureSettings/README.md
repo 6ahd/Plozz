@@ -7,6 +7,12 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+On tvOS, Video buffer and Live TV buffer use the shared `SettingsMenuRow`: one
+compact row showing the current value, with choices in the native menu and help
+text below. Opening, focusing, or cancelling the menu does not save a choice;
+Select does. Mobile retains its native pickers. These remain independent,
+device-local preferences with Automatic as the default.
+
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings
@@ -37,11 +43,13 @@ Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
-The **Spatial audio** switch is available on tvOS 26 and later. Its
+The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
 profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off
 choices and travels through profile transfer. It applies to new supported
 on-demand sessions, not live streams, shared players or muted previews. The
-helper discloses lossy conversion and the stuttering/seeking escape hatch.
+helper identifies TrueHD Atmos and DTS:X as inputs and discloses lossy conversion
+to Apple spatial audio. Format names describe compatibility, not certification,
+lossless passthrough, or patent clearance.
 FEL retains channel PCM even when Spatial audio is on. Unsupported platforms
 keep ordinary channel playback; directly compatible spatial audio is unaffected.
 Feature descriptions use neutral spatial-audio wording; track

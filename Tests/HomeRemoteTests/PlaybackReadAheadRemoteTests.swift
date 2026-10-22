@@ -55,46 +55,52 @@ final class PlaybackReadAheadRemoteTests: XCTestCase {
 
     func testFocusOnlyPreviewsAndSelectPersistsAcrossLaunches() {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
-        app.launchArguments = ["--read-ahead-settings-fixture", "--reset-read-ahead"]
+        app.launchArguments = [
+            "--read-ahead-settings-fixture", "--playback-settings-workspace", "--reset-read-ahead"
+        ]
         app.launch()
         defer { app.terminate() }
-        let row = app.buttons["settings-master-read-ahead"]
+        let row = app.buttons["settings-group-read-ahead"]
         XCTAssertTrue(app.staticTexts["read-ahead-saved"].waitForExistence(timeout: 10))
         for _ in 0..<35 {
-            if row.hasFocus { break }
+            if hasFocus(row) { break }
             XCUIRemote.shared.press(.down)
         }
-        XCTAssertTrue(row.hasFocus)
+        XCTAssertTrue(hasFocus(row))
         XCTAssertTrue(row.label.contains("Video buffer"))
-        XCUIRemote.shared.press(.right)
+        XCTAssertLessThan(row.frame.height, 160)
+        XCTAssertEqual(row.value as? String, "Automatic")
+        XCTAssertFalse(app.buttons["Maximum available"].exists)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(
             format: "label == %@",
             "Larger buffers use more temporary storage. Duration depends on the video and available space. Unavailable with Apple’s native player."
         )).firstMatch.exists)
         let choices = ["Automatic", "1 minute", "5 minutes", "10 minutes", "Maximum available"]
-        XCTAssertTrue(waitUntil { choices.contains { app.buttons[$0].hasFocus } })
-        // Directional entry follows native geometry; walk to the first choice.
+        XCUIRemote.shared.press(.select)
+        let automatic = app.cells.containing(.any, identifier: "Automatic").firstMatch
+        XCTAssertTrue(automatic.waitForExistence(timeout: 5))
         for _ in 0..<choices.count {
-            if app.buttons["Automatic"].hasFocus { break }
+            if automatic.hasFocus { break }
             XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "automatic")
             XCUIRemote.shared.press(.up)
         }
-        XCTAssertTrue(waitUntil { app.buttons["Automatic"].hasFocus })
-        for title in ["1 minute", "5 minutes", "10 minutes", "Maximum available"] {
+        XCTAssertTrue(waitUntil { automatic.hasFocus })
+        for title in choices.dropFirst() {
             XCUIRemote.shared.press(.down)
-            XCTAssertTrue(waitUntil { app.buttons[title].hasFocus })
+            let choice = app.cells.containing(.any, identifier: title).firstMatch
+            XCTAssertTrue(waitUntil { choice.hasFocus })
             XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "automatic")
         }
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(waitUntil { app.staticTexts["read-ahead-saved"].label == "maximumAvailable" })
+        XCTAssertTrue(waitUntil { self.hasFocus(row) })
+        XCTAssertEqual(row.value as? String, "Maximum available")
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "Playback read-ahead maximum"
+        attachment.name = "Compact video buffer selection"
         attachment.lifetime = .keepAlways
         add(attachment)
-        XCUIRemote.shared.press(.left)
-        XCTAssertTrue(waitUntil { row.hasFocus })
         app.terminate()
-        app.launchArguments = ["--read-ahead-settings-fixture"]
+        app.launchArguments = ["--read-ahead-settings-fixture", "--playback-settings-workspace"]
         app.launch()
         XCTAssertTrue(app.staticTexts["read-ahead-saved"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "maximumAvailable")
@@ -108,40 +114,55 @@ final class PlaybackReadAheadRemoteTests: XCTestCase {
 
     func testLiveBufferOnlyPersistsOnSelectAndKeepsVideoBufferIndependent() {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
-        app.launchArguments = ["--read-ahead-settings-fixture", "--reset-read-ahead"]
+        app.launchArguments = [
+            "--read-ahead-settings-fixture", "--playback-settings-workspace", "--reset-read-ahead"
+        ]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["live-buffer-saved"].waitForExistence(timeout: 10))
-        let row = app.buttons["settings-master-live-buffer"]
+        let row = app.buttons["settings-group-live-buffer"]
         for _ in 0..<40 {
-            if row.hasFocus { break }
+            if hasFocus(row) { break }
             XCUIRemote.shared.press(.down)
         }
-        XCTAssertTrue(row.hasFocus)
-        XCUIRemote.shared.press(.right)
+        XCTAssertTrue(hasFocus(row))
+        XCTAssertLessThan(row.frame.height, 160)
+        XCTAssertEqual(row.value as? String, "Automatic")
+        XCTAssertFalse(app.buttons["45 seconds"].exists)
+        XCUIRemote.shared.press(.select)
         let choices = ["Automatic", "10 seconds", "20 seconds", "30 seconds", "45 seconds"]
-        XCTAssertTrue(waitUntil { choices.contains { app.buttons[$0].hasFocus } })
+        let automatic = app.cells.containing(.any, identifier: "Automatic").firstMatch
+        XCTAssertTrue(automatic.waitForExistence(timeout: 5))
         for _ in 0..<choices.count {
-            if app.buttons["Automatic"].hasFocus { break }
+            if automatic.hasFocus { break }
             XCUIRemote.shared.press(.up)
         }
-        XCTAssertTrue(waitUntil { app.buttons["Automatic"].hasFocus })
+        XCTAssertTrue(waitUntil { automatic.hasFocus })
+        XCUIRemote.shared.press(.down)
+        let tenSeconds = app.cells.containing(.any, identifier: "10 seconds").firstMatch
+        XCTAssertTrue(waitUntil { tenSeconds.hasFocus })
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(waitUntil { self.hasFocus(row) })
+        XCTAssertEqual(app.staticTexts["live-buffer-saved"].label, "automatic")
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(waitUntil { automatic.hasFocus })
         for title in choices.dropFirst() {
             XCUIRemote.shared.press(.down)
-            XCTAssertTrue(waitUntil { app.buttons[title].hasFocus })
+            let choice = app.cells.containing(.any, identifier: title).firstMatch
+            XCTAssertTrue(waitUntil { choice.hasFocus })
             XCTAssertEqual(app.staticTexts["live-buffer-saved"].label, "automatic")
         }
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(waitUntil { app.staticTexts["live-buffer-saved"].label == "fortyFiveSeconds" })
         XCTAssertEqual(app.staticTexts["read-ahead-saved"].label, "automatic")
+        XCTAssertTrue(waitUntil { self.hasFocus(row) })
+        XCTAssertEqual(row.value as? String, "45 seconds")
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "Live TV buffer selection"
+        attachment.name = "Compact Live TV buffer selection"
         attachment.lifetime = .keepAlways
         add(attachment)
-        XCUIRemote.shared.press(.left)
-        XCTAssertTrue(waitUntil { row.hasFocus })
         app.terminate()
-        app.launchArguments = ["--read-ahead-settings-fixture"]
+        app.launchArguments = ["--read-ahead-settings-fixture", "--playback-settings-workspace"]
         app.launch()
         XCTAssertTrue(app.staticTexts["live-buffer-saved"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["live-buffer-saved"].label, "fortyFiveSeconds")

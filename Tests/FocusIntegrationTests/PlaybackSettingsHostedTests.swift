@@ -171,7 +171,9 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
                 let page = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
                 visible += " " + page
-                if page.contains("Skip intros") || page.contains("Use community markers") || page.contains("Version selection") {
+                if page.contains("Skip intros") || page.contains("Use community markers")
+                    || page.contains("Version selection") || page.contains("Video buffer")
+                    || page.contains("Live TV buffer") {
                     let attachment = XCTAttachment(image: image)
                     attachment.name = "Playback-inline-skip-separate-\(separate)-\(Int(offset))"
                     attachment.lifetime = .keepAlways
@@ -183,14 +185,17 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
                 "Skip intros, credits", "Set each marker separately", "Use community markers",
-                "Video buffer", "1 minute", "5 minutes", "10 minutes", "Maximum available",
-                "Live TV buffer", "10 seconds", "20 seconds", "30 seconds", "45 seconds",
-                "adds live delay", "Spatial audio", "lossy conversion"
+                "Video buffer", "Live TV buffer", "Automatic", "temporary storage",
+                "adds live delay", "Spatial audio", "height channel support",
+                "TrueHD Atmos", "DTS:X", "Apple spatial audio", "lossy"
             ] {
                 XCTAssertTrue(visible.contains(label), "Missing inline control \(label): \(visible)")
             }
-            XCTAssertFalse(visible.contains("TrueHD Atmos"), visible)
-            XCTAssertFalse(visible.contains("DTS:X"), visible)
+            for option in ["1 minute", "5 minutes", "10 minutes", "Maximum available", "45 seconds"] {
+                XCTAssertFalse(visible.contains(option), "Buffer choices must stay inside their menus: \(visible)")
+            }
+            XCTAssertFalse(visible.contains("Turn off if playback stutters"), visible)
+            XCTAssertFalse(visible.contains("Applies to new playback sessions"), visible)
             XCTAssertTrue(playback.settings.trueHDAtmosEnabled)
             if separate {
                 for label in ["Intros", "Credits", "Recaps", "Previews", "Commercials"] {

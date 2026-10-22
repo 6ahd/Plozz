@@ -9,6 +9,9 @@ struct PlaybackReadAheadFixture: View {
     @AppStorage(PlaybackReadAheadStore.storageKey) private var selection = PlaybackReadAhead.default
     @AppStorage(LivePlaybackBufferStore.storageKey) private var liveSelection = LivePlaybackBuffer.default
     private let subtitleWorkspace = ProcessInfo.processInfo.arguments.contains("--subtitle-settings-workspace")
+    private var inWorkspace: Bool {
+        subtitleWorkspace || ProcessInfo.processInfo.arguments.contains("--playback-settings-workspace")
+    }
 
     init() {
         if ProcessInfo.processInfo.arguments.contains("--reset-read-ahead") {
@@ -32,8 +35,8 @@ struct PlaybackReadAheadFixture: View {
                 canDownloadSubtitles: false,
                 section: subtitleWorkspace ? .subtitles : .playback
             )
-            .environment(\.settingsInWorkspace, subtitleWorkspace)
-            .frame(maxWidth: subtitleWorkspace ? SettingsFormMetrics.pageWidth : .infinity)
+            .environment(\.settingsInWorkspace, inWorkspace)
+            .frame(maxWidth: inWorkspace ? SettingsFormMetrics.pageWidth : .infinity)
         }
         .environment(models.uiDensityModel)
         .environment(models.transparencyModel)
