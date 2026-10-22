@@ -218,6 +218,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Programmatic restoration remains allowed and targets the requested control,
   not the window's default focus candidate. If UIKit already restored the source,
   synchronize its SwiftUI binding without queuing another native request.
+  Cross the native pop's render boundary and prepare source focus while the
+  reverse artwork is still moving, not after it finishes. The cover and input
+  guard remain until both preparation and motion complete; held input still
+  drains before fresh navigation is admitted.
   Hosts without a bound path retain
   ordinary dismissal; Reduce Motion and noncinematic pages keep native navigation.
 - **Native action controls** — `plozzActionButton` only selects the system

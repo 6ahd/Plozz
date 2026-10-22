@@ -185,7 +185,7 @@ struct ProductionHomeFixture: View {
                     as? UIFocusUpdateContext {
                 let previous = (context.previouslyFocusedItem as? NSObject)?.accessibilityLabel ?? "none"
                 let next = (context.nextFocusedItem as? NSObject)?.accessibilityLabel ?? "none"
-                HandoffDiagnostics.emit("fixture FOCUS previous=\(previous) next=\(next) heading=\(context.focusHeading.rawValue)")
+                HandoffDiagnostics.emit("fixture FOCUS previous=\(previous) next=\(next) heading=\(context.focusHeading.rawValue) at=\(CACurrentMediaTime())")
             }
             guard ProcessInfo.processInfo.arguments.contains("--partial-home-failure"),
                   let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey]

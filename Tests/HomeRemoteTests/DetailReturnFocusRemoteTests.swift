@@ -231,16 +231,25 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
         try checkRapidReturn(showcase: true, libraryRows: true)
     }
 
-    private func checkRapidReturn(showcase: Bool, libraryRows: Bool = false) throws {
+    func testProfilePopulatedShowcaseDetailReturns() throws {
+        try checkRapidReturn(showcase: true, libraryRows: true, repetitions: 3)
+    }
+
+    private func checkRapidReturn(showcase: Bool, libraryRows: Bool = false, repetitions: Int = 1) throws {
         continueAfterFailure = false
+        let attach = ProcessInfo.processInfo.environment["PLOZZ_PERFORMANCE_ATTACH"] == "1"
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
         app.launchArguments = ["--production-home-fixture", "--native-top-home", "--return-focus-trace"]
         if showcase { app.launchArguments.append("--immersive-home") }
         if libraryRows {
             app.launchArguments += ["--progressive-library-rows", "--populated-home-return"]
         }
-        app.launch()
-        defer { app.terminate() }
+        if attach {
+            XCTAssertEqual(app.state, .runningForeground, "The profiling runner owns the running fixture.")
+        } else {
+            app.launch()
+        }
+        defer { if !attach { app.terminate() } }
         XCTAssertTrue(app.staticTexts["Production Home ready"].waitForExistence(timeout: 30))
         let homeTab = app.tabBars.buttons["Home"]
         if homeTab.exists && homeTab.hasFocus { XCUIRemote.shared.press(.down) }
@@ -261,7 +270,7 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
         let rowStart = libraryRows ? 64 : 24
         for _ in 0..<5 { XCUIRemote.shared.press(.right) }
         assertFocused("Fixture movie \(rowStart + 5)", in: app)
-        for delay in libraryRows ? [0.0] : [0.15, 0.28, 0.4] {
+        for delay in libraryRows ? Array(repeating: 0.0, count: repetitions) : [0.15, 0.28, 0.4] {
             let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
             let title = focused.label
             XCUIRemote.shared.press(.select)
