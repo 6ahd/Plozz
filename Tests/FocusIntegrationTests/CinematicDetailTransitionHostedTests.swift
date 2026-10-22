@@ -93,6 +93,20 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
         XCTAssertFalse(DetailTransitionNavigation.isNavigationInputSuppressed)
     }
 
+    func testReturnWithoutAnAttachedSessionKeepsNativeDismissal() {
+        let session = TVDetailEntranceSession()
+        var popped = false
+        var dismissed = false
+        session.close(pop: {
+            popped = true
+            return true
+        }) {
+            dismissed = true
+        }
+        XCTAssertTrue(dismissed)
+        XCTAssertFalse(popped, "A return without a cover must not suppress native navigation.")
+    }
+
     func testEpisodeRowEntersAfterControlsAndBeforeNavigationUnlocks() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

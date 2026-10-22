@@ -207,6 +207,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   boolean destinations retain native navigation outside this workspace,
   including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
   subtitle panels, with Reduce Motion respected by their hosts.
+- **Cinematic detail returns** — TV browse stacks install
+  `cinematicDetailNavigation(path:)` on the stack so its destinations inherit it.
+  Back changes that bound path in the reverse transition's nonanimated transaction:
+  SwiftUI's environment dismiss action can still animate a native pop underneath
+  the cover. Input remains guarded until both the reverse motion and real pop
+  finish and native source focus is restored. Hosts without a bound path retain
+  ordinary dismissal; Reduce Motion and noncinematic pages keep native navigation.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no
   font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,

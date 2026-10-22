@@ -220,6 +220,7 @@ private struct ProductionHomeContent: View {
                         detailPage(for: route.item)
                     }
                 }
+                .cinematicDetailNavigation(path: $libraryPath)
             } else {
                 NavigationStack(path: $path) {
                     HomeView(
@@ -246,6 +247,7 @@ private struct ProductionHomeContent: View {
                         detailPage(for: item)
                     }
                 }
+                .cinematicDetailNavigation(path: $path)
             }
         }
         .reportsNavigationDepth(isLibrarySequence ? libraryPath.count : path.count, to: isPinned ? fixture.chrome : nil)
