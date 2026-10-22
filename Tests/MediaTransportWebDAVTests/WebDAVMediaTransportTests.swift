@@ -71,18 +71,29 @@ final class WebDAVMediaTransportTests: XCTestCase {
 
     // MARK: - validate
 
-    func testValidateSucceedsWhenServerAdvertisesDAV() async throws {
+    func testValidateProvesCollectionWithoutOptionsOrDAVHeader() async throws {
+        let request = LockedValue<URLRequest?>(nil)
+        let xml = """
+        <multistatus xmlns="DAV:"><response>
+          <href>/dav/movies/</href>
+          <propstat><prop><resourcetype><collection/></resourcetype></prop>
+          <status>HTTP/1.1 200 OK</status></propstat>
+        </response></multistatus>
+        """
         StubURLProtocol.queue(
-            StubResponse(statusCode: 200, headers: ["DAV": "1,2"]),
+            StubResponse(statusCode: 207, body: Data(xml.utf8), onRequest: { request.set($0) }),
             for: URL(string: "https://nas.example.com/dav/movies")!
         )
         let session = try await makeAdapter().connect(for: try makeKey())
         try await session.fileSystem.validate()
+        XCTAssertEqual(request.get()?.httpMethod, "PROPFIND")
+        XCTAssertEqual(request.get()?.value(forHTTPHeaderField: "Depth"), "0")
+        await session.shutdown()
     }
 
-    func testValidateFailsClosedWithoutDAVHeader() async throws {
+    func testValidateRejectsPlainHTTPResponseEvenWithDAVHeader() async throws {
         StubURLProtocol.queue(
-            StubResponse(statusCode: 200, headers: ["Allow": "GET"]),
+            StubResponse(statusCode: 200, headers: ["DAV": "1,2"], body: Data("<html/>".utf8)),
             for: URL(string: "https://nas.example.com/dav/movies")!
         )
         let session = try await makeAdapter().connect(for: try makeKey())
@@ -94,6 +105,31 @@ final class WebDAVMediaTransportTests: XCTestCase {
                 return XCTFail("expected protocolViolation, got \(error)")
             }
         }
+        await session.shutdown()
+    }
+
+    func testValidateRejectsFileRoot() async throws {
+        let xml = """
+        <multistatus xmlns="DAV:"><response>
+          <href>/dav/movies</href>
+          <propstat><prop><resourcetype/></prop>
+          <status>HTTP/1.1 200 OK</status></propstat>
+        </response></multistatus>
+        """
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 207, body: Data(xml.utf8)),
+            for: URL(string: "https://nas.example.com/dav/movies")!
+        )
+        let session = try await makeAdapter().connect(for: try makeKey())
+        do {
+            try await session.fileSystem.validate()
+            XCTFail("expected protocolViolation")
+        } catch let error as MediaTransportError {
+            guard case .protocolViolation = error else {
+                return XCTFail("expected protocolViolation, got \(error)")
+            }
+        }
+        await session.shutdown()
     }
 
     // MARK: - list

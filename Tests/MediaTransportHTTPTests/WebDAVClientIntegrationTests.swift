@@ -22,6 +22,55 @@ final class WebDAVClientIntegrationTests: XCTestCase {
         )
     }
 
+    func testWindowsAuthenticationOfferFallsBackToBasicOnRealConnections() async throws {
+        let authorization = "Basic " + Data("fixture:fixture".utf8).base64EncodedString()
+        let payload = Data("fixture bytes".utf8)
+        for policy in [PasswordAuthPolicy.automatic, .basicAllowed, .digestOnly] {
+            let server = try LoopbackHTTPServer { request in
+                guard request.headers["authorization"] == authorization else {
+                    return .init(
+                        status: 401,
+                        headers: ["WWW-Authenticate": "Negotiate, NTLM, Basic realm=\"fixture\""]
+                    )
+                }
+                return .init(status: 200, body: payload)
+            }
+            let base = try await server.start()
+            let origin = try XCTUnwrap(TransportOrigin(url: base))
+            let root = try XCTUnwrap(WebDAVRoot(origin: origin, rawPath: "/"))
+            let key = try makeKey(origin: origin)
+            let registry = TransportSessionRegistry()
+            let client = WebDAVClient(registry: registry)
+            do {
+                for _ in 0..<2 {
+                    do {
+                        let bytes = try await client.getBounded(
+                            root: root, url: base.appendingPathComponent("fixture"), maxBytes: 1024,
+                            sessionKey: key,
+                            credential: .password(username: "fixture", password: "fixture", policy: policy),
+                            trustPolicy: .system
+                        )
+                        XCTAssertNotEqual(policy, .digestOnly, "Negotiation must not bypass the immutable policy")
+                        XCTAssertEqual(bytes, payload)
+                    } catch TransportError.authenticationSchemeNotPermitted(let scheme) {
+                        XCTAssertEqual(policy, .digestOnly)
+                        XCTAssertEqual(scheme, "basic")
+                    }
+                }
+                let requests = await server.requests
+                XCTAssertTrue(requests.contains { $0.headers["authorization"] == nil })
+                let authenticated = requests.filter { $0.headers["authorization"] == authorization }
+                XCTAssertEqual(authenticated.count, policy == .digestOnly ? 0 : 2)
+                await registry.drainAll()
+                await server.stop()
+            } catch {
+                await registry.drainAll()
+                await server.stop()
+                throw error
+            }
+        }
+    }
+
     // MARK: - PROPFIND depth/headers
 
     func testPropfindSendsExactDepthAndIdentityEncodingHeaders() async throws {

@@ -17,6 +17,26 @@ public struct WebDAVClient: Sendable {
         self.registry = registry
     }
 
+    /// Proves that the configured root is a WebDAV collection, rather than
+    /// relying on OPTIONS headers that proxies may omit or block.
+    public func validateCollection(
+        root: WebDAVRoot,
+        sessionKey: TransportSessionKey,
+        credential: WebDAVCredential,
+        trustPolicy: TrustPolicy
+    ) async throws {
+        let entry = try await properties(
+            root: root,
+            path: root.path,
+            sessionKey: sessionKey,
+            credential: credential,
+            trustPolicy: trustPolicy
+        )
+        guard entry.isCollection else {
+            throw TransportError.malformedMultistatus(reason: "configured WebDAV root is not a collection")
+        }
+    }
+
     /// `OPTIONS` capability probe. Returns the normalized (lower-cased-key)
     /// response headers so a caller can inspect `DAV`/`Allow` without this
     /// module hard-coding an opinion about what capabilities matter.
