@@ -3,6 +3,7 @@ import Observation
 import SwiftUI
 import TVUIKit
 import UIKit
+import Vision
 import XCTest
 @testable import AppShell
 @testable import CoreUI
@@ -65,6 +66,7 @@ final class GradientBackgroundHostedTests: XCTestCase {
                     .environment(\.colorScheme, palette.isLight ? .light : .dark)
                     .environment(\.gradientBackgroundsEnabled, gradient)
                     .environment(\.plozzReduceTransparency, reduced)
+                    .environment(\.locale, Locale(identifier: "en"))
                     .transaction { $0.disablesAnimations = true }
                 )
                 window.layoutIfNeeded()
@@ -95,6 +97,24 @@ final class GradientBackgroundHostedTests: XCTestCase {
                 }
                 let cards = nativeCards(in: window)
                 XCTAssertEqual(cards.count, 3, "Setup must use the shared native detail-card controls.")
+                if name == "dark", gradient, !reduced {
+                    let server = try XCTUnwrap(cards.sorted {
+                        $0.convert($0.bounds, to: window).minX < $1.convert($1.bounds, to: window).minX
+                    }.dropFirst().first)
+                    let cgImage = try XCTUnwrap(image.cgImage)
+                    let scale = CGFloat(cgImage.width) / window.bounds.width
+                    let frame = server.contentView.convert(server.contentView.bounds, to: window)
+                    let crop = try XCTUnwrap(cgImage.cropping(to: frame
+                        .applying(CGAffineTransform(scaleX: scale, y: scale))))
+                    let request = VNRecognizeTextRequest()
+                    request.recognitionLevel = .accurate
+                    request.recognitionLanguages = ["en"]
+                    try VNImageRequestHandler(cgImage: crop).perform([request])
+                    let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                        .joined(separator: " ")
+                    XCTAssertTrue(text.contains("Live TV from Jellyfin, Emby, or Plex."), text)
+                    XCTAssertFalse(text.localizedCaseInsensitiveContains("guide only"), text)
+                }
                 let cardRenderer = ImageRenderer(content:
                     SettingsPageBackground()
                         .overlay {

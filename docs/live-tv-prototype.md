@@ -594,8 +594,10 @@ The mobile welcome screen uses compact, whole-row choices instead of tall cards
 with duplicate action footers. Source cards use the detail page's shared adaptive
 surface: a theme-aware gradient wash and edge, or an opaque surface when gradients
 or transparency are disabled. IPTV setup uses the same settings-page background
-as the other setup sheets. Short source descriptions keep Plex's guide-only limit
-explicit. Modal sheets have an icon-only Close control,
+as the other setup sheets. The media-server choice identifies Jellyfin, Emby, and
+Plex without implying Plex is limited to guide listings. Actual server setup,
+permissions, and playback availability are checked during enrollment and tuning.
+Modal sheets have an icon-only Close control,
 distinct from the form's Add/Save action. Source choices cover playlist URLs,
 local files (iPhone/iPad), and connected media servers. Playlist fields keep their
 labels visible while editing and show example URLs instead of repeating labels
