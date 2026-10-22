@@ -171,6 +171,18 @@ SCENARIOS = {
         "description": "100 full bounded snapshots including serialization at event-capture boundaries.",
         "counters": ["snapshots", "records", "serializedBytes"],
     },
+    "skeletons-idle": {
+        "suite": "ui", "test": "ShimmerPerformanceTests/testPerformanceLoadingCards",
+        "file": "Tests/PerformancePresentationSupport/ShimmerPerformanceTests.swift",
+        "description": "Observe 24 production loading cards over complete 2.3-second shimmer cycles; verify visible motion outside the measurement.",
+        "counters": ["placeholders", "observationMilliseconds"], "timing": ["cpuMilliseconds"],
+    },
+    "skeletons-static": {
+        "suite": "ui", "test": "ShimmerPerformanceTests/testPerformanceStaticCards",
+        "file": "Tests/PerformancePresentationSupport/ShimmerPerformanceTests.swift",
+        "description": "The same 24 loading cards with implicit animations disabled; verify stable pixels before measuring idle CPU.",
+        "counters": ["placeholders", "observationMilliseconds"], "timing": ["cpuMilliseconds"],
+    },
     "cards-idle": {
         "suite": "ui", "test": "CardPerformanceTests/testPerformanceIdle",
         "file": "Tests/PerformancePresentationSupport/CardPerformanceTests.swift",
@@ -260,6 +272,21 @@ SCENARIOS = {
         "description": "Update 24 production mobile Home cards against a four-source identity index without activating a card.",
         "counters": ["rootUpdates", "cards", "sourceResolutions", "observedRevision"],
     },
+    "mobile-home-rail-prefetch": {
+        "suite": "ui", "platforms": ["iOS"],
+        "test": "HomeRailPrefetchPerformanceTests/testPerformanceRepeatedRailUpdates",
+        "file": "Tests/iOSPresentationTests/HomeRailPrefetchPerformanceTests.swift",
+        "description": "Update a production mobile Continue Watching rail 24 times with 180 episodes across twelve synthetic source identities and cached artwork.",
+        "counters": ["rootUpdates", "items", "accounts", "seriesSourceBuilds"],
+    },
+    "mobile-preference-sync": {
+        "suite": "ui",
+        "platforms": ["iOS"],
+        "test": "CloudConfigurationRefreshTests/testPerformancePreferenceSync",
+        "file": "Tests/iOSPresentationTests/CloudConfigurationRefreshTests.swift",
+        "description": "Apply 24 active/inactive preference batches through the mobile app model; count synchronous account, index and download invalidations.",
+        "counters": ["batches", "appliedPreferences", "accountInvalidations", "indexResets", "downloadTransitions"],
+    },
     "mobile-profile-selection": {
         "suite": "ui", "platforms": ["iOS"],
         "test": "ProfileSelectionPerformanceTests/testPerformanceProfileSelection",
@@ -294,6 +321,20 @@ SCENARIOS = {
         "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
         "description": "Render 72 native poster foregrounds with three visible badges and changing playback progress.",
         "counters": ["completedOverlays", "distinctBitmaps"],
+    },
+    "portrait-reflection-cold": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformancePortraitReflectionPreparation",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Prepare twelve Detailed portrait reflections through the native coordinator with cold geometry.",
+        "counters": ["completedPosters", "maxPreparationMicroseconds"],
+    },
+    "portrait-reflection-warm": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformancePortraitReflectionReuse",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Recreate 288 native portrait coordinators and require reuse of their twelve prepared reflection bitmaps.",
+        "counters": ["requests", "reusedBitmaps"],
     },
     "runtime-matrix": {
         "suite": "matrix", "target": "AppRuntimeTests",

@@ -199,7 +199,7 @@ struct PlaybackDiagnosticsOverlay: View {
     }
 
     @ViewBuilder
-    private func videoSection(_ d: PlaybackDiagnostics) -> some View {
+    func videoSection(_ d: PlaybackDiagnostics) -> some View {
         section(d.mode == .transcode ? "CURRENT VIDEO" : "VIDEO") {
             if presentation == .television {
                 summaryValue(compactParts([d.videoCodecText, d.resolutionWithQualityText, compactFrameRate(d)]))
@@ -220,12 +220,7 @@ struct PlaybackDiagnosticsOverlay: View {
             } else {
                 optionalRow("Bitrate", PlaybackDiagnostics.formatBitrate(d.videoBitrate))
             }
-            if presentation == .television {
-                optionalRow(Text(verbatim: "HDR / ") + Text("Color"), compactHDR(d))
-            } else {
-                optionalRow(Text(verbatim: "HDR"), hdrCombined(d))
-                optionalRow("Color", d.colorText)
-            }
+            optionalRow(d.mode == .transcode ? Text("Stream") : Text("Source"), d.videoFormatText)
             optionalRow(LocalizedStringResource("Codec Tag", comment: "Playback diagnostics label for the technical codec identifier stored in the media container."), d.videoCodecTagText)
         }
     }
@@ -522,13 +517,6 @@ struct PlaybackDiagnosticsOverlay: View {
         return container.uppercased()
     }
 
-    private func compactHDR(_ d: PlaybackDiagnostics) -> String {
-        let profile = d.dolbyVisionProfile.map { "P\($0)" } ?? PlaybackDiagnostics.placeholder
-        // Keep the reported range token: profile 8 alone does not establish
-        // whether the source's compatible base layer is HDR10, HLG, or SDR.
-        return compactParts([d.hdr.shortName ?? PlaybackDiagnostics.placeholder, profile, d.colorText])
-    }
-
     private func compactFrameRate(_ d: PlaybackDiagnostics) -> String { // l10n:content — nominal and measured FPS
         let observed = d.observedFpsText
         return compactParts([d.frameRateText, observed == PlaybackDiagnostics.placeholder ? observed : "\(observed) live"])
@@ -581,20 +569,6 @@ struct PlaybackDiagnosticsOverlay: View {
     /// Nominal frame rate with the live observed FPS folded in.
     private func frameRateCombined(_ d: PlaybackDiagnostics) -> String {
         withLive(nominal: d.frameRateText, live: d.observedFpsText)
-    }
-
-    /// HDR format folded with its Dolby Vision profile so the HUD shows one HDR
-    /// row rather than two overlapping ones.
-    private func hdrCombined(_ d: PlaybackDiagnostics) -> String {
-        let ph = PlaybackDiagnostics.placeholder
-        let hdr = d.hdrText
-        let dv = d.dolbyVisionText
-        switch (hdr != ph, dv != ph) {
-        case (true, true): return "\(hdr) · \(dv)"
-        case (true, false): return hdr
-        case (false, true): return dv
-        case (false, false): return ph
-        }
     }
 
 }

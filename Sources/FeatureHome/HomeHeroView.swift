@@ -248,10 +248,9 @@ struct HomeHeroView: View {
     /// The nominal box handed to `HeroLogoArtwork`.
     ///
     /// A fixed shared box rather than the measured button-row width: the pill set
-    /// changes from slide to slide, so sizing the wordmark against it made the
-    /// same logo a different size on different slides, and made it a different
-    /// size again on the detail page. See ``HeroLogoLayout``.
-    private var heroLogoBox: CGSize { HeroLogoLayout.box }
+    /// changes from slide to slide; the logo uses its own stable baseline and
+    /// the profile's Home size preference instead.
+    private var heroLogoBox: CGSize { HeroLogoLayout.box(size: settings.logoSize) }
     /// Bumped on every page so a late metadata fade-in from a *previous* page
     /// can't fire after a newer page has already started.
     @State private var slideToken = 0
@@ -1183,6 +1182,7 @@ struct HomeHeroView: View {
                 logoReferences: foregroundLogoReferences(for: item),
                 backgroundSample: displayedArtwork?.sample(for: item.id),
                 metadataVisible: metadataVisible,
+                logoSize: settings.logoSize,
                 width: HomeHeroLayout.screenWidth,
                 height: HomeHeroLayout.screenHeight - Self.contentBottomInset
             )

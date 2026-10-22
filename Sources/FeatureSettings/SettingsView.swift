@@ -34,6 +34,8 @@ public struct SettingsView: View {
     @State private var showDeveloperUnlockedAlert = false
     @Environment(\.themePalette) private var palette
     @Environment(AppLanguageSettingsModel.self) private var appLanguage
+    @Environment(LibraryPresentationSettingsModel.self) private var libraryPresentation
+    @Environment(\.libraryPresentationLoader) private var libraryPresentationLoader
     /// App-wide media-share scan/enrich status. Optional so previews/tests that
     /// don't inject it don't crash. Drives the status card at the top of this
     /// page — the home for progress that used to float over Home's top-right.
@@ -959,6 +961,16 @@ public struct SettingsView: View {
                 seerConfigured: seer.isConfigured,
                 accounts: homeRowAccounts
             )
+        case .customizeLibraries:
+            if let libraryPresentationLoader {
+                LibraryPresentationSettingsView(
+                    model: libraryPresentation, visibility: homeVisibility, accounts: homeRowAccounts,
+                    loader: libraryPresentationLoader
+                )
+                .id(ObjectIdentifier(libraryPresentation))
+            } else {
+                InlineErrorMessage(Text("Library settings are unavailable."))
+            }
         case .liveTV:
             LiveTVSettingsView(
                 store: LiveTVViewSettingsStore(

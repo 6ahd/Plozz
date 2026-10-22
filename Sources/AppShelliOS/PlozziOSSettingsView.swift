@@ -1674,11 +1674,12 @@ private struct PlozziOSScreensNavigationSettingsView: View {
     @State private var destination: Page?
 
     private enum Page: String, CaseIterable, Identifiable {
-        case home, navigation, detail
+        case home, libraries, navigation, detail
         var id: Self { self }
         var title: LocalizedStringResource {
             switch self {
             case .home: "Customize Home"
+            case .libraries: "Customize Libraries"
             case .navigation: "Navigation"
             case .detail: "Detail Page"
             }
@@ -1709,6 +1710,17 @@ private struct PlozziOSScreensNavigationSettingsView: View {
                 .id(ObjectIdentifier(appModel.settings.homeVisibility))
             case .navigation:
                 PlozziOSNavigationSettingsView(appModel: appModel)
+            case .libraries:
+                LibraryPresentationSettingsView(
+                    model: appModel.settings.libraryPresentation,
+                    visibility: appModel.settings.homeVisibility,
+                    accounts: appModel.accountsProviders.resolvedActiveAccounts,
+                    loader: LibraryPresentationLoader(
+                        settings: appModel.settings.libraryPresentation,
+                        namespace: appModel.profiles.activeNamespace
+                    )
+                )
+                .id(ObjectIdentifier(appModel.settings.libraryPresentation))
             case .detail:
                 PlozziOSDetailPageSettingsView(
                     heroBackground: appModel.settings.heroBackground,
@@ -1907,6 +1919,9 @@ private struct PlozziOSDetailPageSettingsView: View {
 
     var body: some View {
         List {
+            SettingsSectionGroup("Logo size") {
+                HeroLogoSizeControl(size: $detailPage.settings.logoSize, surface: .detail)
+            }
             SettingsSectionGroup("Review scores") {
                 Toggle("Show review scores", isOn: $detailPage.settings.showsHeaderRatings)
                 if detailPage.settings.showsHeaderRatings {

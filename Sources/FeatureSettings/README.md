@@ -13,6 +13,22 @@ text below. Opening, focusing, or cancelling the menu does not save a choice;
 Select does. Mobile retains its native pickers. These remain independent,
 device-local preferences with Automatic as the default.
 
+Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
+controls. Each shows one local fictional-wordmark preview and a Small-to-Large
+adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
+adjustments around the unchanged 1x default, marked at the center. Previously
+saved intermediate sizes keep their exact scale until adjusted. TV reuses the
+shared Settings stepper's remote/focus behavior with minus/plus glyphs and a
+stepped range bar. Home and Showcase update their existing layout-choice previews
+live instead of adding a second preview to the size control. Detail Page retains
+its single 320-point-wide preview beside the adjustment and compact Reset action.
+The bar fills its control column; the detail preview matches that column's height
+and uses the shared group inset and inner corner radius for concentric spacing.
+Artwork shares the layout picker's backdrop: Showcase fades in from the right,
+while Home and detail previews use edge-to-edge artwork.
+Mobile keeps the native slider and stacked preview. No artwork lookup is needed
+for the preview.
+
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings
@@ -112,6 +128,19 @@ watch history and planning-list behavior are documented in
 
 ## Responsibility
 
+- **Customize Libraries** lives in Screens & Navigation on TV and mobile.
+  Library Navigation comes first, including the first Down move from Back on TV.
+  The Recommended Page controls follow it; headings and helper copy name the
+  library's page explicitly rather than implying suggested settings.
+  The Libraries list opens each library's Recommended Page Rows editor.
+  The TV logo control reuses `HeroLogoSizeControl` with one Showcase preview.
+  Library tabs share an arrangement across the profile; each library separately
+  owns its Recommended row arrangement. Both editors use `LiftableReorderList`,
+  its Hidden divider, native focus/drag behavior, and scoped reset actions.
+  `LibraryPresentationLoading` connects the settings UI to the existing browse
+  and discovery pipeline through AppRuntime, without a feature-to-feature
+  dependency. Identity changes cancel pending discovery and replace row editors.
+  These choices never disable a library or alter its Home rows.
 - **Libraries** owns profile-wide library availability. Mobile Customize Home
   does not duplicate its Enabled controls: the Home editor manages section presentation,
   and Hero source selection uses the enabled library inventory. Discovering

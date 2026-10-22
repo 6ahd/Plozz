@@ -1423,14 +1423,14 @@ public final class HomeViewModel {
     /// and the control they ARE looking at already answers from intent. Deferring
     /// lets the press paint first, and coalescing means a burst re-folds once.
     /// Navigation input re-arms the same delay, so the O(row × identity) fold
-    /// cannot land during an active horizontal browse.
+    /// cannot land during active horizontal or vertical browsing.
     public func scheduleDurableWatchlistRefresh() {
         pendingAuthoritativeWatchlist = nil
         durableWatchlistRefreshPending = true
         armDurableWatchlistRefresh()
     }
 
-    /// Keeps a pending durable fold off the left/right scrolling hot path.
+    /// Keeps a pending durable fold off the scrolling hot path.
     public func noteHomeNavigationInteraction() {
         lastWatchlistNavigationInteractionAt = Date()
         guard durableWatchlistRefreshPending

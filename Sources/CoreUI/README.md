@@ -6,6 +6,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Loading placeholders share `shimmering()`. Its static gradient band is rasterized
+before the animated translation, avoiding repeated gradient work without
+rasterizing the placeholder content or changing the sweep, masking, or intensity.
+Inactive placeholders remain unmodified; Reduce Motion retains the static dim.
+The simulator lab's `skeletons-idle` and `skeletons-static` scenarios isolate this
+cost from loaded cards and network/provider work.
+
 Continue Watching's profile-scoped Playback details choice applies to Artwork + logo,
 Thumbnail, and Poster, on Home and library rows.
 Detailed keeps the existing play/progress/text overlay; Progress only uses the
@@ -17,12 +24,21 @@ independent of Select and without preparing a detail transition. Home Continue
 Watching supplies its existing playback callback for either selection preference.
 Other rows, loading placeholders and Live TV cards retain their own behavior.
 
-Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
-extension 10% of the complete 2:3 poster's height (half the previous extension).
-Only this band gradually blurs as it darkens;
-the poster stays sharp. Native TV caches the finished reflection, including its
-blur treatment in the cache identity; Reduce Transparency retains the unblurred
-fallback. Landscape reflection is unchanged.
+Continue Watching portrait cards reuse `PosterCardView` at ordinary 2:3 poster
+dimensions. Detailed starts with the complete poster above a bottom reflection 10% of
+the fitted picture's height, filling the narrow left/right gaps with mirrored
+poster edges rather than cropping or stretching the artwork. The side reflections
+gradually soften outward; the bottom band retains its progressive blur as it
+darkens. The complete original poster stays sharp. Blur input is bounded to each
+reflection band plus its filter margin instead of filtering full-size posters.
+Native TV fits only reflection copies to display resolution before rendering,
+leaving the sharp central poster's original source untouched. It caches the
+finished artwork, including the reserved band and blur treatment in the cache
+identity; Reduce Transparency retains the unblurred fallback. Landscape reflection
+is unchanged. Nonstandard poster ratios use the same centered aspect-fill crop
+for the visible picture and reflected edges; the picture cannot overdraw the
+side bands. Native preparation and unclipped composition fill their complete
+pixel allocation at fractional card sizes without changing the card's layout.
 Progress only uses the ordinary 2:3 poster and existing
 `MediaCardPlaybackIndicators` white bar, including shared thickness, focus,
 insets, watch-state rules and download badges; it does not create another bar style.
@@ -39,6 +55,17 @@ selected shape. Detailed tightens only the shared chip's horizontal spacing,
 preserving episode/time details and the progress/download elements in its narrower
 slot. Its outer insets are even and match landscape Continue Watching; compact
 spacing between controls does not reduce the leading edge inset.
+On iOS/iPadOS, a constrained Detailed portrait chip drops the play glyph first,
+then the progress bar, before reducing its text by at most 15%. Episode and time
+text stays complete; exceptionally narrow cards or large accessibility type wrap
+the text instead of truncating it. Download status keeps its trailing position.
+At accessibility text sizes it occupies its own bottom-trailing line rather than
+squeezing the episode/time column.
+Mobile cards and their Settings previews reserve the measured playback block's
+height in the reflection, capped at 30% of the artwork slot so the poster remains
+dominant. The outer 2:3 dimensions never change. Extreme accessibility text may
+extend above that cap rather than shrinking the picture to half the card.
+TV and non-portrait chips retain their existing layout.
 All three artwork styles share the existing Continue Watching caption override,
 inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
 Its original portrait preference is retained. Settings previews resolve this
@@ -264,6 +291,14 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
   held-press cancellation, and navigation-rail protection. VoiceOver adjustment
   uses the same stepping operation. Mobile retains separate buttons.
+  Optional range labels replace the numeric display with a bounded track, retaining
+  the same input owner, native focus styling, clamping, and accessibility actions.
+- **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
+  bounded layout sizing for TV heroes, Showcase, and mobile heroes, from half to
+  1.5 times the unchanged default with finer adjustment stops near default.
+  Width/height ceilings preserve aspect ratio and available screen space. The
+  local `HeroLogoSizePreview` uses the same sizing math and shared illustrated
+  scenery; adjustments do not change logo cache keys or prepare another bitmap.
 - **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
   between tvOS rows sharing a container, never after the last visible row. Keep
   a control and its helper in one child view; the divider belongs after both.

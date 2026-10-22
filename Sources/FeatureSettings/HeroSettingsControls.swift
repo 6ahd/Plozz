@@ -56,6 +56,15 @@ public struct HeroSettingsControls: View {
                 .accessibilityIdentifier("hero-enabled")
         }
         if hero.settings.isEnabled {
+            #if os(tvOS)
+            HeroSettingsGroup {
+                HeroLogoSizeControl(size: $hero.settings.logoSize, surface: .home)
+            }
+            #else
+            HeroSettingsGroup(title: "Logo size") {
+                HeroLogoSizeControl(size: $hero.settings.logoSize, surface: .home)
+            }
+            #endif
             HeroTitleControls(libraries: libraries, accounts: accounts)
             HeroAutomaticChangeControls()
             HeroSettingsGroup {

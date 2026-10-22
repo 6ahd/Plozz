@@ -2,6 +2,41 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testCustomizeLibrariesPlacesNavigationBeforeRecommendedPageSettings() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-libraries"], in: app)
+        XCUIRemote.shared.press(.select)
+        let navigation = app.buttons["library-navigation-settings"]
+        XCTAssertTrue(navigation.waitForExistence(timeout: 5), app.debugDescription)
+        let recommended = app.staticTexts.matching(
+            NSPredicate(format: "label ==[c] %@", "Recommended Page")
+        ).firstMatch
+        let libraries = app.staticTexts["Libraries"]
+        XCTAssertTrue(recommended.exists, app.debugDescription)
+        XCTAssertTrue(libraries.exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Recommended Page Rows"].exists,
+                       "This page lists libraries; row settings belong inside the selected library.")
+        XCTAssertLessThan(navigation.frame.maxY, recommended.frame.minY)
+        XCTAssertLessThan(recommended.frame.maxY, libraries.frame.minY)
+        let back = pageBack(in: app)
+        try focus(back, in: app)
+        XCUIRemote.shared.press(.down)
+        XCTAssertTrue(hasFocus(navigation), "Down from Back must reach Library Navigation before logo or row controls.")
+        capture("libraries-navigation-first", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["Reset Navigation"].waitForExistence(timeout: 5))
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(navigation)
+        XCTAssertTrue(hasFocus(navigation), "Returning from the tab editor must restore its originating action.")
+        #else
+        throw XCTSkip("Simulator-only library settings navigation review.")
+        #endif
+    }
+
     func testSharedChevronHeaderKeepsRightAlignedFocusBridge() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar")

@@ -53,6 +53,7 @@ struct HomeTab: View {
     /// only to hand to the Top Shelf publisher: that snapshot crosses into
     /// another process, so its titles have to be resolved on this side.
     @Environment(\.locale) private var locale
+    @Environment(LibraryPresentationSettingsModel.self) private var libraryPresentation
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.mediaItemActionHandler) private var mediaItemActionHandler
     /// The rail's chrome model, present only under ``NavigationStyle/rail``. This
@@ -416,7 +417,8 @@ struct HomeTab: View {
                     containerID: library.id,
                     containerKind: library.kind,
                     sourceAccountID: browse.sourceAccountID,
-                    settingsNamespace: libraryPreferencesNamespace
+                    settingsNamespace: libraryPreferencesNamespace,
+                    presentation: libraryPresentation
                 ),
                 title: library.displayName,
                 spoilerSettings: spoilerSettings,
@@ -455,7 +457,8 @@ struct HomeTab: View {
                     containerKind: .unknown,
                     sortKeySuffix: AllLibrariesBrowse.sortKeySuffix,
                     sourceAccountID: nil,
-                    settingsNamespace: libraryPreferencesNamespace
+                    settingsNamespace: libraryPreferencesNamespace,
+                    presentation: libraryPresentation
                 ),
                 title: Text(AllLibrariesBrowse.title),
                 spoilerSettings: spoilerSettings,

@@ -20,6 +20,7 @@ final class PlozziOSSettingsModel {
     let hero: HeroSettingsModel
     let heroBackground: HeroBackgroundSettingsModel
     let detailPage: DetailPageSettingsModel
+    let libraryPresentation: LibraryPresentationSettingsModel
     let themeMusic: ThemeMusicSettingsModel
     let homeVisibility: HomeLibraryVisibilityModel
     let diagnostics: DiagnosticsSettingsModel
@@ -84,6 +85,9 @@ final class PlozziOSSettingsModel {
         )
         detailPage = DetailPageSettingsModel(
             store: DetailPageSettingsStore(namespace: namespace)
+        )
+        libraryPresentation = LibraryPresentationSettingsModel(
+            store: LibraryPresentationSettingsStore(namespace: namespace)
         )
         themeMusic = ThemeMusicSettingsModel(
             store: ThemeMusicSettingsStore(namespace: namespace)

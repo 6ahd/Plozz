@@ -72,7 +72,9 @@ struct AppearanceDetailView: View {
             if section == .screensNavigation {
                 return [
                     SettingsSplitRow(id: "customize-home", title: "Customize Home") { EmptyView() }
-                        .destination(.customizeHome)
+                        .destination(.customizeHome),
+                    SettingsSplitRow(id: "customize-libraries", title: "Customize Libraries") { EmptyView() }
+                        .destination(.customizeLibraries)
                 ] + availableRows.filter { $0.id == "navigation" }.map { $0.destination(.navigationLayout) } + [
                     SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
                         .destination(.detailPage)
@@ -339,6 +341,12 @@ struct DetailPageDetailView: View {
             }
         ]
         if let detailHeaderSettings {
+            rows.insert(SettingsSplitRow(
+                id: "detail-page-logo-size",
+                title: "Logo size"
+            ) {
+                DetailLogoSizeSettingsForm(model: detailHeaderSettings)
+            }, at: 0)
             rows.append(SettingsSplitRow(
                 id: "detail-page-header-ratings",
                 title: "Review scores"
@@ -353,6 +361,14 @@ struct DetailPageDetailView: View {
             })
         }
         return rows
+    }
+}
+
+private struct DetailLogoSizeSettingsForm: View {
+    @Bindable var model: DetailPageSettingsModel
+
+    var body: some View {
+        HeroLogoSizeControl(size: $model.settings.logoSize, surface: .detail)
     }
 }
 

@@ -335,6 +335,15 @@ enum NativePosterArtworkBitmap {
         format.opaque = !clipsToArtwork && backgroundColor?.cgColor.alpha == 1
         let bounds = CGRect(origin: .zero, size: size)
         return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            if !clipsToArtwork {
+                // UIKit allocates whole pixels even for fractional point sizes.
+                // Map the complete drawing into that raster so its last row and
+                // column cannot blend with the background before native focus.
+                context.cgContext.scaleBy(
+                    x: ceil(size.width * scale) / (size.width * scale),
+                    y: ceil(size.height * scale) / (size.height * scale)
+                )
+            }
             if let background = backgroundColor ?? (source == nil ? .darkGray : nil) {
                 background.setFill()
                 context.fill(bounds)
