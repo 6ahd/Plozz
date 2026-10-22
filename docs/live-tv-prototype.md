@@ -319,11 +319,25 @@ request. This avoids downloading a large guide again for each channel batch;
 matching and parsing still run separately for each batch. Initial download
 assembly still uses Data. Backing failures are logged and leave a valid response
 uncached rather than failing its guide import.
-XMLTV accepts compact and colon-separated numeric timezone offsets, with strict
-date/offset validation. Programme-only feeds can supply exact channel IDs without
-invented display names or relaxed station matching. Referenced IDs and declared
-channels share the channel/text budgets; later declarations still provide names
-and conflicting duplicate declarations remain invalid.
+XMLTV accepts minute- or second-precision programme timestamps, compact and
+colon-separated numeric timezone offsets, and the unambiguous UTC/GMT/Z labels.
+Absent zones mean UTC. Calendar and offset validation remains strict; coarser
+dates and ambiguous regional timezone abbreviations do not invent airtimes.
+Programme-only feeds can supply exact channel IDs without invented display names
+or relaxed station matching. Repeated channel declarations with the same exact
+ID combine distinct display names in source order, rather than rejecting the
+whole guide. Different IDs remain separate and ambiguous names do not establish
+a match. Referenced IDs and declared channels share the channel/text budgets;
+repeated declarations still count toward the declaration limit.
+
+XML remains strict: malformed markup, unknown entities, external/internal entity
+declarations and exhausted resource budgets fail the import, not a partial-success
+fallback. Standard external DOCTYPEs do not fetch their DTD. Harmless entity-like
+text in comments, processing instructions and CDATA is not a declaration.
+`XMLTV_PARSE` diagnostics identify the failing pass, a closed-vocabulary reason,
+numeric parser code, line/column and channel/programme counts. They never include
+XML fragments, station names, URLs or native error descriptions. Compatible
+duplicate declarations are reported once per metadata pass as a count.
 Playlist and imported-file accounts without an explicit or playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
