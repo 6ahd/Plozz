@@ -780,8 +780,7 @@ struct PlaybackDetailView: View {
         var rows = [
             SettingsSplitRow(
                 id: "audio-defaults",
-                title: "Audio defaults",
-                description: "How Plozz picks the audio language when a title offers more than one — with optional per-content-type rules and per-series memory.",
+                title: "Audio defaults"
             ) {
                 SettingsControlRows(nonTVSpacing: 32) {
                     // Set separately, "Everything else" takes over the one
@@ -806,7 +805,7 @@ struct PlaybackDetailView: View {
                         }
                     }
 
-                    Toggle("Remember audio per series", isOn: $playback.settings.rememberAudioTrackPerSeries)
+                    Toggle("Remember audio language per series", isOn: $playback.settings.rememberAudioTrackPerSeries)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

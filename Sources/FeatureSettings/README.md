@@ -59,6 +59,9 @@ Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
+**Remember audio language per series** stores only the selected language, not a
+specific audio track or format. Its label needs no explanatory footer.
+
 **Skip intros, credits & more** uses one profile-scoped master switch on both
 platforms. Turning it off hides configuration without clearing behavior, timing,
 content selections, per-marker overrides, or community-marker consent. Behavior

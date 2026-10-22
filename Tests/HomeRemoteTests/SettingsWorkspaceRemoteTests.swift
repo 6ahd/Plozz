@@ -364,7 +364,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let audioKeyline = app.staticTexts["Audio"].frame.minX
         for label in [
             "Preferred audio language", "Set separately for movies, TV shows & anime",
-            "Remember audio per series", "Spatial audio", "Autoplay & Up Next"
+            "Remember audio language per series", "Spatial audio", "Autoplay & Up Next"
         ] {
             let text = app.staticTexts[label].firstMatch
             XCTAssertTrue(text.exists, label)
@@ -374,9 +374,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let helper = app.staticTexts.matching(
             NSPredicate(format: "label BEGINSWITH %@", "How Plozz picks the audio language")
         ).firstMatch
-        XCTAssertTrue(helper.exists)
-        XCTAssertEqual(helper.frame.minX, audioKeyline, accuracy: 1,
-                       "Multiline helper text must align with the native control labels.")
+        XCTAssertFalse(helper.exists)
         XCTAssertFalse(section("screensNavigation", in: app).exists, app.debugDescription)
         XCUIRemote.shared.press(.menu)
         try focus(section("subtitles", in: app), in: app)

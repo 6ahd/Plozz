@@ -2128,7 +2128,7 @@ struct PlozziOSPlaybackSettingsView: View {
                     }
                 }
                 Toggle(
-                    "Remember audio per series",
+                    "Remember audio language per series",
                     isOn: $model.settings.rememberAudioTrackPerSeries
                 )
                 Toggle(

@@ -238,6 +238,7 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             for label in [
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
+                "Remember audio language per series",
                 "Skip intros, credits", "Enable skipping", "Movies", "TV Shows", "Anime",
                 "Show skip button", "Set each marker separately", "Use community markers",
                 "From IntroDB", "your server has none", "Shares",
@@ -252,6 +253,7 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             }
             XCTAssertFalse(visible.contains("Turn off if playback stutters"), visible)
             XCTAssertFalse(visible.contains("Applies to new playback sessions"), visible)
+            XCTAssertFalse(visible.contains("How Plozz picks the audio language"), visible)
             XCTAssertFalse(visible.contains("Show a Skip button, or skip automatically"), visible)
             XCTAssertFalse(visible.contains("When your server has no intro or credits marker"), visible)
             XCTAssertTrue(playback.settings.trueHDAtmosEnabled)
