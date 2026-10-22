@@ -857,6 +857,23 @@ public final class PlayerViewModel {
         }
     }
 
+    private func configureChaptersCallback(for request: PlaybackRequest, loadGeneration: UInt) {
+        let callbackEngineToken = engineToken
+        engine.onChaptersChanged = { [weak self] in
+            guard let self, !self.didStop,
+                  self.engineToken == callbackEngineToken,
+                  self.dynamicRangeLoadGeneration == loadGeneration else { return }
+            self.updateChapters(for: request)
+        }
+    }
+
+    private func updateChapters(for request: PlaybackRequest) {
+        let provided = MediaChapter.normalized(request.chapters, duration: request.item.runtime)
+        controls.infoCard.chapters = provided.isEmpty
+            ? MediaChapter.normalized(engine.chapters, duration: engine.duration)
+            : provided
+    }
+
     private func applyEngineProbedSourceFacts(_ facts: EngineProbedSourceFacts) {
         effectiveDynamicRange = effectiveDynamicRange.applyingEngineProbe(facts)
         let isHDR = effectiveDynamicRange.bestAvailable?.isHDR ?? false
@@ -1074,6 +1091,7 @@ public final class PlayerViewModel {
         streamingQuality.failureReport = nil
         streamingQuality.preparation = .requesting
         phase = .loading
+        controls.infoCard.chapters = []
         let bringUpStart = Date()
         bringUpStartedAt = bringUpStart
         HandoffDiagnostics.emit(
@@ -1701,9 +1719,11 @@ public final class PlayerViewModel {
     ) async {
         endTemporarySpeedBoost()
         var request = request
+        request.trueHDAtmosEnabled = playbackSettings.trueHDAtmosEnabled
         request.dolbyVisionFELEnabled = playbackSettings.dolbyVisionFELEnabled
         dynamicRangeLoadGeneration &+= 1
         let rangeLoadGeneration = dynamicRangeLoadGeneration
+        controls.infoCard.chapters = MediaChapter.normalized(request.chapters, duration: request.item.runtime)
         inheritedPreservedDynamicRange =
             engineKind != .native ? pendingPreservedDynamicRange : nil
         pendingPreservedDynamicRange = nil
@@ -1734,6 +1754,7 @@ public final class PlayerViewModel {
             dynamicRangeTransitionToken = UUID()
         }
         configureSourceFactsCallback(loadGeneration: rangeLoadGeneration)
+        configureChaptersCallback(for: request, loadGeneration: rangeLoadGeneration)
         // Arm the stall watchdog around load() so a hang that never reports an
         // error still triggers the fallback chain instead of spinning forever.
         engineHandoff.armPlaybackWatchdog(startPosition: startPosition)
@@ -1752,6 +1773,7 @@ public final class PlayerViewModel {
         // can already be failed before that task updates the view-model phase.
         if case .failed = engine.status { return }
         if case .failed = phase { return }
+        updateChapters(for: request)
         if engineKind != .native, let facts = engine.probedSourceFacts {
             applyEngineProbedSourceFacts(facts)
         }
@@ -2057,6 +2079,16 @@ public final class PlayerViewModel {
 
     // MARK: - Transport
 
+    public func seekToChapter(_ chapter: MediaChapter) {
+        guard !didStop, controls.infoCard.chapters.contains(chapter),
+              chapter.start.isFinite, chapter.start >= 0,
+              controls.duration <= 0 || chapter.start < controls.duration else {
+            PlozzLog.playback.error("Ignoring a chapter selection outside the active playback timeline.")
+            return
+        }
+        requestSeek(to: chapter.start, origin: "chapter")
+    }
+
     /// Requests a committed seek. Coalesces rapid presses and defers the engine
     /// commit; owned by ``SeekScrubCoordinator``. See that type for the full
     /// coalescing / resume-confirm semantics. `origin` names the caller in the
@@ -2277,6 +2309,7 @@ public final class PlayerViewModel {
         // shows happening on iOS.
         PlaybackTrace.note("stop() teardown curr=\(String(format: "%.2f", engine.currentTime)) shouldDismiss=\(shouldDismiss) pendingNext=\(pendingNextEpisode != nil) isSeeking=\(controls.isSeeking)")
         didStop = true
+        controls.infoCard.chapters = []
         let maintenance = streamingSessionMaintenance.cancel()
         episodeBrowser?.stop()
         playlistAdvanceTask?.cancel()
@@ -2289,6 +2322,7 @@ public final class PlayerViewModel {
         systemResumeTask = nil
         dynamicRangeLoadGeneration &+= 1
         engine.onProbedSourceFactsChanged = nil
+        engine.onChaptersChanged = nil
         prefetchTask?.cancel()
         prefetchTask = nil
         // Cancel the next-episode prefetch; its session (if any) is released
@@ -2476,6 +2510,7 @@ public final class PlayerViewModel {
         controls.infoCard.overview = request.item.overview ?? ""
         controls.infoCard.headline = request.item.title
         controls.infoCard.cast = request.item.people.filter(\.isCast)
+        controls.infoCard.chapters = MediaChapter.normalized(request.chapters, duration: request.item.runtime)
         controls.infoCard.sourceAccountID = request.item.sourceAccountID
         controls.infoCard.sourceItemID = request.item.id
         controls.infoCard.episodeTag = Self.episodeTag(for: request.item)

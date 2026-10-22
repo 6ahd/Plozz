@@ -8,7 +8,7 @@
   A completely free, open-source media player for <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b>, and <b>Silo</b> —
   native on Apple TV, iPhone, and iPad.
   <br />
-  It also plays straight from network shares, so a folder of files works too.
+  It also supports <b>WebDAV, SMB, SFTP, FTP, and NFS</b>
 </p>
 
 <p align="center">
@@ -120,9 +120,10 @@ available when you want them.
   other clients hand back to you, powered by
   [AetherEngine](https://github.com/superuser404notfound/AetherEngine).
   ([The full format list](https://github.com/superuser404notfound/AetherEngine/blob/main/docs/formats.md).)
-- **Surround audio** — TrueHD and DTS soundtracks use compatible channel
-  playback, without their original height positioning. Dolby Digital Plus
-  streams keep their native playback path.
+- **Spatial audio** — optional lossy conversion adds overhead sound from
+  supported tracks on tvOS 26 and compatible equipment. Other paths retain
+  compatible channel playback. Dolby Digital Plus streams keep their native
+  playback path.
   [Compatibility details](docs/playback-engines.md#spatial-audio).
 - **Change versions without leaving the player** — switch between files or
   editions on the active server on Apple TV, iPhone, and iPad. Keep your

@@ -18,6 +18,12 @@ The primary Share Diagnostics action and secondary Don't Share action sit above
 a separate bottom privacy footer. Its GitHub-marked link opens the repository
 on mobile or a scannable QR sheet on Apple TV; opening it does not grant consent.
 
+On tvOS, Video buffer and Live TV buffer use the shared `SettingsMenuRow`: one
+compact row showing the current value, with choices in the native menu and help
+text below. Opening, focusing, or cancelling the menu does not save a choice;
+Select does. Mobile retains its native pickers. These remain independent,
+device-local preferences with Automatic as the default.
+
 Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
 controls. Each shows one local fictional-wordmark preview and a Small-to-Large
 adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
@@ -58,17 +64,22 @@ iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
 and travels through profile settings transfer. The helper explains the memory
 cost, possible stuttering and loss of overhead sound on the FEL route.
-Audio still plays, including TrueHD and DTS. The warning remains relevant after
-optional height conversion is removed: FEL also decodes otherwise directly
+Audio still plays, including TrueHD and DTS. FEL also decodes otherwise directly
 compatible E-AC-3/JOC spatial audio to channel-based PCM.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
-The optional **Spatial audio** conversion switch and `trueHDAtmosEnabled`
-preference have been removed; old profile values cannot enable the excluded
-engine components. Ordinary channel audio and directly compatible spatial audio
-remain available. Feature descriptions use neutral spatial-audio wording; track
+The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
+profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off
+choices and travels through profile transfer. It applies to new supported
+on-demand sessions, not live streams, shared players or muted previews. The
+helper identifies TrueHD Atmos and DTS:X as inputs and discloses lossy conversion
+to Apple spatial audio. Format names describe compatibility, not certification,
+lossless passthrough, or patent clearance.
+FEL retains channel PCM even when Spatial audio is on. Unsupported platforms
+keep ordinary channel playback; directly compatible spatial audio is unaffected.
+Feature descriptions use neutral spatial-audio wording; track
 metadata, diagnostics and legal notices retain accurate format and dependency names.
 See [spatial audio](../../docs/playback-engines.md#spatial-audio) for limitations.
 
@@ -299,6 +310,11 @@ watch history and planning-list behavior are documented in
   the storage cost and excludes Apple's native player without naming internal
   engines or explaining when settings take effect. This is
   independent of profile preferences and metadata/artwork cache budgets.
+- `LivePlaybackBufferControl` — the neighboring **Live TV buffer** uses the same
+  native controls and remains independent of Video buffer. Automatic preserves
+  the engine defaults; 10, 20, 30 and 45 seconds trade live delay and potentially
+  slower channel changes for buffering resilience. This device-local preference
+  is excluded from profile transfer and does not change scheduled library channels.
 - `HeroSettingsControls` — Hero keeps content selection, watched filtering, item
   count, and automatic changes together, shared by TV and mobile. **Ratings** and
   **Trailers** each show their current On/Off state and open their detailed

@@ -1746,16 +1746,22 @@ public struct JellyfinClient: Sendable {
         case .thumb: typeSegment = "Thumb"
         case .logo: typeSegment = "Logo"
         }
+        return itemImageURL(itemID: itemID, typeSegment: typeSegment, maxWidth: maxWidth, tag: tag, index: index)
+    }
+
+    func chapterImageURL(itemID: String, index: Int, tag: String) -> URL? {
+        itemImageURL(itemID: itemID, typeSegment: "Chapter", maxWidth: 480, tag: tag, index: index)
+    }
+
+    private func itemImageURL(
+        itemID: String, typeSegment: String, maxWidth: Int?, tag: String?, index: Int?
+    ) -> URL? {
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else { return nil }
         let basePath = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
         components.path = basePath + "/Items/\(itemID)/Images/\(typeSegment)"
-        // Only `Backdrop` holds more than one image, and the *index* is what
-        // selects between them — it belongs in the path, not the query. `tag`
-        // alone does not: the server reads it for cache validation and still
-        // serves index 0, so a second backdrop requested by tag came back as the
-        // first one. Index 0 keeps the bare path it has always used, so every
-        // existing URL (and anything cached under it) is byte-identical.
-        if let index, index > 0 {
+        // Backdrop and Chapter images use path indexes; tags only validate caches.
+        // Preserve existing backdrop-zero URLs, but chapters require explicit zero.
+        if let index, index > 0 || typeSegment == "Chapter" {
             components.path += "/\(index)"
         }
         var query: [URLQueryItem] = []
