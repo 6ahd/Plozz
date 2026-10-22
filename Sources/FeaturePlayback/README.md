@@ -120,7 +120,9 @@ panels, or their host. Badge-only contrast is scoped to the badge content, never
 the card's glass or its presentation host.
 tvOS playback chrome retains build 57's dark appearance with regular native
 glass, scoped by `playerPlatformAppearance` without changing the browsing theme
-or window. TV panels retain their thin edge and selected tabs their highlight.
+or window. That scope clears inherited browsing accents so Live TV's guide tint
+cannot recolor native playback buttons, including disabled menu-owner buttons.
+TV panels retain their thin edge and selected tabs their highlight.
 The mobile reduced-glass/older-system fallback follows light and dark mode with paired
 foreground colors. Text directly over video stays white. UIKit-backed route and
 options buttons resolve the same icon contrast. The native playback-options

@@ -364,7 +364,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             )
             let expanded = multiviewSelection == nil && (preview.isExpanded || multiview.isEnabled)
             ZStack(alignment: .topLeading) {
+                #if !os(tvOS)
                 AppBackground(palette: palette)
+                #endif
 
                 // Stable pane IDs retain renderers through single/multiple layouts and promotion.
                 ForEach(multiview.panes) { pane in
@@ -422,7 +424,11 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                             ? geometry.size.width - layout.bounds.midX : layout.bounds.midX,
                         y: layout.bounds.midY
                     )
+                    #if os(tvOS)
+                    .opacity(expanded || model.channels.isEmpty ? 0 : 1)
+                    #else
                     .opacity(expanded ? 0 : 1)
+                    #endif
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: preview.isExpanded)
 
                 guideContent(layout, canvasWidth: geometry.size.width)
@@ -455,7 +461,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     .zIndex(2)
                 }
             }
-            #if os(iOS)
+            #if os(tvOS)
+            .settingsPageBackground()
+            #elseif os(iOS)
             .toolbar {
                 PrototypeTouchBrowseToolbar(
                     model: model, isSearching: isSearching,

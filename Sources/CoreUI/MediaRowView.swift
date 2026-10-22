@@ -173,7 +173,6 @@ public struct MediaRowView: View {
     private let itemByID: [String: MediaItem]
 
     @Environment(\.plozzMetrics) private var metrics
-    @Environment(\.themePalette) private var palette
     @State private var activity = MediaRowActivity()
     /// The card focus was on when this row's page was covered — see `isCovered`.
     @State private var coveredFocusID: String?
@@ -530,6 +529,7 @@ public struct MediaRowView: View {
                                     } else {
                                         loadingPlaceholder
                                             .frame(width: cardSlotWidth)
+                                            .opacity(episodeEntry == nil ? 1 : 0)
                                     }
                                 }
                             }
@@ -599,6 +599,14 @@ public struct MediaRowView: View {
                     }
                     .onPreferenceChange(MediaRowEntryLayoutKey.self) { layout in
                         acceptEntryLayout(layout, using: proxy)
+                    }
+                    .onChange(of: episodeEntry?.phase) { _, _ in
+                        acceptEntryLayout(entryLayout, using: proxy)
+                    }
+                    .onChange(of: episodeEntry?.isEnabled) { _, enabled in
+                        guard enabled == true else { return }
+                        applyInitialFocus(using: proxy)
+                        acceptEntryLayout(entryLayout, using: proxy)
                     }
                     .onChange(of: entryPlaceholderFocused) { _, focused in
                         if focused {
@@ -860,6 +868,10 @@ public struct MediaRowView: View {
         // is `landscapeWidth + 2 * cardInset` — pin to that so `cardSpacing`
         // is a real gap and adjacent cards never overlap at rest.
         let card = content
+            // Hide only the card drawing: the lazy stack and target measurement
+            // must remain live while the transparent loading overlay is present.
+            .opacity(showsEntryPlaceholder ? 0 : 1)
+            .accessibilityHidden(showsEntryPlaceholder)
             .frame(width: cardSlotWidth)
             .id(item.stablePresentationID)
             .background {
@@ -1037,9 +1049,6 @@ public struct MediaRowView: View {
         .padding(.top, layoutMetrics.railTopClearanceOffset)
         .padding(.bottom, layoutMetrics.railBottomClearanceOffset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // Cover the drawing without masking the real scroller: SwiftUI can
-        // otherwise discard its lazy children before their target is realized.
-        .background(palette.backgroundBase)
         // Focus lift and halo deliberately overflow this viewport, just like
         // the real episode cards. The overlay must not crop them at its edge.
         .focusSectionIf(true)
@@ -1057,10 +1066,9 @@ public struct MediaRowView: View {
         guard episodeEntry != nil, !activity.focusEngaged else { return }
         if entryLayout != layout { entryLayout = layout }
         guard episodeEntry?.phase == .ready,
-              let target = gateTarget, itemIDSet.contains(target), !isCovered,
-              episodeEntry?.isEnabled != false else { return }
+              let target = gateTarget, itemIDSet.contains(target), !isCovered else { return }
         if MediaRowEpisodeEntryPolicy.targetReady(target, layout: layout) {
-            guard pendingEntryHandoff else { return }
+            guard pendingEntryHandoff, episodeEntry?.isEnabled != false else { return }
             // The real target is already laid out. Remove the loading leaf and
             // assign its replacement in one update, not after focusing a neighbor.
             pendingEntryHandoff = false
@@ -1220,7 +1228,9 @@ public struct MediaRowView: View {
     /// runloop tick so SwiftUI has installed the focusable cards before we move
     /// focus onto one.
     private func applyInitialFocus(using proxy: ScrollViewProxy) {
-        guard !isCovered, episodeEntry?.isEnabled != false else { return }
+        guard !isCovered else { return }
+        // Entrance gates restrict focus, not the unfocused episode preview.
+        if initialFocusID != nil, episodeEntry?.isEnabled == false { return }
         if episodeEntry != nil, initialFocusID != nil,
            !activity.didApplyInitialFocus, showsEntryPlaceholder {
             activity.didApplyInitialFocus = true

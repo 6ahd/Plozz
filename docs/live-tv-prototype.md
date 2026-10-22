@@ -471,9 +471,13 @@ compatibility; new account/file imports use the disk-backed path.
 
 Source setup appears only after the initial source reload, server enrollment,
 and library-catalog restoration have established that there are no channels.
-On iPhone and iPad, onboarding reveals the same full-page background as the
-guide instead of painting an inset Settings-colored panel. Source icons use the
-theme accent; server-enrollment status sits below a divider as secondary context.
+Onboarding reveals the same full-page background as the guide instead of painting
+an inset Settings-colored panel. On tvOS, the page owns the gradient behind the
+top navigation and source choices; empty setup has no video-legibility scrim.
+Source choices use the shared detail-card controls and page-aligned gradient
+surface, with solid fills when gradients or transparency are disabled.
+On iPhone and iPad, source icons use the theme accent; server-enrollment status
+sits below a divider as secondary context.
 Light, dark, black, and the gradient-background preference remain respected.
 Pending catalogs keep the page layout in place with non-focusable skeletons for
 the info artwork/text, category column, channel logos, and programme cells. They
@@ -589,8 +593,10 @@ The mobile welcome screen uses compact, whole-row choices instead of tall cards
 with duplicate action footers. Source cards use the detail page's shared adaptive
 surface: a theme-aware gradient wash and edge, or an opaque surface when gradients
 or transparency are disabled. IPTV setup uses the same settings-page background
-as the other setup sheets. Short source descriptions keep Plex's guide-only limit
-explicit. Modal sheets have an icon-only Close control,
+as the other setup sheets. The media-server choice identifies Jellyfin, Emby, and
+Plex without implying Plex is limited to guide listings. Actual server setup,
+permissions, and playback availability are checked during enrollment and tuning.
+Modal sheets have an icon-only Close control,
 distinct from the form's Add/Save action. Source choices cover playlist URLs,
 local files (iPhone/iPad), and connected media servers. Playlist fields keep their
 labels visible while editing and show example URLs instead of repeating labels

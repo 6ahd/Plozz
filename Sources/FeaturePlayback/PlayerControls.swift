@@ -334,6 +334,11 @@ struct PlayerControls: View {
             guard let panel = PlayerScreenshotHook.pendingPanel else { return }
             PlayerScreenshotHook.pendingPanel = nil
             switch panel {
+            case .playback:
+                try? await Task.sleep(for: .milliseconds(600))
+                model.controlsVisible = true
+                model.isPanelOpen = true
+                openPanel = .playback
             case .versions:
                 guard model.versions.isAvailable else { return }
                 model.controlsVisible = true
