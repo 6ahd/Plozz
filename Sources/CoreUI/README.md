@@ -798,7 +798,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   sources); cached logos still paint immediately. Completion is request-scoped,
   so a cancelled or missing logo for one title cannot reveal text for the next.
 - **Showcase logo contrast** — tvOS Showcase can lift dark coloured lettering
-  without changing white highlights or transparency. The shared background
+  while preserving hue, saturation, white highlights, and transparency. Brightening
+  stops at the available colour headroom; it never mixes in white to force a
+  contrast target. A smaller useful improvement is preferred to washed-out colour,
+  and the original is retained when brightening would not help. The shared background
   preparation pass measures dark ink separately and caches an optional corrected
   bitmap alongside the original in the existing bounded logo caches. View updates
   only select a bitmap against the leading page/ambient colour; there is no

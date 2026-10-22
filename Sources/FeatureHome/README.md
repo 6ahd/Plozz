@@ -440,7 +440,8 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Its title slot stays visually empty while the logo resolves; text appears only
   after no usable logo is found, never as a temporary title before the wordmark.
   Dark coloured Showcase logos can select CoreUI's cached contrast lift against
-  the leading page colour, preserving white highlights and the logo's geometry.
+  the leading page colour, preserving hue, saturation, white highlights, and
+  the logo's geometry rather than whitening the lettering.
   Showcase gates lower rows only until the first row actually receives native
   focus, so an already-ready Discover row cannot win cold-start entry while
   Continue Watching is still realizing. Once entered, normal navigation and

@@ -12,7 +12,7 @@ final class ShowcaseLogoContrastTests: XCTestCase {
         let lifted = try pixels(variant.image)
         XCTAssertEqual(prepared.image.size, variant.image.size)
         XCTAssertEqual(original.count, lifted.count)
-        let background = SIMD3<Double>(repeating: 0.28)
+        let background = SIMD3<Double>.zero
         var darkPixels = 0, highlights = 0, translucentPixels = 0
         for i in stride(from: 0, to: original.count, by: 4) {
             XCTAssertEqual(original[i + 3], lifted[i + 3])
@@ -26,9 +26,12 @@ final class ShowcaseLogoContrastTests: XCTestCase {
             if alpha < 255 { translucentPixels += 1 }
             if ShowcaseLogoContrast.isDarkInk(before) {
                 darkPixels += 1
-                XCTAssertGreaterThan(ShowcaseLogoContrast.contrast(after, background), 3)
-                XCTAssertLessThan(ShowcaseLogoContrast.contrast(before, background), 3)
+                XCTAssertGreaterThan(
+                    ShowcaseLogoContrast.contrast(after, background),
+                    ShowcaseLogoContrast.contrast(before, background)
+                )
                 XCTAssertEqual(hue(before), hue(after), accuracy: 0.015)
+                XCTAssertEqual(saturation(before), saturation(after), accuracy: 0.015)
             }
             if ShowcaseLogoContrast.luminance(before) >= 0.72 {
                 highlights += 1
@@ -39,9 +42,62 @@ final class ShowcaseLogoContrastTests: XCTestCase {
         XCTAssertGreaterThan(highlights, 0)
         XCTAssertGreaterThan(translucentPixels, 0)
         XCTAssertTrue(variant.improvesContrast(on: background))
-        XCTAssertTrue(variant.improvesContrast(on: .zero))
+        XCTAssertFalse(variant.improvesContrast(on: SIMD3(repeating: 0.28)),
+                       "Keep the original if colour-preserving brightening would reduce contrast.")
         XCTAssertFalse(variant.improvesContrast(on: SIMD3(repeating: 0.9)))
         XCTAssertLessThan(prepared.luminance, 0.2, "The source image and its measurements remain original.")
+    }
+
+    func testDarkRedStaysRedRatherThanTurningPink() throws {
+        let red = UIColor(red: 0.45, green: 0, blue: 0, alpha: 1)
+        let prepared = try prepare(colors: [red, red])
+        let variant = try XCTUnwrap(prepared.showcaseContrast)
+        XCTAssertTrue(variant.improvesContrast(on: SIMD3(0.16, 0.12, 0.28)))
+        let original = try pixels(prepared.image)
+        let lifted = try pixels(variant.image)
+        var redPixels = 0
+        for i in stride(from: 0, to: original.count, by: 4) {
+            guard original[i] > 0, original[i + 1] == 0, original[i + 2] == 0 else { continue }
+            redPixels += 1
+            XCTAssertGreaterThan(lifted[i], original[i])
+            XCTAssertEqual(lifted[i + 1], 0)
+            XCTAssertEqual(lifted[i + 2], 0)
+            XCTAssertEqual(lifted[i + 3], original[i + 3])
+        }
+        XCTAssertGreaterThan(redPixels, 1_000)
+    }
+
+    func testUsefulContrastImprovementDoesNotRequireWhiteningToReachThreeToOne() {
+        let original = SIMD3(0.02, 0.02, 0.18)
+        let lifted = ShowcaseLogoContrast.lifted(original)
+        let variant = ShowcaseLogoContrast(
+            image: UIImage(), originalDarkInk: original, liftedDarkInk: lifted
+        )
+        XCTAssertLessThan(ShowcaseLogoContrast.contrast(lifted, .zero), 3)
+        XCTAssertTrue(variant.improvesContrast(on: .zero))
+        XCTAssertFalse(variant.improvesContrast(on: SIMD3(repeating: 0.28)))
+        XCTAssertFalse(variant.improvesContrast(on: SIMD3(repeating: 0.9)))
+    }
+
+    func testLiftPreservesHueAndSaturationAcrossColourRangeWithoutClipping() {
+        let channels = [0.0, 0.05, 0.2, 0.45, 0.75, 1.0]
+        for red in channels {
+            for green in channels {
+                for blue in channels {
+                    let original = SIMD3(red, green, blue)
+                    let lifted = ShowcaseLogoContrast.lifted(original)
+                    XCTAssertEqual(hue(original), hue(lifted), accuracy: 0.000001)
+                    XCTAssertEqual(saturation(original), saturation(lifted), accuracy: 0.000001)
+                    for channel in 0..<3 {
+                        XCTAssertGreaterThanOrEqual(lifted[channel], original[channel])
+                        XCTAssertLessThanOrEqual(lifted[channel], 1)
+                    }
+                    if ShowcaseLogoContrast.luminance(original) >= 0.72 {
+                        XCTAssertEqual(lifted, original)
+                    }
+                }
+            }
+        }
     }
 
     func testBrightColouredMonochromeAndOutlinedLogosDoNotAllocateAVariant() throws {
@@ -174,6 +230,13 @@ final class ShowcaseLogoContrastTests: XCTestCase {
         UIColor(red: rgb.x, green: rgb.y, blue: rgb.z, alpha: 1)
             .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
         return hue
+    }
+
+    private func saturation(_ rgb: SIMD3<Double>) -> CGFloat {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        UIColor(red: rgb.x, green: rgb.y, blue: rgb.z, alpha: 1)
+            .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        return saturation
     }
 }
 #endif

@@ -52,11 +52,11 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
             )
             try await waitUntil { resolved }
             try await Task.sleep(for: .milliseconds(300))
-            let blue = try colorBounds(in: fixture.window, channel: 2, minimumChannel: 200, maximumOtherChannel: 150)
-            let red = try colorBounds(in: fixture.window, channel: 0, minimumChannel: 200, maximumOtherChannel: 150)
+            let blue = try colorBounds(in: fixture.window, channel: 2, minimumChannel: 200, maximumOtherChannel: 80)
+            let red = try colorBounds(in: fixture.window, channel: 0, minimumChannel: 200, maximumOtherChannel: 40)
             if name == "showcase" {
                 XCTAssertNotNil(blue, "Dark blue lettering must actually paint brighter, not only exist in the cache.")
-                XCTAssertNotNil(red, "Dark red lettering needs independent separation too.")
+                XCTAssertNotNil(red, "Dark red lettering must stay saturated red, not turn pink.")
             } else {
                 XCTAssertNil(blue, "The new correction must not alter other heroes or Light mode.")
                 XCTAssertNil(red)
