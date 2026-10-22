@@ -53,6 +53,16 @@ Cancellation/timeout stops only the owned process group and preserves evidence.
 
 ## Baseline → attribution → candidate → regression
 
+`skeletons-idle` observes 24 production `SkeletonCardView` placeholders over
+2.3-second idle windows on either platform. It verifies all placeholders mounted
+and captures changing visible pixels before timing, so removing the animation
+cannot count as an optimization. `skeletons-static` uses the same content with
+implicit animations disabled and verifies stable pixels; it is an animation-cost
+control, not a simulated system Reduce Motion setting. `cards-idle` separately
+covers settled artwork. These fixtures are not the complete Home screen or a
+multi-server account. CPU measurements include the app process only; resident
+snapshots do not measure GPU/render-server memory or physical-device energy.
+
 The iOS `mobile-preference-sync` scenario applies 24 cloud batches through the
 real mobile app model, updating active Hero preferences and an inactive profile's
 preferred version in each batch. It verifies all 48 applied values and counts

@@ -6,6 +6,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Loading placeholders share `shimmering()`. Its static gradient band is rasterized
+before the animated translation, avoiding repeated gradient work without
+rasterizing the placeholder content or changing the sweep, masking, or intensity.
+Inactive placeholders remain unmodified; Reduce Motion retains the static dim.
+The simulator lab's `skeletons-idle` and `skeletons-static` scenarios isolate this
+cost from loaded cards and network/provider work.
+
 Continue Watching's profile-scoped Playback details choice applies to Artwork + logo,
 Thumbnail, and Poster, on Home and library rows.
 Detailed keeps the existing play/progress/text overlay; Progress only uses the

@@ -170,6 +170,18 @@ SCENARIOS = {
         "description": "100 full bounded snapshots including serialization at event-capture boundaries.",
         "counters": ["snapshots", "records", "serializedBytes"],
     },
+    "skeletons-idle": {
+        "suite": "ui", "test": "ShimmerPerformanceTests/testPerformanceLoadingCards",
+        "file": "Tests/PerformancePresentationSupport/ShimmerPerformanceTests.swift",
+        "description": "Observe 24 production loading cards over complete 2.3-second shimmer cycles; verify visible motion outside the measurement.",
+        "counters": ["placeholders", "observationMilliseconds"], "timing": ["cpuMilliseconds"],
+    },
+    "skeletons-static": {
+        "suite": "ui", "test": "ShimmerPerformanceTests/testPerformanceStaticCards",
+        "file": "Tests/PerformancePresentationSupport/ShimmerPerformanceTests.swift",
+        "description": "The same 24 loading cards with implicit animations disabled; verify stable pixels before measuring idle CPU.",
+        "counters": ["placeholders", "observationMilliseconds"], "timing": ["cpuMilliseconds"],
+    },
     "cards-idle": {
         "suite": "ui", "test": "CardPerformanceTests/testPerformanceIdle",
         "file": "Tests/PerformancePresentationSupport/CardPerformanceTests.swift",
