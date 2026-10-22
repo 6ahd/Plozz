@@ -327,7 +327,12 @@ public struct DetailTransitionSourceAnchor: UIViewRepresentable {
 
         func requestFocus() -> Bool {
             if let cardFocus {
-                cardFocus.requestFocus(animated: false)
+                if cardFocus.usesNativeFocus, cardFocus.isFocused,
+                   !cardFocus.request.wrappedValue.wantsFocus {
+                    cardFocus.focusState.wrappedValue = true
+                } else {
+                    cardFocus.requestFocus(animated: false)
+                }
                 return true
             }
             guard let focus else { return false }
@@ -408,6 +413,10 @@ public enum DetailTransitionNavigation {
 
     public static var isNavigationInputSuppressed: Bool {
         activeWindow.map { navigationInputEpoch(in: $0) == nil } ?? false
+    }
+
+    static func allowsFocusUpdate(heading: UIFocusHeading, in view: UIView) -> Bool {
+        heading.isEmpty || navigationInputEpoch(in: view) != nil
     }
 
     /// Passive navigation observers must reject consumed input as well as

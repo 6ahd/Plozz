@@ -212,7 +212,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Back changes that bound path in the reverse transition's nonanimated transaction:
   SwiftUI's environment dismiss action can still animate a native pop underneath
   the cover. Input remains guarded until both the reverse motion and real pop
-  finish and native source focus is restored. Hosts without a bound path retain
+  finish and native source focus is restored. Native media controls also reject
+  directional focus updates while the window's input guard is installed; a
+  window gesture recognizer alone does not prevent UIKit's directional focus.
+  Programmatic restoration remains allowed and targets the requested control,
+  not the window's default focus candidate. If UIKit already restored the source,
+  synchronize its SwiftUI binding without queuing another native request.
+  Hosts without a bound path retain
   ordinary dismissal; Reduce Motion and noncinematic pages keep native navigation.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no

@@ -1292,6 +1292,14 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         model.fits.removeAll()
         let start = CACurrentMediaTime()
         dismiss()
+        withObservationTracking {
+            _ = session.blocksNavigation
+        } onChange: {
+            MainActor.assumeIsolated {
+                let requester = source.focusRequester as? DetailTransitionSourceAnchor.Coordinator
+                model.detail.pendingFocusRequestAtRelease = requester?.cardFocus?.request.wrappedValue.wantsFocus ?? false
+            }
+        }
         let cover = try XCTUnwrap(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first)
         try await waitUntil { cover.superview == nil }
         let elapsed = CACurrentMediaTime() - start
@@ -1302,6 +1310,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         XCTAssertFalse(session.blocksNavigation)
         XCTAssertNotNil(DetailTransitionNavigation.navigationInputEpoch(in: window))
         XCTAssertEqual(source.isFocused, true)
+        XCTAssertEqual(model.detail.pendingFocusRequestAtRelease, false)
         if movesFocusImmediately {
             let neighbor = try XCTUnwrap(findSource(
                 in: host.view, key: model.rows[1].items[3].stablePresentationID
@@ -1314,6 +1323,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             host.target = next
             focus.requestFocusUpdate(to: host)
             focus.updateFocusIfNeeded()
+            host.target = nil
             XCTAssertTrue(focus.focusedItem === next, "A new focus move must be accepted at cover removal.")
             for _ in 0..<10 {
                 try await Task.sleep(for: .milliseconds(60))

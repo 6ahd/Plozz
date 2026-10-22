@@ -115,6 +115,21 @@ struct ProductionHomeFixture: View {
                             }
                             .allowsHitTesting(false)
                         }
+                    } else if ProcessInfo.processInfo.arguments.contains("--native-top-home") {
+                        TabView(selection: $selection) {
+                            Tab("Search", systemImage: "magnifyingglass", value: NavigationRailDestination.search) {
+                                Button("Search content") {}
+                            }
+                            Tab("Home", systemImage: "house.fill", value: NavigationRailDestination.home) {
+                                ProductionHomeContent(
+                                    fixture: fixture, path: $path, libraryPath: $libraryPath,
+                                    isPinned: false, isActive: selection == .home
+                                )
+                            }
+                            Tab("Settings", systemImage: "gearshape", value: NavigationRailDestination.settings) {
+                                Button("Settings content") {}
+                            }
+                        }
                     } else {
                         ProductionHomeContent(fixture: fixture, path: $path, libraryPath: $libraryPath, isPinned: false)
                     }
@@ -165,6 +180,13 @@ struct ProductionHomeFixture: View {
         .environment(\.themePalette, ProcessInfo.processInfo.arguments.contains("--gradient-black") ? .pureBlack : .dark)
         .environment(\.plozzCardStyle, ProcessInfo.processInfo.arguments.contains("--framed-cards") ? .framed : .borderless)
         .onReceive(NotificationCenter.default.publisher(for: UIFocusSystem.didUpdateNotification)) { notification in
+            if ProcessInfo.processInfo.arguments.contains("--return-focus-trace"),
+               let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey]
+                    as? UIFocusUpdateContext {
+                let previous = (context.previouslyFocusedItem as? NSObject)?.accessibilityLabel ?? "none"
+                let next = (context.nextFocusedItem as? NSObject)?.accessibilityLabel ?? "none"
+                HandoffDiagnostics.emit("fixture FOCUS previous=\(previous) next=\(next) heading=\(context.focusHeading.rawValue)")
+            }
             guard ProcessInfo.processInfo.arguments.contains("--partial-home-failure"),
                   let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey]
                     as? UIFocusUpdateContext,
@@ -353,6 +375,7 @@ private final class ProductionHomeState {
             !ProcessInfo.processInfo.arguments.contains("--episode-home-artwork")
         )
         let libraryRows = ProcessInfo.processInfo.arguments.contains("--progressive-library-rows")
+        if libraryRows { visibility.useRowDefaults(.legacy) }
         visibility.setMergeLibrariesOnHome(!libraryRows)
         for row in HomeGlobalRow.allCases {
             visibility.setGlobalRowEnabled(!libraryRows || row == .continueWatching, for: row)
@@ -661,7 +684,8 @@ private struct ProductionHomeProvider: MediaProvider {
 
     func libraries() async throws -> [MediaLibrary] {
         guard ProcessInfo.processInfo.arguments.contains("--progressive-library-rows") else { return [] }
-        return (0..<20).map {
+        let count = ProcessInfo.processInfo.arguments.contains("--populated-home-return") ? 8 : 20
+        return (0..<count).map {
             MediaLibrary(id: "fixture-library-\($0)", title: "Fixture library \($0)", kind: .movie)
         }
     }
