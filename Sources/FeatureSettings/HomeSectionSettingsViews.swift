@@ -338,7 +338,9 @@ struct HomeHeroSettingsView: View {
             #if os(tvOS)
             HomeLayoutPicker(layout: $hero.settings.style)
             if hero.settings.style == .followsFocus {
-                HeroLogoSizeControl(size: $hero.settings.showcaseLogoSize, surface: .showcase)
+                SettingsControlGroup {
+                    HeroLogoSizeControl(size: $hero.settings.showcaseLogoSize, surface: .showcase)
+                }
                 Toggle("Show ratings", isOn: $hero.settings.showsRatings)
                 if hero.settings.showsRatings {
                     Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)

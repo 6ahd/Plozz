@@ -2,7 +2,7 @@ import CoreModels
 @testable import CoreUI
 @testable import FeatureHome
 import MetadataKit
-import FeatureSettings
+@testable import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
@@ -40,14 +40,21 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         defer { fixture.close() }
         for surface in [HeroLogoSizing.Surface.home, .showcase, .detail] {
             for step in [0, 10] {
-                fixture.window.rootViewController = UIHostingController(rootView:
-                    HeroLogoSizeControl(size: .constant(HeroLogoSize(rawValue: step)), surface: surface)
-                        .padding(40).frame(width: 900)
+                let host = UIHostingController(rootView:
+                    SettingsControlGroup {
+                        HeroLogoSizeControl(size: .constant(HeroLogoSize(rawValue: step)), surface: surface)
+                    }
+                        .frame(width: 900)
+                        .background(PreviewCardFrame())
                         .environment(\.colorScheme, .dark)
                         .environment(\.themePalette, .dark)
                         .background(Color.black)
                 )
+                fixture.window.rootViewController = host
                 fixture.window.layoutIfNeeded()
+                let card = try XCTUnwrap(findPreviewCard(in: host.view))
+                XCTAssertEqual(card.bounds.width, 900, accuracy: 1)
+                XCTAssertLessThanOrEqual(card.bounds.height, 300, "Keep the complete TV card compact.")
                 let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
                     XCTAssertTrue(fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true))
                 }
@@ -57,6 +64,79 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 add(attachment)
             }
         }
+    }
+
+    func testCompactLogoCardKeepsNativeAdjustmentFocusWhileResizing() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let model = SizingModel()
+        let host = UIHostingController(rootView:
+            SettingsControlGroup {
+                HeroLogoSizeControl(
+                    size: Binding(get: { model.size }, set: { model.size = $0 }), surface: .showcase
+                )
+            }
+            .frame(width: 900)
+            .background(PreviewCardFrame())
+            .environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+            .background(Color.black)
+        )
+        fixture.window.rootViewController = host
+        try await waitUntil { adjustmentInput(in: host) != nil }
+        let input = try XCTUnwrap(adjustmentInput(in: host))
+        defer { input.stopRepeating() }
+        let system = try XCTUnwrap(UIFocusSystem(for: fixture.window))
+        system.requestFocusUpdate(to: input)
+        system.updateFocusIfNeeded()
+        try await waitUntil { input.ownsHorizontalNavigationInput }
+        let focused = try XCTUnwrap(system.focusedItem)
+        let frame = focused.frame
+        XCTAssertLessThan(frame.width, 550, "Focus belongs to the control, not the full card.")
+        for step in 0...10 {
+            if step > 0 {
+                input.beginPress(.right)
+                input.stopRepeating()
+                try await waitUntil { model.size.rawValue == step }
+            }
+            XCTAssertTrue(system.focusedItem === focused)
+            XCTAssertEqual(system.focusedItem?.frame, frame)
+        }
+        input.beginPress(.right)
+        input.stopRepeating()
+        XCTAssertEqual(model.size.rawValue, 10)
+        try await Task.sleep(for: .milliseconds(200))
+        fixture.window.layoutIfNeeded()
+        let card = try XCTUnwrap(findPreviewCard(in: host.view))
+        XCTAssertLessThanOrEqual(card.bounds.height, 300)
+        let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+            fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "logo-size-compact-focused"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    private func adjustmentInput(in root: UIViewController) -> (any SettingsAdjustmentRemoteInput)? {
+        if let input = root as? any SettingsAdjustmentRemoteInput { return input }
+        return root.children.lazy.compactMap { self.adjustmentInput(in: $0) }.first
+    }
+
+    private func findPreviewCard(in view: UIView) -> UIView? {
+        if view.accessibilityIdentifier == "logo-preview-card-frame" { return view }
+        return view.subviews.lazy.compactMap { self.findPreviewCard(in: $0) }.first
+    }
+
+    private struct PreviewCardFrame: UIViewRepresentable {
+        func makeUIView(context: Context) -> UIView {
+            let view = UIView()
+            view.isUserInteractionEnabled = false
+            view.accessibilityIdentifier = "logo-preview-card-frame"
+            return view
+        }
+
+        func updateUIView(_ uiView: UIView, context: Context) {}
     }
 
     func testShowcaseEnlargementKeepsTheLogoBaselineAndRowsFixed() async throws {

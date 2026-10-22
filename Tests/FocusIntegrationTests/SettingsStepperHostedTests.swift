@@ -150,7 +150,7 @@ final class SettingsStepperHostedTests: XCTestCase {
         var body: some View {
             VStack(spacing: 50) {
                 SettingsStepper(
-                    options: model.options, selection: $model.selection, wraps: wraps,
+                    options: model.options, selection: $model.selection, compact: showsTrack, wraps: wraps,
                     onFocusChange: { model.focused = $0 }, label: "Seconds",
                     subtitle: "Adjustment helper",
                     rangeLabels: showsTrack ? ("Small", "Large") : nil,

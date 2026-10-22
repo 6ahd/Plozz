@@ -200,10 +200,20 @@ public struct SettingsStepper<Value: Hashable>: View {
     private var televisionButton: some View {
         Button { step(by: 1) } label: {
             if let label {
-                LabeledSettingRow(
-                    label, subtitle: subtitle, labelWidth: labelWidth, trailingAlignment: .trailing
-                ) {
-                    adjustmentValue
+                if compact && rangeLabels != nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(label).font(SettingsRowMetrics.titleFont)
+                        if let subtitle {
+                            Text(subtitle).font(SettingsRowMetrics.helperFont).settingsRowSecondary()
+                        }
+                        adjustmentValue
+                    }
+                } else {
+                    LabeledSettingRow(
+                        label, subtitle: subtitle, labelWidth: labelWidth, trailingAlignment: .trailing
+                    ) {
+                        adjustmentValue
+                    }
                 }
             } else {
                 adjustmentValue
@@ -226,27 +236,27 @@ public struct SettingsStepper<Value: Hashable>: View {
 
     @ViewBuilder private var adjustmentValue: some View {
         if let rangeLabels {
-            VStack(spacing: 10) {
-                GeometryReader { geometry in
-                    let progress = CGFloat(index) / CGFloat(max(1, options.count - 1))
-                    let travel = max(0, geometry.size.width - 16)
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.primary.opacity(0.2)).frame(height: 4)
-                        Capsule().fill(.primary).frame(width: 8 + travel * progress, height: 4)
-                        Circle().fill(.primary).frame(width: 16, height: 16)
-                            .offset(x: travel * progress)
+            HStack(alignment: .top, spacing: 12) {
+                adjustmentGlyph("minus", enabled: canDecrement)
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        ForEach(options.indices, id: \.self) { position in
+                            Capsule()
+                                .fill(.primary.opacity(position <= index ? 1 : 0.2))
+                                .frame(height: 6)
+                        }
                     }
-                    .frame(height: 16)
+                    .frame(height: SettingsRowMetrics.minHeight(.secondary))
+                    HStack {
+                        Text(rangeLabels.0)
+                        Spacer()
+                        Text(rangeLabels.1)
+                    }
+                    .font(.caption)
                 }
-                .frame(height: 16)
-                HStack {
-                    Text(rangeLabels.0)
-                    Spacer()
-                    Text(rangeLabels.1)
-                }
-                .font(.caption)
+                adjustmentGlyph("plus", enabled: canIncrement)
             }
-            .frame(width: 300)
+            .frame(width: compact ? 300 : 380)
             .environment(\.layoutDirection, .leftToRight)
             .accessibilityHidden(true)
         } else {

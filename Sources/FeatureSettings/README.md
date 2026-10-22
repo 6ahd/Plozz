@@ -11,8 +11,11 @@ Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo
 controls. Each shows one local fictional-wordmark preview and a Small-to-Large
 adjustment with Reset to default. Small preserves the existing size; there are
 eleven positions up to 1.5x, subject to each layout's safe bounds. TV reuses the
-shared Settings stepper's remote/focus behavior with a range track; mobile uses
-the native slider. No artwork lookup is needed for the preview.
+shared Settings stepper's remote/focus behavior with minus/plus glyphs and a
+stepped range bar. TV groups contain a 320-point-wide preview beside the adjustment
+and a compact Reset action, rather than stacking a large preview above the controls.
+Mobile keeps the native slider and stacked preview. No artwork lookup is needed
+for the preview.
 
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
