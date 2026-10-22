@@ -404,7 +404,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             let lines = try await self.capture(window, name: "Continue Watching grouped section layout")
             XCTAssertEqual(lines.filter { $0.0 == "Continue Watching" }.count, 1,
                            "The section must not repeat its heading in the native navigation bar.")
-            let controls = ["Playback details", "Labels", "Merge Next Up rows", "Continue Watching action"]
+            #if os(tvOS)
+            let actionTitle = "Center button action"
+            #else
+            let actionTitle = "When tapping an item"
+            #endif
+            let controls = ["Playback details", "Labels", "Merge Next Up rows", actionTitle]
             let detailsY = try self.y("Playback details", in: lines)
             for artwork in ["Artwork + logo", "Thumbnail", "Poster"] {
                 XCTAssertGreaterThan(try self.y(artwork, in: lines), detailsY,
@@ -414,7 +419,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertGreaterThan(try self.y(upper, in: lines), try self.y(lower, in: lines),
                                      "\(upper) must appear before \(lower).")
             }
-            XCTAssertGreaterThan(try self.y("Continue Watching action", in: lines),
+            XCTAssertGreaterThan(try self.y(actionTitle, in: lines),
                                  try self.y("Remove section", in: lines))
             #if os(tvOS)
             XCTAssertFalse(lines.contains { $0.0.contains("Back") },
@@ -434,6 +439,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
         let visibility = HomeLibraryVisibilityModel(store: store)
+        #if os(tvOS)
+        let actionTitle = "Center button action"
+        #else
+        let actionTitle = "When tapping an item"
+        #endif
         try await withWindow {
             ScrollView {
                 Group {
@@ -453,17 +463,18 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 visibility.setContinueWatchingAction(action)
                 let lines = try await self.capture(window, name: "Continue Watching action \(action)")
                 let text = lines.map(\.0).joined(separator: " ")
-                XCTAssertTrue(text.contains("Continue Watching action"), text)
+                XCTAssertTrue(text.contains(actionTitle), text)
                 XCTAssertTrue(text.contains(String(localized: action.displayName)), text)
                 XCTAssertEqual(store.load().continueWatchingAction, action)
                 #if os(tvOS)
-                XCTAssertTrue(text.contains("on your remote always plays the focused item."), text)
-                XCTAssertTrue(text.contains("Play/Pause"), "The helper names the button alongside its symbol.")
+                XCTAssertTrue(text.contains("on your remote to play the focused item."), text)
+                XCTAssertTrue(text.contains("You can also press Play/Pause"),
+                              "The helper describes a separate remote shortcut.")
                 XCTAssertLessThan(
-                    try self.y("Play/Pause", in: lines), try self.y("Continue Watching action", in: lines),
+                    try self.y("You can also", in: lines), try self.y(actionTitle, in: lines),
                     "The explanation belongs below the selection control."
                 )
-                let label = try XCTUnwrap(lines.first { $0.0.contains("Continue Watching action") }).1
+                let label = try XCTUnwrap(lines.first { $0.0.contains(actionTitle) }).1
                 let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
                 XCTAssertNotNil(self.focusableItem(at: point, in: window))
                 #endif

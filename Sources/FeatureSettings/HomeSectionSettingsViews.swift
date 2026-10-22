@@ -241,7 +241,7 @@ struct ContinueWatchingActionControl: View {
         Group {
             #if os(iOS)
             ViewCustomizationMenu(
-                id: "continue-watching-action", title: "Continue Watching action",
+                id: "continue-watching-action", title: "When tapping an item",
                 value: selection.displayName, detail: selection.detail,
                 selection: Binding(
                     get: { visibility.continueWatchingAction },
@@ -255,16 +255,16 @@ struct ContinueWatchingActionControl: View {
             #else
             VStack(alignment: .leading, spacing: 12) {
                 ViewCustomizationRow(
-                    id: "continue-watching-action", title: "Continue Watching action",
+                    id: "continue-watching-action", title: "Center button action",
                     value: selection.displayName, detail: selection.detail
                 ) {
                     visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
                 }
                 #if os(tvOS)
-                Text("Play/Pause \(Image(systemName: "playpause.circle.fill")) on your remote always plays the focused item.")
+                Text("You can also press Play/Pause \(Image(systemName: "playpause.circle.fill")) on your remote to play the focused item.")
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("Play/Pause on your remote always plays the focused item.")
+                    .accessibilityLabel("You can also press Play/Pause on your remote to play the focused item.")
                     .accessibilityIdentifier("continue-watching-remote-help")
                 #endif
             }

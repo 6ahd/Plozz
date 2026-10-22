@@ -1260,7 +1260,7 @@ final class SettingsInteractionTests: XCTestCase {
         selectCustomization(details, expecting: "Progress only")
         selectCustomization(labels, expecting: "On")
         let mergeBefore = merge.value as? String
-        selectCustomization(action, expecting: "Open details")
+        selectCustomization(action, expecting: "Open detail page")
         XCTAssertEqual(merge.value as? String, mergeBefore)
         XCTAssertEqual(details.value as? String, "Progress only")
         XCTAssertEqual(labels.value as? String, "On")
@@ -1268,7 +1268,7 @@ final class SettingsInteractionTests: XCTestCase {
         reveal(merge, fullyVisible: true)
         tapNativeSwitch(merge)
         XCTAssertNotEqual(merge.value as? String, mergeBefore)
-        XCTAssertEqual(action.value as? String, "Open details")
+        XCTAssertEqual(action.value as? String, "Open detail page")
         capture("continue-watching-grouped-controls")
     }
 

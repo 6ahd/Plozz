@@ -61,7 +61,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         XCTAssertEqual(
             app.staticTexts["continue-watching-remote-help"].label,
-            "Play/Pause on your remote always plays the focused item."
+            "You can also press Play/Pause on your remote to play the focused item."
         )
         let mergeBefore = merge.value as? String
         let actionBefore = action.value as? String

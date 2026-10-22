@@ -132,18 +132,19 @@ watch history and planning-list behavior are documented in
   and held Up/Down; reaching an edge does not move focus out of the list.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
-  **Continue Watching action** selects **Play** or **Open details** for Home's
-  movie/episode cards on TV, iPhone and iPad. Play remains the default for fresh
-  and existing profiles. The choice uses the existing profile-scoped Home settings
-  store and profile transfer; it does not change artwork or Live TV shortcuts.
+  **Center button action** on TV and **When tapping an item** on iPhone/iPad
+  select **Play** or **Open detail page** for Home's movie/episode cards.
+  Play remains the default for fresh and existing profiles. The choice uses the
+  existing profile-scoped Home settings store and profile transfer; it does not
+  change artwork or Live TV shortcuts.
   On Apple TV this setting controls the center button only; the remote's
   Play/Pause button always starts the focused Continue Watching movie or episode.
-  Helper text below the control names Play/Pause alongside its filled circular
-  symbol and explains that it plays the focused item without promising immediate
+  Helper text below the control describes Play/Pause, with its filled circular
+  symbol, as an additional way to play the focused item without promising immediate
   playback. VoiceOver reads the button name without repeating the symbol.
   The section editor shows the three artwork choices first, followed by a shared
   settings group for Playback details and Labels, then a group for Merge Next Up
-  and Continue Watching action. The shared containers own insets and separators.
+  and selection behavior. The shared containers own insets and separators.
   Continue Watching offers three native preview choices: Artwork + logo,
   Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
   with an overlaid logo, an unbranded scene, and portrait poster artwork without
