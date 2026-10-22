@@ -17,7 +17,7 @@ public struct CrashReportingConsentView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Spacer(minLength: 32)
-                    SettingsPanel {
+                    SettingsPanel(contentPadding: cardPadding) {
                         CrashReportingConsentPrompt(onChoice: onChoice)
                             .frame(maxWidth: .infinity)
                     }
@@ -40,6 +40,15 @@ public struct CrashReportingConsentView: View {
         900
         #else
         480
+        #endif
+    }
+
+    private var cardPadding: EdgeInsets {
+        #if os(tvOS)
+        let inset = PlozzTheme.Spacing.xxxLarge
+        return EdgeInsets(top: inset, leading: inset, bottom: inset, trailing: inset)
+        #else
+        return .settingsPanelDefault
         #endif
     }
 }
