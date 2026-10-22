@@ -253,7 +253,7 @@ struct ContinueWatchingActionControl: View {
                     visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
                 }
                 #if os(tvOS)
-                Text("\(Image(systemName: "playpause.fill")) on your remote always plays the selected item.")
+                Text("\(Image(systemName: "playpause.circle.fill")) on your remote always plays the selected item.")
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel("Play/Pause on your remote always plays the selected item.")
