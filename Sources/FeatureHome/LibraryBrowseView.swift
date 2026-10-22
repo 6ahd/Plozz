@@ -48,6 +48,7 @@ public struct LibraryBrowseView: View {
     @State private var viewModel: LibraryBrowseViewModel
     #if os(tvOS)
     @State private var showcaseNavigation = ShowcaseNavigationVisibility()
+    @State private var showcaseHeaderBottom: CGFloat = 0
     @State private var isFrontmost = false
     #endif
     /// Owns a bounded lookahead without invalidating the view on every scroll update.
@@ -195,11 +196,16 @@ public struct LibraryBrowseView: View {
                     .padding(.vertical, PlozzTheme.Spacing.large)
             )
             .padding(.top, headerTopClearance)
+            .onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.frame(in: .global).maxY
+            } action: { headerBottom in
+                showcaseHeaderBottom = headerBottom
+            }
             .modifier(
                 ShowcaseNavigationVisibilityModifier(
                     visibility: showcaseNavigation,
                     isRecommended: viewModel.contentMode == .recommended,
-                    rowIDs: viewModel.recommendationState.value?.map(\.id) ?? []
+                    rowIDs: viewModel.visibleRecommendedRows(viewModel.recommendationState.value ?? []).map(\.id)
                 )
             )
             #else
@@ -240,6 +246,7 @@ public struct LibraryBrowseView: View {
             }
         }
         .task { await viewModel.loadFirstPageIfNeeded() }
+        .task(id: viewModel.availableContentModes) { await viewModel.reconcileContentMode() }
         .background {
             LibraryAlphabetFeedback(letter: viewModel.alphabet.jumpingTo, message: viewModel.alphabet.message)
         }
@@ -337,12 +344,20 @@ public struct LibraryBrowseView: View {
             errorServers: viewModel.errorServers,
             errorReport: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library),
             onRetry: { Task { await viewModel.loadRecommendations() } }
-        ) { sections in
-            #if os(tvOS)
-            recommendedShowcase(sections)
-            #else
-            recommendedRows(sections)
-            #endif
+        ) { loaded in
+            let sections = viewModel.visibleRecommendedRows(loaded)
+            if sections.isEmpty {
+                ContentUnavailableView(
+                    "No visible rows", systemImage: "rectangle.grid.1x2",
+                    description: Text("Show rows in Settings > Screens & Navigation > Customize Libraries.")
+                )
+            } else {
+                #if os(tvOS)
+                recommendedShowcase(sections)
+                #else
+                recommendedRows(sections)
+                #endif
+            }
         }
     }
 
@@ -397,10 +412,11 @@ public struct LibraryBrowseView: View {
         let sectionsByID = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, $0) })
         return FocusHeroHomeView(
             rows: rows,
-            settings: .default,
+            settings: viewModel.presentation.settings.showcaseSettings,
             spoilerSettings: spoilerSettings,
             navigationStyle: .tabBar,
-            isFrontmost: isFrontmost
+            isFrontmost: isFrontmost,
+            minimumDetailsTop: showcaseHeaderBottom + PlozzTheme.Spacing.large
         ) { row, reporter in
             if let section = sectionsByID[row.id] {
                 MediaRowView(

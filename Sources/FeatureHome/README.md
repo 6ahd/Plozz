@@ -378,12 +378,20 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   preserve overlapping work across reversals and cancel obsolete queued work.
   Admission rechecks decoded residency; content, density, lifecycle and background
   generation changes cannot keep stale warming alive or suppress a later pass.
-  They show Recommended by default for server-backed video libraries, with
+  They initially show the first supported tab in the profile's shared library
+  arrangement (Recommended by default for server-backed video libraries), with
   library-scoped Continue Watching and Recently Added plus native Plex hubs
   or Jellyfin/Emby movie recommendation categories. TV uses Showcase, showing
   its mode tabs only while the first row is active; mobile uses touch-sized rows.
   iPhone and iPad keep Recommended, Browse, Collections, and Playlists in a
   horizontally scrolling tab strip, limited to the provider's capabilities.
+  `LibraryPresentationSettings` shares tab order/visibility and TV logo size
+  across libraries, independently of Home and detail pages. Recommended row
+  order/visibility is account-and-library-qualified within that profile.
+  Presentation edits resolve the already-loaded rows without refetching them;
+  unavailable rows and unsupported tabs retain saved intent. Browse remains
+  accessible when no preferred tab is supported. Collection/playlist member
+  routes remain plain Browse destinations.
   Library modes and series seasons both use CoreUI's `PlozzContentTabs`, with
   the same selected glass pill, inactive text, touch sizing, and reveal behavior.
   Tabs retain their identity through loading, empty, and failure states and
@@ -434,8 +442,11 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   grows: a live scan update would apply the size delta twice, overlapping posters
   until another focus/layout pass. Banner height and artwork alignment must be
   correct while unfocused, through focus changes, and when progress reappears.
-  Showcase preserves the Home-sized details footprint under that header,
-  keeping the same metadata-to-heading clearance as Home. A cold logo is adopted
+  Library Showcase measures its navigation clearance and keeps the schedule badge
+  inside the details layout, above the logo. Description lines give way before
+  logo space; exceptionally constrained layouts cap the logo rather than overlap
+  navigation. Pinned rows and Home's separate details footprint are unchanged.
+  A cold logo is adopted
   when it finishes for the still-current title, without requiring a focus round trip.
   Its title slot stays visually empty while the logo resolves; text appears only
   after no usable logo is found, never as a temporary title before the wordmark.

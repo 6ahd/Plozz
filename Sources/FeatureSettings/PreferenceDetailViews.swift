@@ -72,7 +72,9 @@ struct AppearanceDetailView: View {
             if section == .screensNavigation {
                 return [
                     SettingsSplitRow(id: "customize-home", title: "Customize Home") { EmptyView() }
-                        .destination(.customizeHome)
+                        .destination(.customizeHome),
+                    SettingsSplitRow(id: "customize-libraries", title: "Customize Libraries") { EmptyView() }
+                        .destination(.customizeLibraries)
                 ] + availableRows.filter { $0.id == "navigation" }.map { $0.destination(.navigationLayout) } + [
                     SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
                         .destination(.detailPage)

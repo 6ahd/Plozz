@@ -1,4 +1,5 @@
 import CoreModels
+@testable import AppShell
 @testable import CoreUI
 @testable import FeatureHome
 import MetadataKit
@@ -10,6 +11,93 @@ import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testLibrarySettingsReuseTheNativeSizeControlAndNavigationEditor() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let suite = "LibrarySettingsHosted.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = LibraryPresentationSettingsModel(
+            store: LibraryPresentationSettingsStore(defaults: defaults)
+        )
+        model.settings.logoSize = HeroLogoSize(rawValue: -10)
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let host = LayoutFocusHost(rootView:
+            NavigationRailFocusHost { _ in
+                LibrarySettingsEnvironmentFixture(visibility: visibility)
+            }
+            .environment(model)
+            .environment(\.libraryPresentationLoader, EmptyLibrarySettingsLoader())
+            .frame(width: 1100)
+            .environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+            .background(Color.black)
+        )
+        fixture.window.rootViewController = host
+        try await waitUntil { adjustmentInput(in: host) != nil }
+        fixture.window.layoutIfNeeded()
+        let input = try XCTUnwrap(adjustmentInput(in: host))
+        defer { input.stopRepeating() }
+        let inputView = try XCTUnwrap((input as? UIViewController)?.view)
+        let inputFrame = inputView.convert(inputView.bounds, to: fixture.window)
+        let target = try XCTUnwrap(focusItems(in: fixture.window).filter { $0.frame.width > 300 }.min {
+            abs(((try? focusFrame($0, in: fixture.window).midY) ?? 0) - inputFrame.midY)
+                < abs(((try? focusFrame($1, in: fixture.window).midY) ?? 0) - inputFrame.midY)
+        })
+        let system = try XCTUnwrap(UIFocusSystem(for: fixture.window))
+        host.target = target
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { input.ownsHorizontalNavigationInput }
+        host.target = nil
+        attachPreview(in: fixture.window, name: "library-customization-small")
+        for index in 1..<HeroLogoSize.allSizes.count {
+            input.beginPress(.right)
+            input.stopRepeating()
+            XCTAssertEqual(model.settings.logoSize, HeroLogoSize.allSizes[index])
+            XCTAssertTrue(input.ownsHorizontalNavigationInput)
+        }
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(LibraryPresentationSettingsStore(defaults: defaults).load().logoSize.rawValue, 10)
+        attachPreview(in: fixture.window, name: "library-customization-large")
+        fixture.window.rootViewController = UIHostingController(rootView:
+            LibraryNavigationSettingsView(model: model)
+                .frame(width: 1100)
+                .environment(\.colorScheme, .dark)
+                .environment(\.themePalette, .dark)
+                .background(Color.black)
+        )
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertGreaterThanOrEqual(focusItems(in: fixture.window).count, 5)
+        attachPreview(in: fixture.window, name: "library-navigation-editor")
+    }
+
+    private struct LibrarySettingsEnvironmentFixture: View {
+        let visibility: HomeLibraryVisibilityModel
+        @Environment(LibraryPresentationSettingsModel.self) private var model
+        @Environment(\.libraryPresentationLoader) private var loader
+
+        var body: some View {
+            if let loader {
+                LibraryPresentationSettingsView(model: model, visibility: visibility, accounts: [], loader: loader)
+            } else {
+                Text("Missing library settings environment")
+            }
+        }
+    }
+
+    private struct EmptyLibrarySettingsLoader: LibraryPresentationLoading {
+        func libraries(accounts: [ResolvedAccount]) async -> LibraryPresentationDiscovery {
+            .init(libraries: [], failures: [:])
+        }
+
+        func recommendations(
+            library: AggregatedLibrary, account: ResolvedAccount
+        ) async -> LibraryPresentationRecommendations {
+            .init(state: .empty, diagnostic: nil)
+        }
+    }
+
     func testLiveSizeChangesReuseTheResolvedLogoAndPreserveItsProportions() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -735,6 +823,14 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
+        return try Self.colorBounds(
+            in: image, channel: channel, minimumChannel: minimumChannel, maximumOtherChannel: maximumOtherChannel
+        )
+    }
+
+    static func colorBounds(
+        in image: UIImage, channel: Int, minimumChannel: UInt8 = 150, maximumOtherChannel: UInt8 = 80
+    ) throws -> CGRect? {
         let cgImage = try XCTUnwrap(image.cgImage)
         let width = cgImage.width
         let height = cgImage.height

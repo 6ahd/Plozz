@@ -747,6 +747,11 @@ public struct RootView: View {
         .environment(\.gradientBackgroundsEnabled, appState.profileSettings.themeModel.gradientEnabled)
         .environment(\.familyGuidanceProvider, appState.familyGuidance)
         .environment(\.detailHeaderSettings, appState.profileSettings.detailPageModel)
+        .environment(appState.profileSettings.libraryPresentationModel)
+        .environment(\.libraryPresentationLoader, LibraryPresentationLoader(
+            settings: appState.profileSettings.libraryPresentationModel,
+            namespace: appState.profilesModel.activeNamespace
+        ))
         .environment(
             \.versionPickerAudioLanguage,
             appState.profileSettings.playbackModel.settings.audioLanguagePreference.explicitLanguageCode

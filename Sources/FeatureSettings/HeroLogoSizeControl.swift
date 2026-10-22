@@ -6,12 +6,16 @@ import SwiftUI
 public struct HeroLogoSizeControl: View {
     @Binding private var size: HeroLogoSize
     private let surface: HeroLogoSizing.Surface
+    private let showsLibraryPreview: Bool
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(size: Binding<HeroLogoSize>, surface: HeroLogoSizing.Surface) {
+    public init(
+        size: Binding<HeroLogoSize>, surface: HeroLogoSizing.Surface, showsLibraryPreview: Bool = false
+    ) {
         _size = size
         self.surface = surface
+        self.showsLibraryPreview = showsLibraryPreview
     }
 
     private var layout: HeroLogoSizing.Layout {
@@ -29,7 +33,7 @@ public struct HeroLogoSizeControl: View {
     public var body: some View {
         #if os(tvOS)
         HStack(spacing: SettingsFormMetrics.groupInset) {
-            if surface == .detail {
+            if surface == .detail || showsLibraryPreview {
                 Color.clear
                     .frame(width: 320)
                     .overlay {

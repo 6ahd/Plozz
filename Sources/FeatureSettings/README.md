@@ -116,6 +116,15 @@ watch history and planning-list behavior are documented in
 
 ## Responsibility
 
+- **Customize Libraries** lives in Screens & Navigation on TV and mobile.
+  The TV logo control reuses `HeroLogoSizeControl` with one Showcase preview.
+  Library tabs share an arrangement across the profile; each library separately
+  owns its Recommended row arrangement. Both editors use `LiftableReorderList`,
+  its Hidden divider, native focus/drag behavior, and scoped reset actions.
+  `LibraryPresentationLoading` connects the settings UI to the existing browse
+  and discovery pipeline through AppRuntime, without a feature-to-feature
+  dependency. Identity changes cancel pending discovery and replace row editors.
+  These choices never disable a library or alter its Home rows.
 - **Libraries** owns profile-wide library availability. Mobile Customize Home
   does not duplicate its Enabled controls: the Home editor manages section presentation,
   and Hero source selection uses the enabled library inventory. Discovering
