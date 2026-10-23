@@ -126,6 +126,13 @@ public struct PlozziOSRootView: View {
         }
         .scrollContentBackground(.hidden)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .plozzSheet(item: $providerSetupRouter.reauthenticationAccount) { account in
+            PlozziOSAccountReauthenticationView(appModel: appModel, account: account)
+                .presentationSizing(.page)
+        }
+        .onChange(of: appModel.profiles.activeProfileID) { _, _ in
+            providerSetupRouter.reauthenticationAccount = nil
+        }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
             iptvSetup = request

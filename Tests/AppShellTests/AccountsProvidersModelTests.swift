@@ -100,6 +100,30 @@ final class AccountsProvidersModelTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(model.provider(forAccountID: "a") as? LiveTVAccountsTestProvider) === first)
     }
 
+    func testAccountRecoveryRechecksProfileAndReloadsOnlyAfterSaving() throws {
+        let (model, store, profiles) = try makeModel(accountIDs: [("a", "a.test")])
+        model.reloadAccounts()
+        let account = try XCTUnwrap(model.accounts.first)
+        var completed = false
+        let recovery = model.makeAccountReauthentication(
+            account: account, isAuthorized: { true }, onComplete: { completed = true }
+        )
+        let other = profiles.add(name: "Other", activeAccountIDs: ["a"])
+        profiles.select(other.id)
+        XCTAssertThrowsError(try recovery.complete(account.session(token: "NEW")))
+        XCTAssertFalse(completed)
+        XCTAssertEqual(store.token(for: account.id), "token-a")
+
+        let currentRecovery = model.makeAccountReauthentication(
+            account: account, isAuthorized: { true }, onComplete: { completed = true }
+        )
+        try currentRecovery.complete(account.session(token: "NEW"))
+        XCTAssertTrue(completed)
+        XCTAssertEqual(store.token(for: account.id), "NEW")
+        XCTAssertEqual(model.accounts, store.loadAccounts())
+        XCTAssertNotEqual(model.accounts.first?.credentialRevision, account.credentialRevision)
+    }
+
     func testUnknownSyncedIdentityOnlyGatesWhenAnActivePlexAccountArrives() throws {
         for provider in [ProviderKind.plex, .iptv, .jellyfin, .emby, .silo, .mediaShare] {
             let (model, store, profiles) = try makeModel(accountIDs: [])
