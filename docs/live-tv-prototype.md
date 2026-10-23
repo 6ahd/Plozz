@@ -558,6 +558,11 @@ workspace; the Plozz channels page contains the actual enable switch. Custom
 channel creation/editing and save dismissal use the same page navigation.
 The guide's separate Sources presentation also opens channel checks directly,
 without requiring Plozz channels to be available or open first.
+On tvOS, Generated channels is a bounded scrolling group with focusable,
+read-only rows; Up/Down browses the lineup and leaves it at either end.
+Custom-channel actions and menus use the shared form sizing, and Source
+libraries uses the same multi-select check rows as other Settings pages.
+Genre and ordering rules are explicit controls, without a one-off Comedy preset.
 Guide lookback/lookahead use native value menus on TV so all day choices fit
 the fixed detail column without overflowing horizontal pills.
 Child pages inherit the workspace background rather than drawing a second

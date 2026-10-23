@@ -32,6 +32,8 @@ struct FocusHostApp: App {
                 LiveTVPreviewIntroductionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--sources-navigation-fixture") {
                 LiveTVSourcesNavigationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--channel-settings-fixture") {
+                LibraryChannelSettingsFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--view-customization-fixture") {
                 ViewCustomizationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-setup-fixture") {

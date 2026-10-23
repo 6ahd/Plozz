@@ -1377,6 +1377,126 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testGeneratedChannelsScrollWithinTheirSectionAndReleaseFocus() throws {
+        #if targetEnvironment(simulator)
+        let app = launchChannelSettingsFixture()
+        defer { app.terminate() }
+        let rows = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "live-tv-generated-channel-")
+        ).allElementsBoundByIndex
+        XCTAssertGreaterThan(rows.count, 8, "Exercise a lineup longer than its viewport.")
+        let first = try XCTUnwrap(rows.first)
+        let lineup = app.descendants(matching: .any)["live-tv-generated-lineup"].firstMatch
+        try focus(first, in: app)
+        XCTAssertLessThanOrEqual(lineup.frame.height, 320)
+        capture("generated-lineup-entry", in: app)
+        for (index, row) in rows.enumerated() {
+            if index > 0 { XCUIRemote.shared.press(.down) }
+            XCTAssertTrue(hasFocus(row), "Down must browse every generated channel. \(app.debugDescription)")
+            let visible = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    row.frame.minY >= lineup.frame.minY - 1 && row.frame.maxY <= lineup.frame.maxY + 1
+                }, object: nil
+            )
+            let result = XCTWaiter.wait(for: [visible], timeout: 3)
+            if result != .completed { capture("generated-lineup-clipped-\(index)", in: app) }
+            XCTAssertEqual(result, .completed, "The focused row must be fully inside its scrolling section.")
+        }
+        capture("generated-lineup-end", in: app)
+        XCUIRemote.shared.press(.down)
+        let create = app.buttons["live-tv-create-custom-channel"]
+        XCTAssertTrue(hasFocus(create), "Down at the end must leave the lineup.")
+        XCTAssertGreaterThanOrEqual(create.frame.height, 74)
+        XCUIRemote.shared.press(.up)
+        XCTAssertTrue(hasFocus(try XCTUnwrap(rows.last)), "Up must reenter at the last channel.")
+        for _ in 1..<rows.count { XCUIRemote.shared.press(.up) }
+        XCTAssertTrue(hasFocus(first))
+        XCUIRemote.shared.press(.up)
+        XCTAssertTrue(hasFocus(app.buttons["live-tv-automatic-retry"]), "Up at the start must leave the lineup.")
+        #else
+        throw XCTSkip("Never seeds libraries on a physical device.")
+        #endif
+    }
+
+    func testCustomChannelControlsUseSharedSizingAndIndependentLibraryChecks() throws {
+        #if targetEnvironment(simulator)
+        let app = launchChannelSettingsFixture()
+        defer { app.terminate() }
+        let create = app.buttons["live-tv-create-custom-channel"]
+        try focus(create, in: app)
+        capture("channel-create-action", in: app)
+        XCUIRemote.shared.press(.select)
+        let movies = app.switches["library-channel-movies"]
+        XCTAssertTrue(movies.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["Comedy preset"].exists)
+        for identifier in ["library-channel-icon", "library-channel-order"] {
+            let control = app.buttons[identifier]
+            try focus(control, in: app)
+            XCTAssertGreaterThanOrEqual(control.frame.height, 74)
+            XCTAssertEqual(control.frame.height, movies.frame.height, accuracy: 1)
+        }
+        capture("channel-editor-controls", in: app)
+        let order = app.buttons["library-channel-order"]
+        for title in ["Movies", "Shows in episode order"] {
+            try focus(order, in: app)
+            XCUIRemote.shared.press(.select)
+            let option = app.cells.containing(.any, identifier: title).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            let applied = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    app.switches["library-channel-episodes"].isEnabled == (title != "Movies")
+                }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [applied], timeout: 5), .completed)
+        }
+        let icon = app.buttons["library-channel-icon"]
+        try focus(icon, in: app)
+        XCUIRemote.shared.press(.select)
+        let favorite = app.cells.containing(.any, identifier: "Favorites").firstMatch
+        XCTAssertTrue(favorite.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(favorite, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(icon.label.contains("Favorites") || icon.staticTexts["Favorites"].exists)
+        let libraries = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "library-channel-source-")
+        ).allElementsBoundByIndex
+        XCTAssertEqual(libraries.count, 2, "Both provider libraries must be available.")
+        for library in libraries {
+            try focus(library, in: app)
+            XCTAssertGreaterThanOrEqual(library.frame.height, 74)
+            XCTAssertFalse(library.isSelected)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(library.isSelected)
+        }
+        let first = try XCTUnwrap(libraries.first)
+        try focus(first, in: app)
+        capture("channel-source-libraries", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertFalse(first.isSelected)
+        XCTAssertTrue(try XCTUnwrap(libraries.last).isSelected, "Changing one library must preserve the other.")
+        let preview = app.buttons["library-channel-preview-save"]
+        try focus(preview, in: app)
+        XCTAssertGreaterThanOrEqual(preview.frame.height, 74)
+        capture("channel-editor-rules", in: app)
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(create)
+        #else
+        throw XCTSkip("Never seeds libraries on a physical device.")
+        #endif
+    }
+
+    private func launchChannelSettingsFixture() -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--channel-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.buttons["live-tv-create-custom-channel"].waitForExistence(timeout: 15),
+                      app.debugDescription)
+        return app
+    }
+
     private func launchSourcesNavigationFixture() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")

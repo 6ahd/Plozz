@@ -1,6 +1,5 @@
 #if canImport(SwiftUI)
 import SwiftUI
-import CoreUI
 
 /// One focusable, checkable row for the Settings detail pane — a leading optional
 /// icon, a title, and a trailing checkmark shown when `isChecked`.
@@ -14,7 +13,7 @@ import CoreUI
 /// for child rows — matching selector rows of the same prominence.
 /// Subtitles use the shared focus-aware secondary style to remain readable on
 /// the inverted focus background.
-struct SettingsCheckableRow: View {
+public struct SettingsCheckableRow: View {
     let title: Text
     var subtitle: Text? = nil
     var titleLineLimit: Int? = 1
@@ -32,8 +31,29 @@ struct SettingsCheckableRow: View {
     /// inside a bordered card so the focus card nests concentrically instead of
     /// hugging the card's border. Default true (flush-left, for split panes).
     var flushLeading: Bool = true
+    var size: SettingsRowSize = .standard
     let action: () -> Void
     @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
+
+    public init(
+        title: Text, subtitle: Text? = nil, titleLineLimit: Int? = 1,
+        subtitleLineLimit: Int? = 2, icon: String? = nil, isChecked: Bool,
+        isEnabled: Bool = true, prominence: SettingsRowProminence = .primary,
+        flushLeading: Bool = true, size: SettingsRowSize = .standard,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.titleLineLimit = titleLineLimit
+        self.subtitleLineLimit = subtitleLineLimit
+        self.icon = icon
+        self.isChecked = isChecked
+        self.isEnabled = isEnabled
+        self.prominence = prominence
+        self.flushLeading = flushLeading
+        self.size = size
+        self.action = action
+    }
 
     // ``SettingsRowLabel`` insets content horizontally; cancel the leading inset
     // (unless `flushLeading` is off) so titles line up flush-left with the pane
@@ -53,7 +73,7 @@ struct SettingsCheckableRow: View {
     private var minRowHeight: CGFloat { SettingsRowMetrics.minHeight(prominence) }
     private var verticalPadding: CGFloat { SettingsRowMetrics.verticalPadding(prominence) }
 
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             HStack(spacing: rowSpacing) {
                 if let icon {
@@ -82,7 +102,7 @@ struct SettingsCheckableRow: View {
             .contentShape(Rectangle())
             .opacity(isEnabled ? 1 : 0.35)
         }
-        .buttonStyle(SettingsFocusButtonStyle())
+        .buttonStyle(SettingsFocusButtonStyle(size: size))
         .disabled(!isEnabled)
         .padding(.leading, flushLeading && groupFlushLeading ? -labelInset : 0)
         .accessibilityAddTraits(isChecked ? .isSelected : [])

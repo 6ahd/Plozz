@@ -6,6 +6,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`SettingsCheckableRow` is shared by Settings and channel-library selection.
+Its prominence controls the common row metrics; `.contained` keeps focus inside
+a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu
+height, while `SettingsMenuLabel` and `SettingsDisclosureLabel` remain padding-free.
+
 `ChannelLogoArtwork` renders generated Plozz channels with the shared Byline
 layout: a name-first title and inset pixel-mascot signature. Its optional
 `LibraryChannelArtworkMood` comes from channel rules, not display-name guessing.
