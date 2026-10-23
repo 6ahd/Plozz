@@ -148,6 +148,7 @@ struct LiveTVShellDestination: View {
                 title: playback.channel.name,
                 input: playback.input,
                 logoURL: playback.channel.logoURL,
+                plozzChannelMood: playback.channel.plozzChannelMood,
                 makeEngine: {
                     library.makeEngine(
                         engine: try PlozzigenVideoEngine(
@@ -238,7 +239,7 @@ struct LiveTVShellSourcesDestination: View {
     }
 }
 
-private struct LiveTVShellSourcesContent: View {
+struct LiveTVShellSourcesContent: View {
     let runtime: LiveTVSourcesRuntime
     let library: LiveTVLibraryRuntime
     let accounts: AccountsProvidersModel
@@ -267,18 +268,10 @@ private struct LiveTVShellSourcesContent: View {
                 )
             }
         }
-        .navigationDestination(isPresented: $managesChannels) {
-            if runtime.isPresentationCurrent {
-                LibraryChannelManagementView(
-                    service: library.service, history: library.history, prepareLibraries: library.prepareForEditing,
-                    automaticChannels: library.automaticChannelsPresentation)
-            } else {
-                ContentUnavailableView(
-                    "Profile access changed", systemImage: "lock",
-                    description: Text("Reopen Sources to continue."))
-            }
+        .settingsPageDestination(isPresented: $managesChannels) {
+            LiveTVShellLibraryChannelsDestination(runtime: runtime, library: library)
         }
-        .navigationDestination(isPresented: $scansChannels) {
+        .settingsPageDestination(isPresented: $scansChannels) {
             LiveTVSourcesScanView(runtime: runtime) {
                 LiveTVScanSourcesView(
                     coordinator: runtime.scanBinding.coordinator,
@@ -292,6 +285,23 @@ private struct LiveTVShellSourcesContent: View {
             managesChannels = false
             scansChannels = false
             scanOfferSourceID = nil
+        }
+    }
+}
+
+private struct LiveTVShellLibraryChannelsDestination: View {
+    let runtime: LiveTVSourcesRuntime
+    let library: LiveTVLibraryRuntime
+
+    var body: some View {
+        if runtime.isPresentationCurrent {
+            LibraryChannelManagementView(
+                service: library.service, history: library.history, prepareLibraries: library.prepareForEditing,
+                automaticChannels: library.automaticChannelsPresentation)
+        } else {
+            ContentUnavailableView(
+                "Profile access changed", systemImage: "lock",
+                description: Text("Reopen Sources to continue."))
         }
     }
 }

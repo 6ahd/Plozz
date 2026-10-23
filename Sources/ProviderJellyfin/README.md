@@ -88,18 +88,22 @@ remain intact. Ordinary Home Next Up requests continue excluding resumable
 episodes. This does not bypass excluded libraries or change server-owned
 minimum-resume thresholds.
 
-AIOStreams is the explicit exception to library-filtered Home history. Its
-`/System/Info/Public` extension (`aiostreams.features.history`) identifies
-account-wide watch state that cannot be attributed to its virtual catalogs.
-For that verified server identity, combined Continue Watching, resume-only Home,
-and account-wide native Resume/Next Up rows stay unfiltered even when some or all
-catalogs are disabled. Returned history is not stamped with an invented library.
-Catalog visibility still controls browsing and catalog-specific rows; active
-account, server-user, and profile boundaries remain unchanged.
-Ordinary Jellyfin/Emby retain library filtering. Empty feeds, display names,
-URLs, and advertised Jellyfin version numbers never enable this exception.
-Capability results are kept only for the current provider session; a missing
-endpoint retains ordinary scoping, while other failures and cancellation propagate.
+Library availability applies uniformly to combined Continue Watching, resume-only
+Home, and provider-style Resume/Next Up rows on Jellyfin and Emby. Disabled
+libraries do not contribute history. Scoped requests use the standard `ParentId`
+parameter and stamp the returned items with that library; `nil` scope retains the
+server-owned unscoped feed, while an empty scope makes no history requests.
+The synthetic Collections directory is never treated as a media library.
+This is separate from hiding a navigation tile or an individual Home row.
+
+No server-specific capability can override library availability, and an empty
+scoped feed never triggers an unscoped retry. A compatible server that cannot
+return library-scoped history may therefore show an empty row when libraries
+are disabled. History requests do not need a separate system-info probe.
+Account, server-user, and profile boundaries, independent-endpoint error handling,
+and cancellation remain unchanged. `JellyfinHistoryVisibilityTests` covers these
+scope rules for both providers, alongside the library-scoping and Home-layout
+suites.
 
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not
@@ -149,9 +153,8 @@ This does not scan or cap the library; empty, all-Z and non-Latin libraries rema
 valid. The compatibility result is logged without server or library identifiers.
 
 This handles virtual catalogs without matching profile names, hosts or server
-branding. For example, [AIOStreams' library handler](https://github.com/Viren070/AIOStreams/blob/6ca32ed21e3036d87c35c49b24f2cf507d065ed1/packages/server/src/routes/jellyfin/library.ts)
-clamps `Limit` to at least one, preserves catalog order and does not implement
-`NameLessThan`/`NameStartsWith` counts. Its page totals are not alphabet offsets.
+branding. Catalog page totals are not alphabet offsets when the endpoint ignores
+count-only requests or the `NameLessThan`/`NameStartsWith` predicates.
 The result applies only to that scoped request; another library or refresh can
 still supply an index. No unsupported flag is persisted on the profile/account.
 
@@ -214,7 +217,7 @@ browsing, only that explicitly remote single-source case requests the inventory.
 version retains its original source ID and its own technical/audio-language
 facts; generic item streams must not overwrite the real default source.
 The playback gate uses `playbackItem(id:)`, which always requests this inventory
-for movies and episodes and requires it to succeed. Add-on servers can resolve
+for movies and episodes and requires it to succeed. Compatible servers can resolve
 their streams lazily at this endpoint; item-detail source counts and `IsRemote`
 flags do not establish completeness, even after an earlier playback.
 Browsing can retain lightweight metadata after a failed inventory request, but
@@ -351,11 +354,8 @@ server user or a server-filtered subset. Do not enumerate library media and
 collection members to impose stricter client-side filtering.
 
 Compatible endpoints can serve virtual catalogs rather than indexed local media.
-[AIOMetadata's Jellyfin server](https://github.com/cedya77/aiometadata/blob/dev/docs/jellyfin.md)
-and [AIOStreams' Jellyfin server](https://github.com/Viren070/AIOStreams/blob/main/packages/docs/content/docs/reference/jellyfin-extensions.mdx)
-are separate implementations, even when AIOStreams uses AIOMetadata as an addon.
 Use verified endpoint capabilities and response contracts for optimizations;
-neither an addon name nor a server version establishes collection scoping.
+neither server branding nor a server version establishes collection scoping.
 
 The compatible strategy reads only the BoxSet list in 500-item pages, retaining
 primary image tags. Collection-list responses are much smaller than full media

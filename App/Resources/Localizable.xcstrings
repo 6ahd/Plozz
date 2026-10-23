@@ -180483,6 +180483,226 @@
         }
       }
     },
+    "Change anytime in Settings > Help & Diagnostics." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك تغيير اختيارك في أي وقت من الإعدادات > المساعدة والتشخيص."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете да промените избора си по всяко време в Настройки > Помощ и диагностика."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pots canviar l’opció en qualsevol moment a Configuració > Ajuda i diagnòstics."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volbu můžete kdykoli změnit v Nastavení > Nápověda a diagnostika."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan altid ændre dit valg i Indstillinger > Hjælp og diagnostik."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst deine Auswahl jederzeit unter Einstellungen > Hilfe & Diagnose ändern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αλλάξτε την επιλογή σας οποιαδήποτε στιγμή στις Ρυθμίσεις > Βοήθεια και διαγνωστικά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puedes cambiarlo cuando quieras en Ajustes > Ayuda y diagnóstico."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هر زمان بخواهید می‌توانید انتخاب خود را در تنظیمات > کمک و تشخیص‌ها تغییر دهید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit muuttaa valintaa milloin tahansa kohdassa Asetukset > Ohjeet ja diagnostiikka."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez changer d’avis à tout moment dans Réglages > Aide et diagnostics."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר לשנות את הבחירה בכל עת בהגדרות > עזרה ואבחון."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कभी भी सेटिंग्स > सहायता और डायग्नोस्टिक्स में बदलें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Promijenite bilo kada u odjeljku Postavke > Pomoć i dijagnostika."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bármikor módosítható itt: Beállítások > Súgó és diagnosztika."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ubah kapan saja di Pengaturan > Bantuan & Diagnostik."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi modificare la scelta in qualsiasi momento in Impostazioni > Assistenza e diagnostica."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "設定 > ヘルプと診断でいつでも変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "설정 > 도움말 및 진단에서 언제든지 변경할 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Boleh diubah pada bila-bila masa dalam Tetapan > Bantuan & Diagnostik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan endres når som helst i Innstillinger > Hjelp og diagnostikk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt dit altijd wijzigen in Instellingen > Hulp en diagnostiek."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz to zmienić w dowolnej chwili w sekcji Ustawienia > Pomoc i diagnostyka."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Altere quando quiser em Ajustes > Ajuda e diagnóstico."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți modifica oricând opțiunea în Setări > Ajutor și diagnosticare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можно изменить в любой момент в разделе «Настройки» > «Помощь и диагностика»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voľbu môžete kedykoľvek zmeniť v časti Nastavenia > Pomoc a diagnostika."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "To lahko kadar koli spremenite v razdelku Nastavitve > Pomoč in diagnostika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Možete promeniti u bilo kom trenutku u odeljku Podešavanja > Pomoć i dijagnostika."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan ändra detta när som helst under Inställningar > Hjälp och diagnostik."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปลี่ยนได้ทุกเมื่อในการตั้งค่า > ความช่วยเหลือและการวินิจฉัย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayarlar > Yardım ve tanılama bölümünden istediğiniz zaman değiştirebilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Змінити вибір можна будь-коли в меню Налаштування > Допомога й діагностика."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn có thể thay đổi bất cứ lúc nào trong Cài đặt > Hỗ trợ & Chẩn đoán."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可随时在“设置 > 帮助与诊断”中更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可隨時在「設定 > 說明與診斷」中更改。"
+          }
+        }
+      }
+    },
     "Change quality" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -216033,6 +216253,7 @@
       }
     },
     "Comedy preset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -246438,6 +246659,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "無法儲存 Seerr 連線。"
+          }
+        }
+      }
+    },
+    "Couldn’t save the sign-in. Your existing connection has not been removed. Try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر حفظ تسجيل الدخول. لم تتم إزالة اتصالك الحالي. حاول مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Входът не можа да бъде запазен. Съществуващата ви връзка не е премахната. Опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’ha pogut desar l’inici de sessió. No s’ha eliminat la connexió existent. Torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Přihlášení se nepodařilo uložit. Stávající připojení nebylo odstraněno. Zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Login kunne ikke gemmes. Din eksisterende forbindelse er ikke blevet fjernet. Prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Anmeldung konnte nicht gespeichert werden. Deine bestehende Verbindung wurde nicht entfernt. Versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η αποθήκευση της σύνδεσης. Η υπάρχουσα σύνδεσή σας δεν έχει αφαιρεθεί. Δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo guardar el inicio de sesión. No se ha eliminado tu conexión existente. Inténtalo de nuevo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ذخیرهٔ ورود ممکن نشد. اتصال فعلی شما حذف نشده است. دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjautumista ei voitu tallentaa. Nykyistä yhteyttäsi ei ole poistettu. Yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible d’enregistrer la connexion. Votre connexion existante n’a pas été supprimée. Réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה לשמור את ההתחברות. החיבור הקיים שלך לא הוסר. נסה שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "साइन इन सहेजा नहीं जा सका। आपका मौजूदा कनेक्शन हटाया नहीं गया है। फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavu nije bilo moguće spremiti. Postojeća veza nije uklonjena. Pokušaj ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A bejelentkezést nem sikerült menteni. A meglévő kapcsolat nem lett eltávolítva. Próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak dapat menyimpan sesi masuk. Koneksi yang ada tidak dihapus. Coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile salvare l’accesso. La connessione esistente non è stata rimossa. Riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サインイン情報を保存できませんでした。既存の接続は削除されていません。もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "로그인 정보를 저장하지 못했습니다. 기존 연결은 삭제되지 않았습니다. 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log masuk tidak dapat disimpan. Sambungan sedia ada anda tidak dialih keluar. Cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke lagre påloggingen. Den eksisterende tilkoblingen din er ikke fjernet. Prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De aanmelding kon niet worden opgeslagen. Je bestaande verbinding is niet verwijderd. Probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się zapisać danych logowania. Istniejące połączenie nie zostało usunięte. Spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível salvar o login. Sua conexão existente não foi removida. Tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conectarea nu a putut fi salvată. Conexiunea existentă nu a fost eliminată. Încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось сохранить данные входа. Существующее подключение не удалено. Повторите попытку."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prihlásenie sa nepodarilo uložiť. Existujúce pripojenie nebolo odstránené. Skúste to znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijave ni bilo mogoče shraniti. Obstoječa povezava ni bila odstranjena. Poskusi znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijava nije mogla da se sačuva. Postojeća veza nije uklonjena. Pokušaj ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det gick inte att spara inloggningen. Din befintliga anslutning har inte tagits bort. Försök igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บันทึกการลงชื่อเข้าใช้ไม่สำเร็จ การเชื่อมต่อเดิมของคุณไม่ได้ถูกลบ โปรดลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oturum açma bilgileri kaydedilemedi. Mevcut bağlantınız kaldırılmadı. Tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося зберегти дані входу. Наявне підключення не видалено. Спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể lưu thông tin đăng nhập. Kết nối hiện có của bạn không bị xóa. Hãy thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法保存登录信息。现有连接未被移除。请重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法儲存登入資訊。現有連線並未移除。請再試一次。"
           }
         }
       }
@@ -278001,6 +278442,226 @@
         }
       }
     },
+    "Don't Share" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عدم الإرسال"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не изпращай"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No enviïs"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neodesílat"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send ikke"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nicht senden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Να μη σταλούν"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No enviar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال نشود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Älä lähetä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne pas envoyer"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא לשלוח"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "न भेजें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne šalji"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem küldök"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jangan Kirim"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non inviare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "送信しない"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "보내지 않기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jangan Hantar"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikke send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niet versturen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie wysyłaj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não enviar"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu trimite"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не отправлять"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neposielať"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne pošiljaj"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne šalji"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka inte"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่ส่ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gönderme"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не надсилати"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không gửi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不发送"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不傳送"
+          }
+        }
+      }
+    },
     "Don't include passwords or access tokens in this template." : {
       "localizations" : {
         "ar" : {
@@ -301690,6 +302351,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "啟用頻道"
+          }
+        }
+      }
+    },
+    "Enable for" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تفعيل حسب النوع"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Включване за"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activa per a"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povolit pro"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktivér for"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktivieren für"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ενεργοποίηση για"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activar para"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فعال‌سازی برای"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ota käyttöön seuraaville"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activer pour"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפעלה עבור"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इनके लिए चालू करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogući za"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Engedélyezés ezeknél"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktifkan untuk"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abilita per"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有効にする対象"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "적용 대상"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktifkan untuk"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktiver for"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inschakelen voor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Włącz dla"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ativar para"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activează pentru"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Включить для"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povoliť pre"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogoči za"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogući za"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktivera för"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดใช้สำหรับ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Şunlar için etkinleştir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увімкнути для"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bật cho"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "启用范围"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "啟用範圍"
+          }
+        }
+      }
+    },
+    "Enable skipping" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تفعيل التخطي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Включване на пропускането"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Permet ometre"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povolit přeskakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktivér overspringning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Überspringen aktivieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ενεργοποίηση παράλειψης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activar saltos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فعال‌سازی پرش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ota ohitus käyttöön"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activer le saut de séquences"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפעלת דילוג"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्किप करना चालू करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogući preskakanje"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kihagyás engedélyezése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktifkan fitur Lewati"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Consenti di saltare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スキップを有効にする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "건너뛰기 사용"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktifkan fungsi langkau"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktiver overhopping"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Overslaan inschakelen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Włącz pomijanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ativar opção de pular"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activează omiterea"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Включить пропуск"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povoliť preskakovanie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogoči preskakovanje"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omogući preskakanje"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktivera överhoppning"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดใช้การข้าม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Atlamayı etkinleştir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увімкнути пропуск"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bật tính năng bỏ qua"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "启用跳过"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "啟用跳過"
           }
         }
       }
@@ -341460,6 +342561,226 @@
         }
       }
     },
+    "From IntroDB and TheIntroDB when your server has none. Shares IMDb/TMDB IDs." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جلب علامات التخطي من IntroDB وTheIntroDB عند عدم توفرها على خادمك. تتم مشاركة معرّفات IMDb/TMDB."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Маркери от IntroDB и TheIntroDB, когато сървърът ви няма такива. Споделят се идентификатори от IMDb/TMDB."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Marcadors d'IntroDB i TheIntroDB quan el servidor no en té. Es comparteixen els identificadors d'IMDb/TMDB."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Značky z IntroDB a TheIntroDB, pokud je váš server nemá. Sdílí se identifikátory IMDb/TMDB."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Markører fra IntroDB og TheIntroDB, når din server ikke har nogen. IMDb/TMDB-id'er deles."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Markierungen von IntroDB und TheIntroDB, wenn dein Server keine hat. Dabei werden IMDb/TMDB-IDs übermittelt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Λαμβάνει δείκτες από το IntroDB και το TheIntroDB όταν δεν υπάρχουν στον διακομιστή σας. Αποστέλλει αναγνωριστικά IMDb/TMDB."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obtiene marcadores de IntroDB y TheIntroDB cuando tu servidor no los tiene. Comparte los ID de IMDb/TMDB."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اگر سرور شما نشانگری نداشته باشد، نشانگرها را از IntroDB و TheIntroDB دریافت می‌کند. شناسه‌های IMDb/TMDB ارسال می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hakee merkinnät IntroDB:stä ja TheIntroDB:stä, jos palvelimellasi ei ole niitä. Lähettää IMDb-/TMDB-tunnisteet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Marqueurs fournis par IntroDB et TheIntroDB si votre serveur n’en fournit pas. Partage les identifiants IMDb/TMDB."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "קבלת סמנים מ־IntroDB ומ־TheIntroDB כשאין כאלה בשרת שלך. מזהי IMDb/TMDB נשלחים לשירותים אלה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सर्वर पर मार्कर न होने पर IntroDB और TheIntroDB से लिए जाते हैं। IMDb/TMDB आईडी साझा की जाती हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preuzima oznake s IntroDB i TheIntroDB ako ih vaš poslužitelj nema. Dijeli IMDb/TMDB identifikatore."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ha a szerveren nincsenek jelölők, az IntroDB és a TheIntroDB jelölőit használja. Megosztja az IMDb/TMDB-azonosítókat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mengambil penanda dari IntroDB dan TheIntroDB jika server Anda tidak memilikinya. Membagikan ID IMDb/TMDB."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Recupera i marcatori da IntroDB e TheIntroDB se il server non ne ha. Condivide gli ID IMDb/TMDB."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サーバーにマーカーがない場合、IntroDBとTheIntroDBから取得します。IMDb/TMDBのIDを共有します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서버에 마커가 없으면 IntroDB와 TheIntroDB에서 가져옵니다. IMDb/TMDB ID가 전송됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mendapatkan penanda daripada IntroDB dan TheIntroDB jika pelayan anda tiada penanda. ID IMDb/TMDB dikongsi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Henter markører fra IntroDB og TheIntroDB når serveren din ikke har noen. Deler IMDb/TMDB-ID-er."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Haalt markeringen op bij IntroDB en TheIntroDB als je server er geen heeft. Deelt IMDb/TMDB-ID’s."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pobiera znaczniki z IntroDB i TheIntroDB, gdy nie ma ich na twoim serwerze. Udostępnia identyfikatory IMDb/TMDB."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obtém marcadores do IntroDB e do TheIntroDB quando não há nenhum no seu servidor. Compartilha IDs do IMDb/TMDB."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De la IntroDB și TheIntroDB dacă serverul nu are marcaje. Trimite identificatorii IMDb/TMDB."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Из IntroDB и TheIntroDB, если на сервере нет маркеров. Передаются идентификаторы IMDb/TMDB."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z IntroDB a TheIntroDB, ak server nemá značky. Odosielajú sa identifikátory IMDb/TMDB."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iz IntroDB in TheIntroDB, če strežnik nima oznak. Pošiljajo se identifikatorji IMDb/TMDB."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oznake sa IntroDB i TheIntroDB ako ih server nema. Šalju se IMDb/TMDB identifikatori."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Från IntroDB och TheIntroDB om servern saknar markörer. Skickar IMDb/TMDB-ID:n."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "รับเครื่องหมายจาก IntroDB และ TheIntroDB เมื่อเซิร์ฟเวอร์ของคุณไม่มี โดยจะส่งรหัส IMDb/TMDB"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sunucunuzda işaretçi yoksa IntroDB ve TheIntroDB'den alınır. IMDb/TMDB kimlikleri paylaşılır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Маркери з IntroDB і TheIntroDB, якщо їх немає на вашому сервері. Передаються ідентифікатори IMDb/TMDB."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lấy điểm đánh dấu từ IntroDB và TheIntroDB khi máy chủ của bạn không có. Chia sẻ ID IMDb/TMDB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "服务器没有标记时，从 IntroDB 和 TheIntroDB 获取。会发送 IMDb/TMDB ID。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "伺服器沒有標記時，從 IntroDB 和 TheIntroDB 取得。會傳送 IMDb/TMDB ID。"
+          }
+        }
+      }
+    },
     "From another device" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -358725,6 +360046,226 @@
         }
       }
     },
+    "Help improve Plozz?" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هل تود المساعدة في تحسين Plozz؟"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ще помогнете ли да подобрим Plozz?"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vols ajudar a millorar Plozz?"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomůžete vylepšit Plozz?"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vil du hjælpe med at forbedre Plozz?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Möchtest du helfen, Plozz zu verbessern?"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Θέλετε να βοηθήσετε στη βελτίωση του Plozz;"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Quieres ayudar a mejorar Plozz?"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "می‌خواهید به بهبود Plozz کمک کنید؟"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Autatko parantamaan Plozzia?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aider à améliorer Plozz ?"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לעזור לשפר את Plozz?"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz को बेहतर बनाने में मदद करेंगे?"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite li pomoći poboljšati Plozz?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Segít a Plozz fejlesztésében?"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingin membantu meningkatkan Plozz?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vuoi contribuire a migliorare Plozz?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozzの改善に協力しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz 개선에 참여하시겠어요?"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingin membantu menambah baik Plozz?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vil du bidra til å forbedre Plozz?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz helpen verbeteren?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chcesz pomóc ulepszyć Plozz?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quer ajudar a melhorar o Plozz?"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ne ajuți să îmbunătățim Plozz?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Помочь улучшить Plozz?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomôžete zlepšiť Plozz?"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite pomagati izboljšati Plozz?"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite da pomognete da Plozz bude bolji?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vill du hjälpa till att förbättra Plozz?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ช่วยปรับปรุง Plozz ไหม?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz'u iyileştirmeye yardımcı olur musunuz?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Допоможете покращити Plozz?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giúp cải thiện Plozz?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "愿意帮助改进 Plozz 吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "願意協助改善 Plozz 嗎？"
+          }
+        }
+      }
+    },
     "Hero" : {
       "comment" : "Section title in Home customization settings for enabling and configuring the featured hero banner.",
       "localizations" : {
@@ -367988,6 +369529,7 @@
       }
     },
     "How Plozz picks the audio language when a title offers more than one — with optional per-content-type rules and per-series memory." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -373947,6 +375489,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Plex、Jellyfin 或 Emby 提供的圖片，以及網路共享資料夾中與媒體檔案存放在一起的圖片檔案。也包含你在伺服器上選定的圖片。"
+          }
+        }
+      }
+    },
+    "Immediately" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فورًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Веднага"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Immediatament"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ihned"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Straks"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sofort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αμέσως"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inmediatamente"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بلافاصله"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Heti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Immédiatement"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מיד"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "तुरंत"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odmah"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Azonnal"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Langsung"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Subito"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "すぐに"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "즉시"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serta-merta"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Umiddelbart"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Onmiddellijk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Natychmiast"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imediatamente"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imediat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сразу"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Okamžite"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takoj"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odmah"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direkt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ทันที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hemen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Одразу"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ngay lập tức"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "立即"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "立即"
           }
         }
       }
@@ -429657,6 +431419,7 @@
       }
     },
     "Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -507143,6 +508906,226 @@
         }
       }
     },
+    "Open GitHub repo" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فتح مستودع الشفرة على GitHub"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отваряне на хранилището в GitHub"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obre el repositori a GitHub"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otevřít repozitář na GitHubu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åbn kildekodelageret på GitHub"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-Repository öffnen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Άνοιγμα αποθετηρίου στο GitHub"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir repositorio en GitHub"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن مخزن کد در GitHub"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avaa GitHub-lähdekoodivarasto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouvrir le dépôt GitHub"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פתיחת מאגר הקוד ב־GitHub"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub रिपॉज़िटरी खोलें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori GitHub repozitorij"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-tároló megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka repositori GitHub"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apri il repository GitHub"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHubリポジトリを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 저장소 열기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka repositori GitHub"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åpne kodelageret på GitHub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub-repository openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otwórz repozytorium w serwisie GitHub"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir repositório no GitHub"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deschide depozitul de cod pe GitHub"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Открыть репозиторий на GitHub"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvoriť repozitár na platforme GitHub"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odpri repozitorij na platformi GitHub"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori repozitorijum na platformi GitHub"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Öppna kodarkivet på GitHub"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดคลังซอร์สโค้ดบน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub deposunu aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відкрити репозиторій на GitHub"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mở kho mã nguồn trên GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打开 GitHub 源代码仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開啟 GitHub 原始碼儲存庫"
+          }
+        }
+      }
+    },
     "Open Jellyfin on another device, choose **Quick Connect**, and enter this code." : {
       "localizations" : {
         "ar" : {
@@ -534718,6 +536701,7 @@
       }
     },
     "Play the next episode automatically." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -554763,6 +556747,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Plozz 會管理此頻道的排程。請使用「Plozz 頻道」開關控制自動頻道列表。"
+          }
+        }
+      }
+    },
+    "Plozz on GitHub" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz على GitHub"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz в GitHub"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz a GitHub"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na GitHubu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz auf GitHub"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το Plozz στο GitHub"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz en GitHub"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz در GitHub"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz GitHubissa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz sur GitHub"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz ב־GitHub"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub पर Plozz"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na GitHubu"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz a GitHubon"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz di GitHub"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz su GitHub"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub上のPlozz"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub의 Plozz"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz di GitHub"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz op GitHub"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz w serwisie GitHub"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz no GitHub"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz pe GitHub"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz на GitHub"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platforme GitHub"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platformi GitHub"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz na platformi GitHub"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz på GitHub"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz บน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub'da Plozz"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz на GitHub"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz trên GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 上的 Plozz"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "GitHub 上的 Plozz"
           }
         }
       }
@@ -591155,6 +593359,227 @@
         }
       }
     },
+    "Reconnect to %@" : {
+      "comment" : "Account-recovery heading. The placeholder is a provider name, such as Plex or Jellyfin.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إعادة الاتصال بـ %@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повторно свързване с %@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Torna a connectar amb %@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Znovu se připojit k %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opret forbindelse til %@ igen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Erneut mit %@ verbinden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Επανασύνδεση στο %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volver a conectar con %@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اتصال دوباره به %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yhdistä uudelleen: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se reconnecter à %@"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התחבר מחדש אל %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ से फिर कनेक्ट करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovno povezivanje: %@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Újracsatlakozás: %@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hubungkan kembali ke %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riconnettiti a %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@に再接続"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@에 다시 연결"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sambung semula ke %@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koble til %@ igjen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opnieuw verbinden met %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Połącz ponownie z %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reconectar a %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reconectare la %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подключиться к %@ заново"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Znova sa pripojiť k %@"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovna povezava: %@"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovo se poveži sa %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Återanslut till %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เชื่อมต่อกับ %@ อีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ bağlantısını yeniden kur"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Знову підключитися до %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kết nối lại với %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新连接到 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新連線至 %@"
+          }
+        }
+      }
+    },
     "Reconnect to view full details." : {
       "localizations" : {
         "ar" : {
@@ -601734,7 +604159,228 @@
         }
       }
     },
+    "Remember audio language per series" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تذكّر لغة الصوت لكل مسلسل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Запомняне на езика на аудиото за всеки сериал"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Recorda l'idioma de l'àudio per a cada sèrie"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pamatovat si jazyk zvuku pro každý seriál"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Husk lydsprog for hver serie"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audiosprache pro Serie merken"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Απομνημόνευση γλώσσας ήχου ανά σειρά"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Recordar idioma de audio por serie"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "به‌خاطر سپردن زبان صدا برای هر سریال"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Muista äänen kieli sarjakohtaisesti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mémoriser la langue audio par série"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שמירת שפת השמע לכל סדרה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हर सीरीज़ के लिए ऑडियो भाषा याद रखें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapamti jezik zvuka za svaku seriju"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A hang nyelvének megjegyzése sorozatonként"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingat bahasa audio per serial"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ricorda la lingua audio per ogni serie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "シリーズごとに音声言語を記憶する"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시리즈별 오디오 언어 기억"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingat bahasa audio mengikut siri"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Husk lydspråk per serie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audiotaal per serie onthouden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapamiętuj język ścieżki dźwiękowej dla każdego serialu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lembrar idioma do áudio por série"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reține limba audio pentru fiecare serial"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Запоминать язык аудио для каждого сериала"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapamätať si jazyk zvuku pre každý seriál"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapomni si jezik zvoka za vsako serijo"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapamti jezik zvuka za svaku seriju"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kom ihåg ljudspråk per serie"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "จดจำภาษาเสียงแยกตามซีรีส์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ses dilini her dizi için hatırla"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Запам’ятовувати мову аудіо для кожного серіалу"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ghi nhớ ngôn ngữ âm thanh cho từng phim bộ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "记住每部剧的音频语言"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "記住每部影集的音訊語言"
+          }
+        }
+      }
+    },
     "Remember audio per series" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -613948,6 +616594,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "回報問題"
+          }
+        }
+      }
+    },
+    "Reports include technical error details, app and device information, and diagnostics such as timing and memory use. They are sent to the developer through Sentry only when reporting is enabled." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تتضمن التقارير تفاصيل تقنية عن الأخطاء ومعلومات عن التطبيق والجهاز وبيانات تشخيصية مثل قياسات الوقت واستخدام الذاكرة. وتُرسل إلى المطوّر عبر Sentry فقط عند تفعيل إرسال التقارير."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отчетите включват технически подробности за грешките, информация за приложението и устройството, както и диагностични данни, като времеви измервания и използване на паметта. Те се изпращат до разработчика чрез Sentry само когато изпращането на отчети е включено."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Els informes inclouen detalls tècnics dels errors, informació de l’app i del dispositiu i dades de diagnòstic, com ara mesures de temps i ús de memòria. Només s’envien al desenvolupador a través de Sentry quan l’enviament d’informes està activat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hlášení obsahují technické podrobnosti o chybách, informace o aplikaci a zařízení a diagnostické údaje, například měření času a využití paměti. Hlášení se odesílají vývojáři přes Sentry pouze tehdy, když je odesílání hlášení zapnuté."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporterne indeholder tekniske fejloplysninger, oplysninger om appen og enheden samt diagnostik såsom tidsmålinger og hukommelsesforbrug. De sendes kun til udvikleren via Sentry, når rapportering er slået til."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Berichte enthalten technische Fehlerdetails, Informationen zur App und zum Gerät sowie Diagnosedaten wie Zeitmessungen und Speichernutzung. Sie werden nur dann über Sentry an den Entwickler gesendet, wenn das Senden von Berichten aktiviert ist."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι αναφορές περιλαμβάνουν τεχνικές λεπτομέρειες σφαλμάτων, πληροφορίες για την εφαρμογή και τη συσκευή, καθώς και διαγνωστικά δεδομένα, όπως μετρήσεις χρόνου και χρήση μνήμης. Αποστέλλονται στον προγραμματιστή μέσω του Sentry μόνο όταν η αποστολή αναφορών είναι ενεργοποιημένη."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los informes incluyen detalles técnicos de los errores, información de la app y del dispositivo y datos de diagnóstico, como mediciones de tiempo y uso de memoria. Solo se envían al desarrollador a través de Sentry cuando el envío de informes está activado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "گزارش‌ها شامل جزئیات فنی خطاها، اطلاعات برنامه و دستگاه و داده‌های عیب‌یابی مانند اندازه‌گیری زمان و میزان استفاده از حافظه هستند. این گزارش‌ها فقط زمانی از طریق Sentry برای توسعه‌دهنده فرستاده می‌شوند که ارسال گزارش فعال باشد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raportit sisältävät virheiden teknisiä tietoja, sovelluksen ja laitteen tietoja sekä diagnostiikkatietoja, kuten ajoitus- ja muistinkäyttötietoja. Ne lähetetään kehittäjälle Sentryn kautta vain, kun raportointi on käytössä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les rapports incluent des détails techniques sur les erreurs, des informations sur l’app et l’appareil, ainsi que des données de diagnostic comme des mesures de temps et l’utilisation de la mémoire. Ils sont envoyés au développeur via Sentry uniquement lorsque l’envoi de rapports est activé."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הדוחות כוללים פרטים טכניים על שגיאות, מידע על היישום והמכשיר ונתוני אבחון כגון מדידות זמן ושימוש בזיכרון. הם נשלחים למפתח דרך Sentry רק כאשר שליחת הדוחות מופעלת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "रिपोर्ट में त्रुटियों के तकनीकी विवरण, ऐप और डिवाइस की जानकारी, और प्रक्रियाओं में लगने वाले समय व मेमोरी के उपयोग जैसे डायग्नोस्टिक डेटा शामिल होते हैं। रिपोर्ट भेजना चालू होने पर ही इन्हें Sentry के ज़रिए डेवलपर को भेजा जाता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izvješća sadrže tehničke pojedinosti o pogreškama, informacije o aplikaciji i uređaju te dijagnostičke podatke poput trajanja operacija i upotrebe memorije. Šalju se razvojnom programeru putem servisa Sentry samo kada je slanje izvješća omogućeno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A jelentések a hibák technikai részleteit, az alkalmazás és az eszköz adatait, valamint diagnosztikai adatokat, például a műveletek időtartamát és a memóriahasználatot tartalmazzák. Csak akkor jutnak el a fejlesztőhöz a Sentry szolgáltatáson keresztül, ha a jelentésküldés engedélyezve van."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laporan mencakup detail teknis kesalahan, informasi aplikasi dan perangkat, serta data diagnostik seperti durasi proses dan penggunaan memori. Laporan dikirim kepada pengembang melalui Sentry hanya saat pelaporan diaktifkan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le segnalazioni includono dettagli tecnici sugli errori, informazioni sull’app e sul dispositivo e dati diagnostici come tempi di esecuzione e utilizzo della memoria. Vengono inviate allo sviluppatore tramite Sentry solo quando l’invio delle segnalazioni è abilitato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "レポートには、エラーの技術的な詳細、アプリやデバイスの情報、処理時間やメモリ使用量などの診断データが含まれます。レポート送信が有効な場合にのみ、Sentryを通じて開発者に送信されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "보고서에는 오류의 기술적 세부 정보, 앱 및 기기 정보, 소요 시간과 메모리 사용량 등의 진단 정보가 포함됩니다. 보고 기능을 켠 경우에만 Sentry를 통해 개발자에게 전송됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laporan merangkumi butiran teknikal tentang ralat, maklumat aplikasi dan peranti serta diagnostik seperti ukuran masa dan penggunaan memori. Laporan ini dihantar kepada pembangun melalui Sentry hanya apabila pelaporan diaktifkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapportene inneholder tekniske feildetaljer, app- og enhetsinformasjon og diagnostikk som tidsmålinger og minnebruk. De sendes til utvikleren via Sentry bare når rapportering er aktivert."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporten bevatten technische foutdetails, informatie over de app en het apparaat, en diagnostische gegevens zoals tijdmetingen en geheugengebruik. Ze worden alleen via Sentry naar de ontwikkelaar verstuurd als rapportage is ingeschakeld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raporty zawierają techniczne szczegóły błędów, informacje o aplikacji i urządzeniu oraz dane diagnostyczne, takie jak pomiary czasu i zużycie pamięci. Są wysyłane do dewelopera za pośrednictwem Sentry tylko wtedy, gdy raportowanie jest włączone."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os relatórios incluem detalhes técnicos dos erros, informações sobre o app e o dispositivo e dados de diagnóstico, como medições de tempo e uso de memória. Eles são enviados ao desenvolvedor pelo Sentry somente quando o envio de relatórios está ativado."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapoartele includ detalii tehnice despre erori, informații despre aplicație și dispozitiv, precum și date de diagnosticare, cum ar fi măsurători de timp și utilizarea memoriei. Sunt trimise dezvoltatorului prin Sentry doar când raportarea este activată."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отчёты содержат технические сведения об ошибках, информацию о приложении и устройстве, а также диагностические данные, например замеры времени и использования памяти. Они отправляются разработчику через Sentry только при включённой отправке отчётов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hlásenia obsahujú technické podrobnosti o chybách, informácie o aplikácii a zariadení a diagnostické údaje, napríklad časové merania a využitie pamäte. Vývojárovi sa posielajú cez Sentry iba vtedy, keď je odosielanie hlásení zapnuté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poročila vključujejo tehnične podrobnosti o napakah, podatke o aplikaciji in napravi ter diagnostične podatke, kot so časovne meritve in poraba pomnilnika. Razvijalcu se pošiljajo prek storitve Sentry samo, ko je poročanje omogočeno."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izveštaji sadrže tehničke detalje o greškama, podatke o aplikaciji i uređaju, kao i dijagnostičke podatke, poput merenja vremena i korišćenja memorije. Šalju se programeru putem servisa Sentry samo kada je slanje izveštaja uključeno."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rapporterna innehåller teknisk information om fel, app- och enhetsinformation samt diagnostik som tidsmätningar och minnesanvändning. De skickas till utvecklaren via Sentry endast när rapportering är aktiverad."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "รายงานประกอบด้วยรายละเอียดทางเทคนิคของข้อผิดพลาด ข้อมูลแอปและอุปกรณ์ และข้อมูลวินิจฉัย เช่น ระยะเวลาการทำงานและการใช้หน่วยความจำ รายงานจะส่งถึงผู้พัฒนาผ่าน Sentry เฉพาะเมื่อเปิดใช้การส่งรายงานเท่านั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Raporlar, teknik hata ayrıntıları, uygulama ve cihaz bilgileri ile süre ölçümleri ve bellek kullanımı gibi tanılama verileri içerir. Yalnızca raporlama etkin olduğunda Sentry üzerinden geliştiriciye gönderilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звіти містять технічні відомості про помилки, інформацію про застосунок і пристрій, а також діагностичні дані, як-от показники часу та використання пам’яті. Вони надсилаються розробнику через Sentry лише тоді, коли надсилання звітів увімкнено."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Báo cáo bao gồm chi tiết kỹ thuật về lỗi, thông tin ứng dụng và thiết bị, cùng dữ liệu chẩn đoán như thời gian xử lý và mức sử dụng bộ nhớ. Báo cáo chỉ được gửi đến nhà phát triển qua Sentry khi tính năng gửi báo cáo được bật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "报告包含错误相关的技术详情、应用和设备信息，以及耗时、内存使用情况等诊断数据。仅在开启报告发送功能时，才会通过 Sentry 将报告发送给开发者。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "報告包含與錯誤相關的技術細節、應用程式與裝置資訊，以及耗時、記憶體用量等診斷資料。僅在啟用報告傳送功能時，才會透過 Sentry 將報告傳送給開發者。"
           }
         }
       }
@@ -659406,6 +662272,226 @@
         }
       }
     },
+    "Scan to open the Plozz GitHub repo." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "امسح رمز QR لفتح مستودع Plozz على GitHub."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканирайте QR кода, за да отворите хранилището на Plozz в GitHub."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escaneja el codi QR per obrir el repositori de Plozz a GitHub."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naskenováním QR kódu otevřete repozitář Plozz na GitHubu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scan QR-koden for at åbne Plozz' kildekodelager på GitHub."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scanne den QR-Code, um das GitHub-Repository von Plozz zu öffnen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Σαρώστε τον κωδικό QR για να ανοίξετε το αποθετήριο του Plozz στο GitHub."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escanea el código QR para abrir el repositorio de Plozz en GitHub."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کد QR را اسکن کنید تا مخزن کد Plozz در GitHub باز شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skannaa QR-koodi avataksesi Plozzin lähdekoodivaraston GitHubissa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scannez le code QR pour ouvrir le dépôt GitHub de Plozz."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "סרקו את קוד ה־QR לפתיחת מאגר הקוד של Plozz ב־GitHub."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz की GitHub रिपॉज़िटरी खोलने के लिए QR कोड स्कैन करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte QR kod za otvaranje repozitorija aplikacije Plozz na GitHubu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Olvassa be a QR-kódot a Plozz GitHub-tárolójának megnyitásához."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pindai kode QR untuk membuka repositori GitHub Plozz."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scansiona il codice QR per aprire il repository GitHub di Plozz."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "PlozzのGitHubリポジトリを開くには、QRコードをスキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "QR 코드를 스캔하여 Plozz의 GitHub 저장소를 여세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imbas kod QR untuk membuka repositori Plozz di GitHub."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skann QR-koden for å åpne kodelageret til Plozz på GitHub."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scan de QR-code om de GitHub-repository van Plozz te openen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zeskanuj kod QR, aby otworzyć repozytorium Plozz w serwisie GitHub."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escaneie o código QR para abrir o repositório do Plozz no GitHub."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scanează codul pentru a deschide depozitul de cod Plozz de pe GitHub."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отсканируйте код, чтобы открыть репозиторий Plozz на GitHub."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naskenujte kód a otvorte repozitár Plozz na platforme GitHub."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte kodo, da odprete repozitorij Plozz na platformi GitHub."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skenirajte kod da otvorite repozitorijum Plozz na platformi GitHub."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skanna koden för att öppna Plozz kodarkiv på GitHub."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สแกนคิวอาร์โค้ดเพื่อเปิดคลังซอร์สโค้ดของ Plozz บน GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz'un GitHub deposunu açmak için QR kodunu tarayın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відскануйте QR-код, щоб відкрити репозиторій Plozz на GitHub."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quét mã QR để mở kho mã nguồn Plozz trên GitHub."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "扫描二维码，打开 Plozz 的 GitHub 源代码仓库。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "掃描 QR 碼，開啟 Plozz 的 GitHub 原始碼儲存庫。"
+          }
+        }
+      }
+    },
     "Scan to report\na bug" : {
       "localizations" : {
         "ar" : {
@@ -678996,6 +682082,226 @@
         }
       }
     },
+    "Send diagnostics when something goes wrong to help improve reliability and performance." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أرسل بيانات التشخيص عند حدوث مشكلة للمساعدة في تحسين الموثوقية والأداء."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращайте диагностични данни при проблем, за да помогнете за подобряването на надеждността и производителността."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envia dades de diagnòstic quan hi hagi algun problema per ajudar a millorar la fiabilitat i el rendiment."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílejte diagnostické údaje při potížích a pomozte zlepšit spolehlivost a výkon."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostik, når noget går galt, for at hjælpe med at forbedre pålidelighed og ydeevne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sende Diagnosedaten, wenn etwas schiefläuft, um Zuverlässigkeit und Leistung zu verbessern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Στείλτε διαγνωστικά δεδομένα όταν προκύπτει κάποιο πρόβλημα, για να βοηθήσετε στη βελτίωση της αξιοπιστίας και της απόδοσης."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envía datos de diagnóstico cuando algo falle para ayudar a mejorar la fiabilidad y el rendimiento."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هنگام بروز مشکل، اطلاعات عیب‌یابی را ارسال کنید تا به بهبود قابلیت اطمینان و عملکرد کمک کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetä diagnostiikkatietoja ongelmatilanteissa, jotta sovelluksen luotettavuutta ja suorituskykyä voidaan parantaa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoyez des données de diagnostic en cas de problème pour aider à améliorer la fiabilité et les performances."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שלחו נתוני אבחון כשמשהו משתבש כדי לעזור לשפר את האמינות והביצועים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समस्या होने पर डायग्नोस्टिक डेटा भेजकर विश्वसनीयता और परफ़ॉर्मेंस बेहतर बनाने में मदद करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošaljite dijagnostičke podatke kada nešto pođe po zlu kako biste pomogli poboljšati pouzdanost i performanse."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiba esetén küldjön diagnosztikai adatokat, hogy segítsen javítani a megbízhatóságot és a teljesítményt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirim data diagnostik saat terjadi masalah untuk membantu meningkatkan keandalan dan kinerja."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Invia dati diagnostici quando qualcosa va storto per contribuire a migliorare affidabilità e prestazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "問題が発生したときに診断データを送信して、信頼性とパフォーマンスの向上にご協力ください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "문제가 발생했을 때 진단 정보를 보내 안정성과 성능을 개선하는 데 도움을 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hantar diagnostik apabila berlaku masalah untuk membantu meningkatkan kebolehpercayaan dan prestasi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostikk når noe går galt, for å bidra til bedre pålitelighet og ytelse."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstuur diagnostische gegevens als er iets misgaat om de betrouwbaarheid en prestaties te helpen verbeteren."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłaj dane diagnostyczne, gdy wystąpi problem, aby pomóc poprawić niezawodność i wydajność."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envie dados de diagnóstico quando algo der errado para ajudar a melhorar a confiabilidade e o desempenho."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimite date de diagnosticare când ceva nu funcționează corect, pentru a ajuta la îmbunătățirea fiabilității și performanței."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправляйте диагностические данные при возникновении проблем, чтобы помочь повысить надёжность и производительность."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posielajte diagnostické údaje, keď sa niečo pokazí, a pomôžte zlepšiť spoľahlivosť a výkon."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ko gre kaj narobe, pošljite diagnostične podatke in pomagajte izboljšati zanesljivost in zmogljivost."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šaljite dijagnostičke podatke kada nešto pođe po zlu kako biste pomogli da se poboljšaju pouzdanost i performanse."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka diagnostik när något går fel för att hjälpa till att förbättra tillförlitlighet och prestanda."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งข้อมูลวินิจฉัยเมื่อเกิดปัญหา เพื่อช่วยปรับปรุงความเสถียรและประสิทธิภาพ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Güvenilirliği ve performansı iyileştirmeye yardımcı olmak için sorun oluştuğunda tanılama verilerini gönderin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилайте діагностичні дані в разі проблем, щоб допомогти покращити надійність і продуктивність."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gửi dữ liệu chẩn đoán khi có sự cố để giúp cải thiện độ ổn định và hiệu suất."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "出现问题时发送诊断数据，帮助提高可靠性和性能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "發生問題時傳送診斷資料，協助改善可靠性與效能。"
+          }
+        }
+      }
+    },
     "Send recent app logs to help diagnose a problem. Logins, servers, and media titles are excluded." : {
       "localizations" : {
         "ar" : {
@@ -679873,6 +683179,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "已傳送"
+          }
+        }
+      }
+    },
+    "Sent through Sentry. No logins, server addresses, or viewing history." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تُرسل عبر Sentry. لا تتضمن بيانات تسجيل الدخول أو عناوين الخوادم أو سجل المشاهدة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращат се чрез Sentry. Без данни за вход, адреси на сървъри или история на гледане."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’envien a través de Sentry. Sense credencials d’accés, adreces de servidors ni historial de visualitzacions."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesíláno přes Sentry. Bez přihlašovacích údajů, adres serverů a historie sledování."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sendes via Sentry. Ingen loginoplysninger, serveradresser eller visningshistorik."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Über Sentry gesendet. Ohne Anmeldedaten, Serveradressen oder Wiedergabeverlauf."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποστολή μέσω Sentry. Χωρίς διαπιστευτήρια σύνδεσης, διευθύνσεις διακομιστών ή ιστορικό προβολής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se envían a través de Sentry. Sin credenciales de acceso, direcciones de servidores ni historial de visualización."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "از طریق Sentry ارسال می‌شود. بدون اطلاعات ورود، نشانی سرورها یا سابقهٔ تماشا."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetetään Sentryn kautta. Ei kirjautumistietoja, palvelinosoitteita eikä katseluhistoriaa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoi via Sentry. Sans identifiants de connexion, adresses de serveurs ni historique de visionnage."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הנתונים נשלחים דרך Sentry. ללא פרטי התחברות, כתובות שרתים או היסטוריית צפייה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry के ज़रिए भेजा जाता है। लॉगिन क्रेडेंशियल, सर्वर के पते या देखने का इतिहास शामिल नहीं होता।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalje se putem servisa Sentry. Bez podataka za prijavu, adresa poslužitelja i povijesti gledanja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Küldés a Sentry szolgáltatáson keresztül. Bejelentkezési adatok, szervercímek és megtekintési előzmények nélkül."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dikirim melalui Sentry. Tanpa kredensial login, alamat server, atau riwayat tontonan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inviati tramite Sentry. Senza credenziali di accesso, indirizzi dei server o cronologia di visione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentryを通じて送信されます。ログイン用の認証情報、サーバーアドレス、視聴履歴は含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry를 통해 전송됩니다. 로그인 인증 정보, 서버 주소, 시청 기록은 포함되지 않습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dihantar melalui Sentry. Tiada bukti kelayakan log masuk, alamat pelayan atau sejarah tontonan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sendes via Sentry. Ingen påloggingsopplysninger, serveradresser eller seerhistorikk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstuurd via Sentry. Zonder inloggegevens, serveradressen of kijkgeschiedenis."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłane za pośrednictwem Sentry. Bez danych logowania, adresów serwerów ani historii oglądania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviados pelo Sentry. Sem dados de login, endereços de servidores ou histórico de visualização."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimise prin Sentry. Fără date de autentificare, adrese de server sau istoric de vizionare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправка через Sentry. Без данных для входа, адресов серверов и истории просмотра."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odosielané cez Sentry. Bez prihlasovacích údajov, adries serverov či histórie sledovania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslano prek storitve Sentry. Brez prijavnih podatkov, naslovov strežnikov ali zgodovine ogledov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalju se putem servisa Sentry. Bez podataka za prijavu, adresa servera ili istorije gledanja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skickas via Sentry. Utan inloggningsuppgifter, serveradresser eller visningshistorik."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งผ่าน Sentry โดยไม่มีข้อมูลรับรองการเข้าสู่ระบบ ที่อยู่เซิร์ฟเวอร์ หรือประวัติการรับชม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sentry üzerinden gönderilir. Giriş bilgileri, sunucu adresleri veya izleme geçmişi içermez."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Дані надсилаються через Sentry. Без облікових даних для входу, адрес серверів чи історії переглядів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Được gửi qua Sentry. Không bao gồm thông tin đăng nhập, địa chỉ máy chủ hay lịch sử xem."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通过 Sentry 发送。不包含登录凭据、服务器地址或观看记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "透過 Sentry 傳送。不包含登入憑證、伺服器位址或觀看記錄。"
           }
         }
       }
@@ -691580,6 +695106,226 @@
         }
       }
     },
+    "Share Diagnostics" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إرسال بيانات التشخيص"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращане на диагностични данни"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envia dades de diagnòstic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílat diagnostiku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostik"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnosedaten senden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποστολή διαγνωστικών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviar datos de diagnóstico"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال اطلاعات عیب‌یابی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähetä diagnostiikkatietoja"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Envoyer des données de diagnostic"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שליחת נתוני אבחון"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "डायग्नोस्टिक्स भेजें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošalji dijagnostiku"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnosztika küldése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirim Diagnostik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Invia dati diagnostici"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "診断データを送信"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "진단 정보 보내기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hantar Diagnostik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Send diagnostikk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diagnostische gegevens versturen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłaj dane diagnostyczne"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enviar dados de diagnóstico"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimite date de diagnosticare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправлять данные диагностики"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posielať diagnostické údaje"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošiljaj diagnostične podatke"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Šalji dijagnostičke podatke"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skicka diagnostik"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ส่งข้อมูลวินิจฉัย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tanılama verilerini gönder"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилати діагностичні дані"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gửi dữ liệu chẩn đoán"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "发送诊断数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "傳送診斷資料"
+          }
+        }
+      }
+    },
     "Share details" : {
       "localizations" : {
         "ar" : {
@@ -693785,6 +697531,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "共享項目"
+          }
+        }
+      }
+    },
+    "Sharing is optional and does not change any app features. Sending recent activity logs is a separate action in Settings." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إرسال بيانات التشخيص اختياري ولا يغيّر أيًا من ميزات التطبيق. أما إرسال سجلات النشاط الأخيرة فهو إجراء منفصل في الإعدادات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изпращането е по избор и не променя функциите на приложението. Изпращането на журналите за скорошна активност е отделно действие в Настройки."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’enviament és opcional i no modifica cap funció de l’app. Enviar els registres d’activitat recents és una acció separada a Configuració."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odesílání je volitelné a nemění žádné funkce aplikace. Odeslání posledních záznamů o aktivitě je samostatná akce v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er valgfrit at sende diagnostik, og det ændrer ingen funktioner i appen. Logfiler med den seneste aktivitet sendes via en separat handling i Indstillinger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Das Senden ist freiwillig und ändert keine App-Funktionen. Das Senden von Protokollen der letzten Aktivitäten ist eine separate Aktion in den Einstellungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η αποστολή είναι προαιρετική και δεν αλλάζει καμία λειτουργία της εφαρμογής. Η αποστολή πρόσφατων αρχείων καταγραφής δραστηριότητας είναι ξεχωριστή ενέργεια στις Ρυθμίσεις."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El envío es opcional y no cambia ninguna función de la app. Enviar registros de actividad recientes es una acción independiente en Ajustes."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارسال این اطلاعات اختیاری است و هیچ‌یک از قابلیت‌های برنامه را تغییر نمی‌دهد. ارسال گزارش‌های فعالیت اخیر، اقدامی جداگانه در تنظیمات است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lähettäminen on vapaaehtoista eikä muuta sovelluksen toimintoja. Viimeaikaisten toimintalokien lähettäminen on erillinen toiminto Asetukset-valikossa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’envoi est facultatif et ne change aucune fonctionnalité de l’app. L’envoi des journaux d’activité récents est une action distincte dans Réglages."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "השליחה אינה חובה ואינה משנה אף תכונה ביישום. שליחת יומני פעילות מהזמן האחרון היא פעולה נפרדת בהגדרות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "डायग्नोस्टिक्स भेजना वैकल्पिक है और इससे ऐप की कोई सुविधा नहीं बदलती। हाल की गतिविधि के लॉग भेजने के लिए सेटिंग्स में अलग कार्रवाई करनी होती है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slanje je neobavezno i ne mijenja nijednu značajku aplikacije. Zapisnike nedavnih aktivnosti šaljete ručno, zasebnom radnjom u odjeljku Postavke."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az adatküldés választható, és nem módosítja az alkalmazás funkcióit. A legutóbbi tevékenységek naplóit külön, manuálisan küldheti el a Beállítások menüből."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pengiriman data diagnostik bersifat opsional dan tidak mengubah fitur aplikasi apa pun. Log aktivitas terbaru dikirim secara manual dan terpisah di Pengaturan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’invio è facoltativo e non modifica alcuna funzione dell’app. I registri delle attività recenti si inviano manualmente con un’azione separata in Impostazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "送信は任意で、アプリの機能は変わりません。最近のアクティビティログの送信は、設定から別途手動で行います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "진단 정보 전송은 선택 사항이며 앱 기능에는 영향을 주지 않습니다. 최근 활동 로그는 설정에서 별도로 직접 보낼 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penghantaran diagnostik adalah pilihan dan tidak mengubah sebarang ciri aplikasi. Log aktiviti terkini boleh dihantar secara manual melalui tindakan berasingan dalam Tetapan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sending er valgfritt og endrer ingen appfunksjoner. Logger over nylig aktivitet sendes manuelt via en egen handling i Innstillinger."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Het versturen van diagnostische gegevens is optioneel en verandert niets aan de functies van de app. Recente activiteitenlogs verstuur je handmatig via een aparte actie in Instellingen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wysyłanie danych jest opcjonalne i nie zmienia żadnych funkcji aplikacji. Wysyłanie dzienników ostatniej aktywności to osobna czynność wykonywana ręcznie w sekcji Ustawienia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O envio é opcional e não altera nenhum recurso do app. O envio de logs de atividades recentes é uma ação manual separada em Ajustes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trimiterea este opțională și nu modifică funcțiile aplicației. Jurnalele de activitate recentă se trimit separat, manual, din Setări."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправка необязательна и не влияет на функции приложения. Журналы недавней активности отправляются отдельно вручную в разделе «Настройки»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odosielanie je dobrovoľné a nemení žiadne funkcie aplikácie. Denníky nedávnej aktivity môžete odoslať samostatne a manuálne v časti Nastavenia."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pošiljanje ni obvezno in ne vpliva na funkcije aplikacije. Dnevnike nedavne dejavnosti lahko pošljete ločeno in ročno v razdelku Nastavitve."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slanje nije obavezno i ne menja nijednu funkciju aplikacije. Dnevnike nedavnih aktivnosti možete poslati zasebno i ručno iz odeljka Podešavanja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det är frivilligt att skicka diagnostik och inga appfunktioner påverkas. Loggar över den senaste aktiviteten skickas manuellt som en separat åtgärd i Inställningar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณเลือกได้ว่าจะส่งหรือไม่ โดยไม่เปลี่ยนแปลงฟีเจอร์ใดของแอป ส่วนบันทึกกิจกรรมล่าสุดต้องส่งแยกต่างหากด้วยตนเองในการตั้งค่า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gönderim isteğe bağlıdır ve uygulamanın hiçbir özelliğini değiştirmez. Son etkinlik günlüklerini göndermek, Ayarlar'da ayrıca başlattığınız bir işlemdir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надсилання даних добровільне й не змінює жодних функцій застосунку. Журнали нещодавньої активності надсилаються окремо вручну в розділі «Налаштування»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Việc gửi dữ liệu là tùy chọn và không thay đổi bất kỳ tính năng nào của ứng dụng. Gửi nhật ký hoạt động gần đây là một thao tác thủ công riêng trong Cài đặt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "是否发送由你决定，不会改变任何应用功能。发送近期活动日志是“设置”中的另一项手动操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "是否傳送由你決定，不會改變任何應用程式功能。傳送近期活動記錄是「設定」中的另一項手動操作。"
           }
         }
       }
@@ -696877,6 +700843,7 @@
       }
     },
     "Show a Skip button, or skip automatically, during intros, credits, recaps, previews and commercials." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -702163,6 +706130,226 @@
         }
       }
     },
+    "Show skip button" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إظهار زر التخطي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показване на бутон за пропускане"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostra el botó per ometre"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zobrazit tlačítko pro přeskočení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vis knap til at springe over"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Überspringen-Taste anzeigen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εμφάνιση κουμπιού παράλειψης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostrar botón para saltar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نمایش دکمهٔ پرش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Näytä ohituspainike"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afficher le bouton « Passer »"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הצגת כפתור דילוג"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्किप बटन दिखाएँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži gumb za preskakanje"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kihagyás gomb megjelenítése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tampilkan tombol Lewati"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostra il pulsante Salta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スキップボタンを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "건너뛰기 버튼 표시"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tunjukkan butang Langkau"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vis knapp for å hoppe over"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Knop voor overslaan tonen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pokazuj przycisk Pomiń"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostrar botão de pular"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afișează butonul de omitere"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показывать кнопку пропуска"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zobraziť tlačidlo na preskočenie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži gumb za preskok"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži dugme za preskakanje"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Visa knapp för att hoppa över"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แสดงปุ่มข้าม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Atlama düğmesini göster"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показувати кнопку пропуску"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiện nút bỏ qua"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "显示跳过按钮"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "顯示跳過按鈕"
+          }
+        }
+      }
+    },
     "Show subtitles" : {
       "comment" : "Settings row and control title for choosing default subtitle behavior when playback starts, with optional per-content-type overrides.",
       "localizations" : {
@@ -706578,6 +710765,226 @@
         }
       }
     },
+    "Sign In Again" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تسجيل الدخول مجددًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повторен вход"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Torna a iniciar sessió"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Znovu se přihlásit"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log ind igen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Erneut anmelden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Σύνδεση ξανά"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volver a iniciar sesión"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ورود دوباره"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjaudu uudelleen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se reconnecter"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התחבר שוב"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "फिर से साइन इन करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovno se prijavi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Újbóli bejelentkezés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masuk lagi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Accedi di nuovo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再度サインイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다시 로그인"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log masuk semula"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logg på igjen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opnieuw aanmelden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaloguj się ponownie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entrar novamente"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conectare din nou"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Войти снова"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Znova sa prihlásiť"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se znova"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se ponovo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logga in igen"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลงชื่อเข้าใช้อีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yeniden oturum aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увійти знову"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đăng nhập lại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新登入"
+          }
+        }
+      }
+    },
     "Sign In Manually" : {
       "localizations" : {
         "ar" : {
@@ -710543,6 +714950,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "在此裝置上自動登入上次使用的個人檔案。"
+          }
+        }
+      }
+    },
+    "Sign in with the original Plex account to reconnect this server." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سجّل الدخول بحساب Plex الأصلي لإعادة الاتصال بهذا الخادم."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Влезте с първоначалния акаунт в Plex, за да се свържете отново с този сървър."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inicia sessió amb el compte original de Plex per tornar a connectar amb aquest servidor."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pro opětovné připojení k tomuto serveru se přihlaste původním účtem Plex."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log ind med den oprindelige Plex-konto for at oprette forbindelse til denne server igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Melde dich mit dem ursprünglichen Plex-Konto an, um dich erneut mit diesem Server zu verbinden."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Συνδεθείτε με τον αρχικό λογαριασμό Plex για να επανασυνδεθείτε σε αυτόν τον διακομιστή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inicia sesión con la cuenta original de Plex para volver a conectar con este servidor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برای اتصال دوباره به این سرور، با حساب اصلی Plex وارد شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjaudu alkuperäisellä Plex-tilillä yhdistääksesi tähän palvelimeen uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connectez-vous avec le compte Plex d’origine pour vous reconnecter à ce serveur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התחבר עם חשבון Plex המקורי כדי להתחבר מחדש לשרת הזה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस सर्वर से फिर कनेक्ट करने के लिए मूल Plex खाते से साइन इन करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se izvornim Plex računom za ponovno povezivanje s ovim poslužiteljem."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jelentkezz be az eredeti Plex-fiókkal, hogy újra csatlakozhass ehhez a szerverhez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masuk dengan akun Plex semula untuk terhubung kembali ke server ini."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Accedi con l’account Plex originale per riconnetterti a questo server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このサーバーに再接続するには、元のPlexアカウントでサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 서버에 다시 연결하려면 원래 Plex 계정으로 로그인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log masuk dengan akaun Plex asal untuk menyambung semula ke pelayan ini."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logg på med den opprinnelige Plex-kontoen for å koble til denne serveren igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meld je aan met het oorspronkelijke Plex-account om opnieuw verbinding te maken met deze server."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaloguj się na pierwotne konto Plex, aby ponownie połączyć się z tym serwerem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entre com a conta Plex original para se reconectar a este servidor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conectează-te cu contul Plex inițial pentru a te reconecta la acest server."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Войдите в исходную учётную запись Plex, чтобы повторно подключиться к этому серверу."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ak sa chcete znova pripojiť k tomuto serveru, prihláste sa pôvodným účtom Plex."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se s prvotnim računom Plex, da se znova povežeš s tem strežnikom."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se prvobitnim Plex nalogom da bi se ponovo povezao sa ovim serverom."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logga in med det ursprungliga Plex-kontot för att återansluta till den här servern."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลงชื่อเข้าใช้ด้วยบัญชี Plex เดิมเพื่อเชื่อมต่อกับเซิร์ฟเวอร์นี้อีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu sunucuya yeniden bağlanmak için ilk kullandığınız Plex hesabıyla oturum açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увійдіть у початковий обліковий запис Plex, щоб знову підключитися до цього сервера."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đăng nhập bằng tài khoản Plex ban đầu để kết nối lại với máy chủ này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请使用原来的 Plex 账号登录，以重新连接到此服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "請使用原本的 Plex 帳號登入，以重新連線至此伺服器。"
+          }
+        }
+      }
+    },
+    "Sign in with the same account and server profile to restore this connection." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سجّل الدخول بالحساب نفسه والملف الشخصي نفسه على الخادم لاستعادة هذا الاتصال."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Влезте със същия акаунт и същия профил на сървъра, за да възстановите тази връзка."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inicia sessió amb el mateix compte i perfil del servidor per restablir aquesta connexió."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pro obnovení tohoto připojení se přihlaste stejným účtem a profilem na serveru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log ind med samme konto og serverprofil for at gendanne denne forbindelse."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Melde dich mit demselben Konto und Serverprofil an, um diese Verbindung wiederherzustellen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Συνδεθείτε με τον ίδιο λογαριασμό και το ίδιο προφίλ στον διακομιστή για να επαναφέρετε αυτήν τη σύνδεση."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inicia sesión con la misma cuenta y el mismo perfil del servidor para restablecer esta conexión."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برای بازیابی این اتصال، با همان حساب و نمایهٔ سرور وارد شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjaudu samalla tilillä ja palvelinprofiililla palauttaaksesi tämän yhteyden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connectez-vous avec le même compte et le même profil utilisateur sur le serveur pour rétablir cette connexion."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התחבר עם אותו חשבון ואותו פרופיל שרת כדי לשחזר את החיבור הזה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस कनेक्शन को बहाल करने के लिए उसी खाते और सर्वर प्रोफ़ाइल से साइन इन करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se istim računom i profilom poslužitelja za obnovu ove veze."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A kapcsolat helyreállításához jelentkezz be ugyanazzal a fiókkal és szerverprofillal."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masuk dengan akun dan profil server yang sama untuk memulihkan koneksi ini."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Accedi con lo stesso account e profilo del server per ripristinare questa connessione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "この接続を復元するには、同じアカウントとサーバー上の同じプロファイルでサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 연결을 복구하려면 동일한 계정과 서버 프로필로 로그인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log masuk dengan akaun dan profil pelayan yang sama untuk memulihkan sambungan ini."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logg på med samme konto og serverprofil for å gjenopprette denne tilkoblingen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meld je aan met hetzelfde account en serverprofiel om deze verbinding te herstellen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaloguj się na to samo konto i ten sam profil na serwerze, aby przywrócić to połączenie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entre com a mesma conta e o mesmo perfil do servidor para restaurar esta conexão."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conectează-te cu același cont și același profil de pe server pentru a restabili această conexiune."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Войдите с той же учётной записью и тем же профилем на сервере, чтобы восстановить это подключение."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ak chcete obnoviť toto pripojenie, prihláste sa rovnakým účtom a profilom na serveri."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se z istim računom in profilom strežnika, da obnoviš to povezavo."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prijavi se istim nalogom i profilom servera da bi obnovio ovu vezu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logga in med samma konto och serverprofil för att återställa den här anslutningen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลงชื่อเข้าใช้ด้วยบัญชีและโปรไฟล์เซิร์ฟเวอร์เดิมเพื่อกู้คืนการเชื่อมต่อนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu bağlantıyı geri yüklemek için aynı hesap ve sunucu profiliyle oturum açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увійдіть із тим самим обліковим записом і профілем сервера, щоб відновити це підключення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đăng nhập bằng cùng tài khoản và cùng hồ sơ người dùng trên máy chủ để khôi phục kết nối này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请使用相同的账号和服务器用户资料登录，以恢复此连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "請使用相同的帳號和伺服器上的相同個人檔案登入，以恢復此連線。"
           }
         }
       }
@@ -725873,6 +730720,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "跳過前情提要"
+          }
+        }
+      }
+    },
+    "Skip after" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التخطي بعد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пропускане след"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omet després de"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Přeskočit po"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Spring over efter"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Überspringen nach"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Παράλειψη μετά από"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Saltar después de"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پرش پس از"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ohitusviive"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Passer après"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "דילוג לאחר"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्किप करने से पहले इंतज़ार"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči nakon"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kihagyás késleltetése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lewati setelah"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salta dopo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スキップまでの時間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "건너뛰기 대기 시간"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Langkau selepas"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hopp over etter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Overslaan na"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomijaj po"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pular após"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omite după"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пропускать через"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskočiť po"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči po"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči nakon"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoppa över efter"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ข้ามหลังจาก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Atlama gecikmesi"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пропускати через"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bỏ qua sau"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "跳过前等待"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "跳過前等待"
+          }
+        }
+      }
+    },
+    "Skip automatically" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التخطي تلقائيًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Автоматично пропускане"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omet automàticament"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Přeskakovat automaticky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Spring automatisk over"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatisch überspringen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτόματη παράλειψη"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Saltar automáticamente"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پرش خودکار"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ohita automaattisesti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Passer automatiquement"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "דילוג אוטומטי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अपने-आप स्किप करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči automatski"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatikus kihagyás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lewati otomatis"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salta automaticamente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自動でスキップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "자동으로 건너뛰기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Langkau secara automatik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hopp over automatisk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatisch overslaan"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pomijaj automatycznie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pular automaticamente"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omite automat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пропускать автоматически"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskakovať automaticky"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči samodejno"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preskoči automatski"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoppa över automatiskt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ข้ามอัตโนมัติ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otomatik atla"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пропускати автоматично"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tự động bỏ qua"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自动跳过"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自動跳過"
           }
         }
       }
@@ -785153,6 +790440,7 @@
       }
     },
     "The next episode starts when one finishes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -786696,6 +791984,7 @@
       }
     },
     "The player closes when an episode finishes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -817538,6 +822827,226 @@
         }
       }
     },
+    "This Plex account no longer has access to the saved server. Sign in with the original account or restore its server access in Plex." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لم يعد حساب Plex هذا يملك صلاحية الوصول إلى الخادم المحفوظ. سجّل الدخول بالحساب الأصلي أو استعد صلاحية وصوله إلى الخادم في Plex."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Този акаунт в Plex вече няма достъп до запазения сървър. Влезте с първоначалния акаунт или възстановете достъпа му до сървъра в Plex."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aquest compte de Plex ja no té accés al servidor desat. Inicia sessió amb el compte original o restableix-ne l’accés al servidor a Plex."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento účet Plex už nemá přístup k uloženému serveru. Přihlaste se původním účtem nebo mu ve službě Plex obnovte přístup k serveru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne Plex-konto har ikke længere adgang til den gemte server. Log ind med den oprindelige konto, eller gendan dens adgang til serveren i Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dieses Plex-Konto hat keinen Zugriff mehr auf den gespeicherten Server. Melde dich mit dem ursprünglichen Konto an oder stelle dessen Serverzugriff in Plex wieder her."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτός ο λογαριασμός Plex δεν έχει πλέον πρόσβαση στον αποθηκευμένο διακομιστή. Συνδεθείτε με τον αρχικό λογαριασμό ή επαναφέρετε την πρόσβασή του στον διακομιστή στο Plex."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esta cuenta de Plex ya no tiene acceso al servidor guardado. Inicia sesión con la cuenta original o restablece su acceso al servidor en Plex."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "این حساب Plex دیگر به سرور ذخیره‌شده دسترسی ندارد. با حساب اصلی وارد شوید یا دسترسی آن به سرور را در Plex بازیابی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tällä Plex-tilillä ei ole enää pääsyä tallennettuun palvelimeen. Kirjaudu alkuperäisellä tilillä tai palauta sen pääsy palvelimeen Plexissä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ce compte Plex n’a plus accès au serveur enregistré. Connectez-vous avec le compte d’origine ou rétablissez son accès au serveur dans Plex."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לחשבון Plex הזה אין עוד גישה לשרת השמור. התחבר עם החשבון המקורי או שחזר את הגישה שלו לשרת ב-Plex."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस Plex खाते की अब सहेजे गए सर्वर तक पहुँच नहीं है। मूल खाते से साइन इन करें या Plex में इस खाते की सर्वर तक पहुँच बहाल करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj Plex račun više nema pristup spremljenom poslužitelju. Prijavi se izvornim računom ili mu vrati pristup poslužitelju u Plexu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ez a Plex-fiók már nem fér hozzá a mentett szerverhez. Jelentkezz be az eredeti fiókkal, vagy állítsd helyre a szerverhez való hozzáférését a Plexben."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akun Plex ini tidak lagi memiliki akses ke server yang tersimpan. Masuk dengan akun semula atau pulihkan aksesnya ke server di Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questo account Plex non ha più accesso al server salvato. Accedi con l’account originale o ripristina il suo accesso al server in Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このPlexアカウントは、保存済みサーバーへのアクセス権を失っています。元のアカウントでサインインするか、Plexでそのアカウントのサーバーへのアクセス権を復元してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 Plex 계정은 더 이상 저장된 서버에 접근할 수 없습니다. 원래 계정으로 로그인하거나 Plex에서 해당 계정의 서버 접근 권한을 복구하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akaun Plex ini tidak lagi mempunyai akses kepada pelayan yang disimpan. Log masuk dengan akaun asal atau pulihkan aksesnya kepada pelayan dalam Plex."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne Plex-kontoen har ikke lenger tilgang til den lagrede serveren. Logg på med den opprinnelige kontoen, eller gjenopprett tilgangen til serveren i Plex."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dit Plex-account heeft geen toegang meer tot de opgeslagen server. Meld je aan met het oorspronkelijke account of herstel de servertoegang ervan in Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "To konto Plex nie ma już dostępu do zapisanego serwera. Zaloguj się na pierwotne konto lub przywróć mu dostęp do serwera w usłudze Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esta conta Plex não tem mais acesso ao servidor salvo. Entre com a conta original ou restaure o acesso dela ao servidor no Plex."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acest cont Plex nu mai are acces la serverul salvat. Conectează-te cu contul inițial sau restabilește-i accesul la server în Plex."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "У этой учётной записи Plex больше нет доступа к сохранённому серверу. Войдите в исходную учётную запись или восстановите её доступ к серверу в Plex."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento účet Plex už nemá prístup k uloženému serveru. Prihláste sa pôvodným účtom alebo mu v službe Plex obnovte prístup k serveru."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ta račun Plex nima več dostopa do shranjenega strežnika. Prijavi se s prvotnim računom ali mu v Plexu obnovi dostop do strežnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj Plex nalog više nema pristup sačuvanom serveru. Prijavi se prvobitnim nalogom ili mu vrati pristup serveru u Plexu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det här Plex-kontot har inte längre åtkomst till den sparade servern. Logga in med det ursprungliga kontot eller återställ dess åtkomst till servern i Plex."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บัญชี Plex นี้ไม่มีสิทธิ์เข้าถึงเซิร์ฟเวอร์ที่บันทึกไว้อีกต่อไป ลงชื่อเข้าใช้ด้วยบัญชีเดิมหรือคืนสิทธิ์การเข้าถึงเซิร์ฟเวอร์ให้บัญชีนี้ใน Plex"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu Plex hesabının kayıtlı sunucuya artık erişimi yok. İlk kullandığınız hesapla oturum açın veya Plex'te bu hesabın sunucu erişimini geri yükleyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Цей обліковий запис Plex більше не має доступу до збереженого сервера. Увійдіть у початковий обліковий запис або відновіть його доступ до сервера в Plex."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tài khoản Plex này không còn quyền truy cập vào máy chủ đã lưu. Đăng nhập bằng tài khoản ban đầu hoặc khôi phục quyền truy cập máy chủ của tài khoản đó trong Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此 Plex 账号已无法访问保存的服务器。请使用原来的账号登录，或在 Plex 中恢复该账号对服务器的访问权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此 Plex 帳號已無法存取儲存的伺服器。請使用原本的帳號登入，或在 Plex 中恢復該帳號的伺服器存取權限。"
+          }
+        }
+      }
+    },
     "This Profile" : {
       "comment" : "Section header in iOS Settings for options saved only to the active profile, shown when profiles are enabled.",
       "extractionState" : "stale",
@@ -824801,6 +830310,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "此合輯沒有內容。"
+          }
+        }
+      }
+    },
+    "This connection changed. Close sign-in and try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تغيّر هذا الاتصال. أغلق شاشة تسجيل الدخول وحاول مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Тази връзка е променена. Затворете екрана за вход и опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aquesta connexió ha canviat. Tanca la pantalla d’inici de sessió i torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toto připojení se změnilo. Zavřete přihlašovací obrazovku a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne forbindelse er blevet ændret. Luk loginskærmen, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diese Verbindung wurde geändert. Schließe den Anmeldebildschirm und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτή η σύνδεση άλλαξε. Κλείστε την οθόνη σύνδεσης και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esta conexión ha cambiado. Cierra la pantalla de inicio de sesión e inténtalo de nuevo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "این اتصال تغییر کرده است. صفحهٔ ورود را ببندید و دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tämä yhteys on muuttunut. Sulje kirjautumisnäkymä ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cette connexion a changé. Fermez l’écran de connexion et réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "החיבור הזה השתנה. סגור את מסך ההתחברות ונסה שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "यह कनेक्शन बदल गया है। साइन इन स्क्रीन बंद करें और फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ova se veza promijenila. Zatvori zaslon za prijavu i pokušaj ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ez a kapcsolat megváltozott. Zárd be a bejelentkezési képernyőt, és próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koneksi ini telah berubah. Tutup layar masuk dan coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questa connessione è cambiata. Chiudi la schermata di accesso e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "この接続は変更されました。サインイン画面を閉じて、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 연결이 변경되었습니다. 로그인 화면을 닫고 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sambungan ini telah berubah. Tutup skrin log masuk dan cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne tilkoblingen er endret. Lukk påloggingsskjermen og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deze verbinding is gewijzigd. Sluit het aanmeldscherm en probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "To połączenie uległo zmianie. Zamknij ekran logowania i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esta conexão foi alterada. Feche a tela de login e tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Această conexiune s-a modificat. Închide ecranul de conectare și încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Это подключение изменилось. Закройте экран входа и повторите попытку."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toto pripojenie sa zmenilo. Zatvorte prihlasovaciu obrazovku a skúste to znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ta povezava se je spremenila. Zapri prijavni zaslon in poskusi znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ova veza se promenila. Zatvori ekran za prijavu i pokušaj ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den här anslutningen har ändrats. Stäng inloggningsskärmen och försök igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเชื่อมต่อนี้เปลี่ยนไปแล้ว ปิดหน้าลงชื่อเข้าใช้แล้วลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu bağlantı değişti. Oturum açma ekranını kapatıp tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Це підключення змінилося. Закрийте екран входу та спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kết nối này đã thay đổi. Đóng màn hình đăng nhập rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此连接已更改。请关闭登录界面后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此連線已變更。請關閉登入畫面後再試一次。"
           }
         }
       }
@@ -917583,6 +923312,7 @@
       }
     },
     "When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

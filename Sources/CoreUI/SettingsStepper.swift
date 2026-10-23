@@ -53,7 +53,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
                   labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
-                  title: { Text(title($0)) })
+                  textTitle: { Text(title($0)) })
     }
 
     /// A stepper whose values are formatted CONTENT rather than copy — playback
@@ -75,21 +75,21 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
                   labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
-                  title: { Text(verbatim: verbatimTitle($0)) })
+                  textTitle: { Text(verbatim: verbatimTitle($0)) })
     }
 
-    private init(
+    public init(
         options: [Value],
         selection: Binding<Value>,
-        compact: Bool,
-        wraps: Bool,
-        onFocusChange: ((Bool) -> Void)?,
-        label: LocalizedStringResource?,
-        subtitle: LocalizedStringResource?,
-        labelWidth: CGFloat,
-        rangeLabels: (LocalizedStringResource, LocalizedStringResource)?,
-        rangeMidpointLabel: LocalizedStringResource?,
-        title: @escaping (Value) -> Text
+        compact: Bool = false,
+        wraps: Bool = false,
+        onFocusChange: ((Bool) -> Void)? = nil,
+        label: LocalizedStringResource? = nil,
+        subtitle: LocalizedStringResource? = nil,
+        labelWidth: CGFloat = 240,
+        rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
+        rangeMidpointLabel: LocalizedStringResource? = nil,
+        textTitle: @escaping (Value) -> Text
     ) {
         self.options = options
         self._selection = selection
@@ -101,7 +101,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.labelWidth = labelWidth
         self.rangeLabels = rangeLabels
         self.rangeMidpointLabel = rangeMidpointLabel
-        self.title = title
+        self.title = textTitle
     }
 
     private var index: Int { options.firstIndex(of: selection) ?? 0 }

@@ -118,6 +118,7 @@ struct PlozziOSLiveTVDestination: View {
                 title: playback.channel.name,
                 input: playback.input,
                 logoURL: playback.channel.logoURL,
+                plozzChannelMood: playback.channel.plozzChannelMood,
                 makeEngine: {
                     runtime.makeEngine(
                         engine: try PlozzigenVideoEngine(

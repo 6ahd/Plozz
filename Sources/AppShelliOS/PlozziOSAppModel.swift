@@ -678,7 +678,8 @@ final class PlozziOSAppModel {
         self.requiresLaunchProfileSelection = requiresLaunchProfileSelection
         let initialSettings = PlozziOSSettingsModel(
             namespace: profiles.activeNamespace,
-            allowsDiscovery: { !profiles.activeProfile.isKids }
+            allowsDiscovery: { !profiles.activeProfile.isKids },
+            isSeerrConfigured: { seerService.isConfigured }
         )
         self.settings = initialSettings
         self.seriesTrackStore = SeriesTrackPreferenceStore(
@@ -913,7 +914,7 @@ final class PlozziOSAppModel {
     func applyCrashReportingPreference() {
         crashReportingController.setScreen(CrashReportScreen(context: MainThreadStallProbe.context))
         crashReportingController.apply(
-            enabled: crashReporting.settings.isEnabled,
+            enabled: crashReporting.isEnabled,
             context: crashReportContext
         )
     }
@@ -1653,7 +1654,8 @@ final class PlozziOSAppModel {
     func refreshActiveProfileSettings() {
         settings = PlozziOSSettingsModel(
             namespace: profiles.activeNamespace,
-            allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+            allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids },
+            isSeerrConfigured: { [seerService] in seerService.isConfigured }
         )
         seriesTrackStore = SeriesTrackPreferenceStore(
             namespace: profiles.activeNamespace
@@ -2495,7 +2497,8 @@ final class PlozziOSAppModel {
             }
             settings = PlozziOSSettingsModel(
                 namespace: profiles.activeNamespace,
-                allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+                allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids },
+                isSeerrConfigured: { [seerService] in seerService.isConfigured }
             )
             seriesTrackStore = SeriesTrackPreferenceStore(
                 namespace: profiles.activeNamespace

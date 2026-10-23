@@ -137,7 +137,7 @@ public final class NativeVideoEngine: VideoEngine {
     /// startup so resolving the asset's `AVMediaSelectionGroup` never extends the
     /// time-to-first-frame; cancelled on teardown so a stale selection never
     /// applies to a replaced player item.
-    @ObservationIgnored private var defaultSubtitleSelectionTask: Task<Void, Never>?
+    @ObservationIgnored private(set) var defaultSubtitleSelectionTask: Task<Void, Never>?
     /// The legible track extracted into the owned overlay, or nil for Off/a
     /// sidecar. Retained across item rebuilds when that track still exists.
     @ObservationIgnored private var requestedLegibleTrack: MediaTrack?
@@ -1269,17 +1269,20 @@ public final class NativeVideoEngine: VideoEngine {
             if let track { option = await Self.legibleOption(for: track, in: group) }
             else { option = nil }
             guard !Task.isCancelled, self.player?.currentItem === item else { return }
-            if option != nil, self.isPaused {
-                self.nativeSubtitleOutput?.select(enabled: false)
+            if let option, self.nativeSubtitleOutput?.isSelecting(option) == true,
+               item.currentMediaSelection.selectedMediaOption(in: group) == option {
+                return
+            }
+            let current = item.currentMediaSelection.selectedMediaOption(in: group)
+            if current?.mediaSubTypes.contains(NSNumber(value: kCMSubtitleFormatType_3GText)) == true {
+                // An active tx3g decoder can keep a removed output on tvOS 27.
+                // HLS switches must stay direct: an intermediate Off can lose paused cues.
                 item.select(nil, in: group)
-                // Let the old paused rendition detach before registering the replacement.
                 await Task.yield()
                 guard !Task.isCancelled, self.player?.currentItem === item else { return }
             }
-            // Register the replacement output against the requested rendition,
-            // not an intermediate Off or the previous paused track.
+            self.nativeSubtitleOutput?.select(enabled: option != nil, option: option)
             item.select(option, in: group)
-            self.nativeSubtitleOutput?.select(enabled: option != nil)
             if track != nil, option == nil {
                 PlozzLog.playback.error("The selected native subtitle track is unavailable in the current stream.")
             }

@@ -164,14 +164,18 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 let image = DetailTransitionSnapshot.image(of: window)
                 let sample = try XCTUnwrap(image.cgImage?.cropping(to:
                     CGRect(x: 1900, y: 1000, width: 1, height: 1)))
-                var bytes = [UInt8](repeating: 0, count: 4)
-                try bytes.withUnsafeMutableBytes {
+                // Keep the snapshot's sub-byte precision when checking the tint threshold.
+                var components = [Float](repeating: 0, count: 4)
+                try components.withUnsafeMutableBytes {
                     let context = try XCTUnwrap(CGContext(
-                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 32, bytesPerRow: 16,
+                        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                            | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
                     ))
                     context.draw(sample, in: CGRect(x: 0, y: 0, width: 1, height: 1))
                 }
+                let bytes = components.map { Double($0) * 255 }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "production-detail-gradient-\(kind)-\(phase)"
                 attachment.lifetime = .keepAlways
@@ -183,14 +187,14 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     XCTAssertFalse(fills.isEmpty)
                     XCTAssertTrue(fills.allSatisfy { !$0.isHidden && $0.layer.contents != nil },
                                   "Production detail cards must paint the shared gradient, not the flat fallback.")
-                    let tintDifference = Int(bytes[0]) - Int(bytes[2])
+                    let tintDifference = bytes[0] - bytes[2]
                     XCTAssertGreaterThan(kind == .movie ? tintDifference : -tintDifference, 8,
                                          "\(kind) must tint the information-band gutter, not just its hero image: \(bytes)")
                 } else {
                     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
                     XCTAssertTrue(UIColor(ThemePalette.dark.informationSurface).getRed(&r, green: &g, blue: &b, alpha: &a))
                     for (actual, expected) in zip(bytes, [r, g, b, a]) {
-                        XCTAssertLessThanOrEqual(abs(Int(actual) - Int((expected * 255).rounded())), 2)
+                        XCTAssertLessThanOrEqual(abs(actual - Double((expected * 255).rounded())), 2)
                     }
                 }
             }
@@ -1085,20 +1089,11 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
 
     func testBrowserScrollGuardRestoresItsOwnerWithoutDisablingNestedRails() async throws {
         let scene = try await activeScene()
-        let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        let host = UIViewController()
-        window.rootViewController = host
-        window.makeKeyAndVisible()
-        defer {
-            window.isHidden = true
-            window.rootViewController = nil
-            previous?.makeKeyAndVisible()
-        }
         let page = UIScrollView(frame: window.bounds)
         let rail = UIScrollView(frame: CGRect(x: 0, y: 0, width: 500, height: 300))
         let guardView = SeriesBrowserRevealScrollGuard.GuardView()
-        host.view.addSubview(page)
+        window.addSubview(page)
         page.addSubview(rail)
         page.addSubview(guardView)
         guardView.isActive = true
@@ -1359,6 +1354,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let scene = try await activeScene()
         let fixture = FocusReturnFixture(scene: scene)
         defer { fixture.close() }
+        try await waitUntil { fixture.controller.hasAppeared }
         fixture.source.prepare(for: fixture.item)
         let session = TVDetailEntranceSession()
         session.attach(to: fixture.window, enabled: true)
@@ -1368,7 +1364,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             references: [], height: 1080, scrimTone: .black, ignoresOverscan: false
         ).environment(\.detailEntranceSession, session))
         host.view.backgroundColor = .black
-        fixture.window.rootViewController = host
+        fixture.controller.addChild(host)
+        host.view.frame = fixture.controller.view.bounds
+        fixture.controller.view.addSubview(host.view)
+        host.didMove(toParent: fixture.controller)
         host.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(300))
         let screenshot = DetailTransitionSnapshot.image(of: fixture.window)
@@ -1620,7 +1619,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        try await waitUntil { focused }
+        host.view.layoutIfNeeded()
+        let monogram = try XCTUnwrap(focusTargets(in: host.view).first { $0 is NativeTVMonogram.Monogram })
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: monogram)
+        system.updateFocusIfNeeded()
+        try await waitUntil { focused && system.focusedItem === monogram }
         try await Task.sleep(for: .milliseconds(700))
         let image = DetailTransitionSnapshot.image(of: window)
         let attachment = XCTAttachment(image: image)
@@ -1629,7 +1633,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         add(attachment)
         let painted = try redArtworkBounds(in: window)
         XCTAssertEqual(painted.width, painted.height, accuracy: 2)
-        XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+        XCTAssertTrue(system.focusedItem === monogram)
         let cgImage = try XCTUnwrap(image.cgImage)
         for corner in [
             CGPoint(x: painted.minX + 4, y: painted.minY + 4),
@@ -1786,6 +1790,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let card = FocusScaledArtworkButton(type: .custom)
         let other = UIButton(type: .system)
         var prefersCard = true
+        private(set) var hasAppeared = false
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            hasAppeared = true
+        }
 
         override var preferredFocusEnvironments: [any UIFocusEnvironment] {
             [prefersCard ? card : other]

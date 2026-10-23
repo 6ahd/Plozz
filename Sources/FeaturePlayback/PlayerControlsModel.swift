@@ -713,6 +713,14 @@ public final class PlayerControlsModel {
         skipModes.mode(for: activeSkipSegment?.kind ?? .credits)
     }
 
+    public var automaticSkipDelay: TimeInterval {
+        skipModes.delay(for: activeSkipSegment?.kind ?? .credits)
+    }
+
+    public var automaticUpNextDelay: TimeInterval {
+        skipModes.delay(for: .credits)
+    }
+
     /// In `.autoDelay`, the playback position (seconds) at which the active
     /// segment auto-skips. Set while the button counts down; `nil` otherwise.
     /// The button's ring depletes toward this so the wait is visible.

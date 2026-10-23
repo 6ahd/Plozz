@@ -43,6 +43,34 @@ session persistence.
 
 ## Invariants
 
+- **Managed-server recovery does not require removal.** Plex, Jellyfin, Emby,
+  and Silo expose Sign In Again from server settings and rejected library loads.
+  Recovery uses the provider's existing link, password, Quick Connect, or pairing
+  flow and requires the original server/user (and Silo profile). It preserves
+  the exact account ID and selections, refuses stale or removed accounts, and
+  rechecks profile authorization before saving. An unsuccessful save stays in
+  sign-in with Retry/Cancel instead of claiming success or dismissing.
+  IPTV authentication failures open its existing connection editor. Network
+  failures retain Retry and do not discard credentials or send file shares
+  through a media-server sign-in flow.
+- **Recovery uses the shared screen treatment.** Plex gate failures and managed
+  account sign-in errors use `RecoveryScreen`, also used by playback failures,
+  with `ProviderBrandMark` and native `plozzActionButton` controls. The provider
+  heading, affected name and error remain distinct. Account recovery inherits
+  the browsing theme rather than playback's dark-only policy. Actions adapt to
+  width, stacked mobile actions fill the card's content width, all content
+  scrolls at large text sizes, and TV entry focuses Sign In
+  Again (or Retry when a sign-in attempt failed).
+- **Plex account recovery stays inside the profile gate.** A rejected Home-user
+  list request means the saved account needs sign-in, not that the server is
+  offline or the user's Home PIN is wrong. Failed activations offer Sign In Again
+  on both platforms, using Plex's hosted link flow (including MFA). Recovery
+  accepts only the original Plex login and server and replaces that exact saved
+  account under a compare-and-swap. Account IDs, selections, alternate addresses,
+  profile bindings, and library preferences survive. Removed/replaced accounts,
+  cancelled linking, and superseded profile activations cannot commit credentials.
+  Linking does not unlock a Home user: current PIN protection is checked again.
+  Cancelling returns to the unresolved gate without exposing the owner's content.
 - **Repeat sign-ins reuse the exact server/user connection.** Authentication
   matches provider, backend server ID, and authenticated user ID under the account
   store's mutation lock. Existing account IDs, creation order, approved alternate

@@ -68,6 +68,35 @@ public struct PlozziOSRootView: View {
 
     public var body: some View {
         Group {
+            if needsDiagnosticConsent {
+                CrashReportingConsentView { enabled in
+                    appModel.crashReporting.isEnabled = enabled
+                    appModel.applyCrashReportingPreference()
+                }
+                .environment(\.themePalette, resolvedPalette)
+                .environment(\.colorScheme, resolvedPalette.isLight ? .light : .dark)
+            } else {
+                appContent
+                    .task { consumeDeferredPairingURL() }
+            }
+        }
+        .onOpenURL { url in
+            if ExternalPlaybackRuntime.shared.receive(url) { return }
+            receivePairingURL(url)
+        }
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL {
+                receivePairingURL(url)
+            }
+        }
+    }
+
+    private var needsDiagnosticConsent: Bool {
+        appModel.crashReportingController.isConfigured && appModel.crashReporting.needsConsent
+    }
+
+    private var appContent: some View {
+        Group {
             if !appModel.canEnterApp {
                 PlozziOSOnboardingView(appModel: appModel)
             } else if showsLaunchProfilePicker {
@@ -97,6 +126,13 @@ public struct PlozziOSRootView: View {
         }
         .scrollContentBackground(.hidden)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .plozzSheet(item: $providerSetupRouter.reauthenticationAccount) { account in
+            PlozziOSAccountReauthenticationView(appModel: appModel, account: account)
+                .presentationSizing(.page)
+        }
+        .onChange(of: appModel.profiles.activeProfileID) { _, _ in
+            providerSetupRouter.reauthenticationAccount = nil
+        }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
             iptvSetup = request
@@ -359,20 +395,11 @@ public struct PlozziOSRootView: View {
                 .presentationSizing(.page)
         }
         .installNightShiftOverlay(appModel.settings.nightShift)
-        .onOpenURL { url in
-            if ExternalPlaybackRuntime.shared.receive(url) { return }
-            receivePairingURL(url)
-        }
         .externalPlayerSupport(
             context: { appModel.externalPlaybackContext() },
             legacySettings: { appModel.settings.playback.settings.externalPlayer },
             onProgress: { try await appModel.finishExternalPlayback($0) }
         )
-        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
-            if let url = activity.webpageURL {
-                receivePairingURL(url)
-            }
-        }
         .plozzSheet(item: pendingPairingBinding) { pairing in
             Group {
                 if let invite = SyncSetupSourceInvite.decode(pairing.invite) {
@@ -553,6 +580,10 @@ public struct PlozziOSRootView: View {
     /// with `pendingPairingInvite` left set so it is never re-requested, which
     /// means the link simply does nothing until relaunch.
     private func receivePairingURL(_ url: URL) {
+        guard !needsDiagnosticConsent else {
+            deferredPairingURL = url
+            return
+        }
         guard showingSettings || showingProfileSwitcher || showingAddServer else {
             appModel.handleIncomingURL(url)
             return

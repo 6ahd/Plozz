@@ -17,7 +17,6 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     let client: JellyfinClient
     let collectionLibraryCache = MediaBrowserCollectionLibraryCache()
     let videoPlaylistCache = VideoPlaylistSnapshotCache()
-    let watchHistoryScope = JellyfinWatchHistoryScope()
     let liveTVLeases = JellyfinLiveTVLeaseStore()
     let themeArchiveResolver: @Sendable (String?) async -> URL?
     private let authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)?
@@ -183,8 +182,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         guard separateNextUp else {
             return try await continueWatching(limit: limit, inLibraries: libraryIDs)
         }
-        let historyLibraries = try await watchHistoryLibraries(libraryIDs)
-        let parents: [String?] = historyLibraries.map {
+        let parents: [String?] = libraryIDs.map {
             $0.filter { $0 != collectionDirectoryID }.map(Optional.some)
         } ?? [nil]
         var items: [MediaItem] = []
@@ -554,12 +552,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// so the only reliable way to attribute — and therefore Home-filter — items
     /// is to fetch them **scoped to each visible library** via `ParentId` and
     /// stamp the result. `nil` keeps the fast unscoped feed (used when the user
-    /// has hidden nothing on this account). AIOStreams explicitly owns history
-    /// at account scope, independently of its virtual catalogs.
+    /// has hidden nothing on this account). An empty scope never fetches history.
     public func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
         guard limit > 0 else { return [] }
-        guard let libraryIDs = try await watchHistoryLibraries(libraryIDs)?
-            .filter({ $0 != collectionDirectoryID }) else {
+        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
             return try await continueWatching(limit: limit)
         }
         guard !libraryIDs.isEmpty else { return [] }
@@ -628,13 +624,6 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         return limit == Int.max ? ordered : Array(ordered.prefix(limit))
     }
 
-    private func watchHistoryLibraries(_ libraryIDs: [String]?) async throws -> [String]? {
-        guard let libraryIDs else { return nil }
-        if !libraryIDs.isEmpty, libraryIDs.allSatisfy({ $0 == collectionDirectoryID }) { return [] }
-        return try await watchHistoryScope.isAccountWide(client: client, serverID: session.server.id)
-            ? nil : libraryIDs
-    }
-
     /// Library-scoped Recently Added — see ``continueWatching(limit:inLibraries:)``
     /// for why Jellyfin must scope the fetch to attribute each item's library.
     public func latest(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
@@ -684,7 +673,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         await probeDescriptors.remember(itemID: id, sources: dto.MediaSources)
         var item = map(item: dto)
         let remotePlaceholder = dto.MediaSources?.count == 1 && dto.MediaSources?.first?.IsRemote == true
-        // Add-on servers may resolve streams only through PlaybackInfo, even
+        // Compatible servers may resolve streams only through PlaybackInfo, even
         // when item detail already contains sources or omits IsRemote.
         if (item.kind == .movie || item.kind == .episode),
            requiresSourceInventory || remotePlaceholder {
@@ -2173,7 +2162,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     // MARK: - Mapping
 
     private static func isUnavailablePlaceholder(_ source: MediaSourceInfo, itemID: String) -> Bool {
-        // Add-on bridges can encode a negative lookup as a nominal MKV source
+        // Compatible servers can encode a negative lookup as a nominal MKV source
         // with invented tracks instead of returning PlaybackInfo.ErrorCode.
         source.IsRemote == true && source.Id == itemID
             && source.Name?.hasPrefix("No streams · ") == true

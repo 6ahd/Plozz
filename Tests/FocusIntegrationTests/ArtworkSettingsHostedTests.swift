@@ -420,8 +420,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     func testSegmentFocusOnlyPreviewsAndOnlySelectionUsesCheckmarkSpace() async throws {
         let state = SettingsScaleFixtureState()
         try await withScreen(content: SettingsScaleFixture(state: state).frame(width: 1000)) { window in
-            let labels = try self.collectionLabelFrames(in: window)
-            let compact = try XCTUnwrap(labels.first { $0.text == "Compact" })
+            let compact = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Compact").first)
             let target = try XCTUnwrap(self.focusItems(in: window).first {
                 (try? self.nativeFrame($0, in: window).contains(CGPoint(x: compact.frame.midX, y: compact.frame.midY))) == true
             })
@@ -617,6 +616,12 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                     XCTAssertTrue(trailers.contains("Start muted"), trailers)
                 }
                 navigation.pop(animated: false)
+                let returnDeadline = ContinuousClock.now + .seconds(5)
+                while (navigation.awaitingFocus || system.focusedItem == nil),
+                      ContinuousClock.now < returnDeadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                XCTAssertFalse(navigation.awaitingFocus, "Wait for native return focus before blocking on OCR.")
                 let returned = try await self.capture(window, name: "hero-return-\(page.rawValue)", includeMaster: true)
                 if page != .titles {
                     XCTAssertTrue(returned.contains("On"), returned)
@@ -632,6 +637,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             }
             scroll.setContentOffset(.zero, animated: false)
             models.heroSettingsModel.settings.sources = [.featured, .watchlist]
+            models.heroSettingsModel.settings.setEnabled(.featured, enabled: true)
             let selected = try await self.capture(window, name: "hero-selected-source-summary", includeMaster: true)
             XCTAssertTrue(selected.contains("Discovery"), selected)
             XCTAssertTrue(selected.contains("Watchlist"), selected)
@@ -647,7 +653,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
 
     func testNestedDiscoveryReturnsToTitleSourcesWithoutPoppingTheHeroPage() async throws {
         let namespace = "HeroNestedHosted.\(UUID())"
-        let models = ProfileSettingsModel(namespace: namespace)
+        let models = ProfileSettingsModel(namespace: namespace, isSeerrConfigured: { true })
         defer {
             for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
                 UserDefaults.standard.removeObject(forKey: key)
@@ -889,7 +895,9 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let title = try XCTUnwrap(before.first { $0.text == "Labels by view" })
             let backItem = try self.backButton(beside: "Labels by view", in: window)
             let backControlFrame = try self.nativeFrame(backItem, in: window)
-            let backInk = try self.textInkBounds(in: self.renderWindow(window),
+            let beforeImage = self.renderWindow(window)
+            let titleInk = try self.textInkBounds(in: beforeImage, frame: title.frame)
+            let backInk = try self.textInkBounds(in: beforeImage,
                                                 frame: backControlFrame.insetBy(dx: 12, dy: 12))
             let viewport = scroll.convert(scroll.bounds, to: window)
             let innerTop = viewport.minY + scroll.adjustedContentInset.top
@@ -901,13 +909,15 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let after = try self.collectionLabelFrames(in: window)
             let scrolledTitle = try XCTUnwrap(after.first { $0.text == "Labels by view" })
             let scrolledControlFrame = try self.nativeFrame(backItem, in: window)
-            let scrolledBackInk = try self.textInkBounds(in: self.renderWindow(window),
+            let afterImage = self.renderWindow(window)
+            let scrolledTitleInk = try self.textInkBounds(in: afterImage, frame: scrolledTitle.frame)
+            let scrolledBackInk = try self.textInkBounds(in: afterImage,
                                                         frame: scrolledControlFrame.insetBy(dx: 12, dy: 12))
             XCTAssertLessThan(scrolledBackInk.minY, innerTop - 8)
             XCTAssertGreaterThan(scrolledBackInk.height, backInk.height * 0.85,
                                  "The back chevron must remain visible across the top inset.")
             XCTAssertEqual(backControlFrame.minY - scrolledControlFrame.minY, distance, accuracy: 1)
-            XCTAssertEqual(title.frame.minY - scrolledTitle.frame.minY, distance, accuracy: 3,
+            XCTAssertEqual(titleInk.minY - scrolledTitleInk.minY, distance, accuracy: 3,
                            "Neither Back nor the title should be pinned.")
             let text = try await self.capture(window, name: "labels-scrolling-through-top-inset", includeMaster: true)
             XCTAssertTrue(text.contains("Labels are visible in this view"), text)

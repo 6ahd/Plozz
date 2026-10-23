@@ -35,6 +35,10 @@ struct FocusHostApp: App {
                 SyncErasureRemoteFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--preview-introduction-fixture") {
                 LiveTVPreviewIntroductionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--sources-navigation-fixture") {
+                LiveTVSourcesNavigationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--channel-settings-fixture") {
+                LibraryChannelSettingsFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--view-customization-fixture") {
                 ViewCustomizationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-setup-fixture") {
@@ -71,6 +75,8 @@ struct FocusHostApp: App {
                 CastFocusFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--guide-navigation-fixture") {
                 GuideNavigationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--channel-identity-fixture") {
+                PlozzChannelIdentityFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--library-channel-actions") {
                 LibraryChannelActionsFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--navigation-fixture") {

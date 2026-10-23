@@ -376,7 +376,10 @@ private struct LiveTVSourcesContent: View {
                 SettingsSectionGroup {
                     if let createChannel {
                         Button(action: createChannel) {
-                            LiveTVSetupActionLabel(title: "Plozz channels", symbol: "sparkles.tv")
+                            SettingsRowLabel(
+                                icon: "sparkles.tv", title: "Plozz channels",
+                                trailing: { LiveTVSourceChevron() }
+                            )
                         }
                             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                             .accessibilityHint("Manage your automatic lineup and optional custom channels.")
@@ -384,9 +387,13 @@ private struct LiveTVSourcesContent: View {
                     }
                     if let scanChannels, !model.configuration.playlists.isEmpty {
                         Button(action: scanChannels) {
-                            LiveTVSetupActionLabel(title: "Check channel availability", symbol: "checkmark.circle")
+                            SettingsRowLabel(
+                                icon: "checkmark.circle", title: "Check channel availability",
+                                trailing: { LiveTVSourceChevron() }
+                            )
                         }
                             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            .accessibilityIdentifier("live-tv-check-channel-availability")
                     }
                     if browseSource != nil {
                         SettingsPageLink {

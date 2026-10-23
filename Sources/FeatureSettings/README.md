@@ -7,6 +7,25 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Server sign-ins offer **Sign In Again** without removing the saved account.
+Plex, Jellyfin, Emby, and Silo share the same guarded recovery contract; IPTV
+uses **Edit connection**. Failed library authentication routes to that exact
+account rather than the add-another-user flow. A network failure remains Retry,
+and Connection addresses stays available for managed servers that moved.
+
+Diagnostic reporting requires an explicit device-wide choice on every build
+channel. `CrashReportingConsentView` appears before first-time setup or normal
+startup when the build has a reporting endpoint and the current consent version
+has not been answered. Existing users, including prior opt-ins and opt-outs, are
+asked once after this migration; reporting stays off until they choose to share.
+Either choice continues setup and survives relaunch and profile switching.
+Help & Diagnostics can change it later. Consent is not synced or transferred.
+The prompt and its primary Share Diagnostics and secondary Don't Share actions
+use the shared Settings card above a separate bottom privacy footer, with
+48-point content insets on tvOS and the standard card insets on mobile.
+Its GitHub-marked link opens the repository
+on mobile or a scannable QR sheet on Apple TV; opening it does not grant consent.
+
 On tvOS, Video buffer and Live TV buffer use the shared `SettingsMenuRow`: one
 compact row showing the current value, with choices in the native menu and help
 text below. Opening, focusing, or cancelling the menu does not save a choice;
@@ -58,6 +77,32 @@ compatible E-AC-3/JOC spatial audio to channel-based PCM.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
+
+**Remember audio language per series** stores only the selected language, not a
+specific audio track or format. Its label needs no explanatory footer.
+
+On TV, related control groups can share one section heading through
+`SettingsConnectedControlGroups`: an 8pt gap and tighter 8pt facing corners keep
+them connected, while the section's outer corners retain the standard radius.
+Audio language controls share the first group and spatial audio the second.
+Autoplay switches share a group, separate from the Up Next card and its
+conditional timing control. These use the existing surfaces and native controls,
+without an enclosing card or changing the independent settings.
+
+**Skip intros, credits & more** uses one profile-scoped master switch on both
+platforms. Turning it off hides configuration without clearing behavior, timing,
+content selections, per-marker overrides, or community-marker consent. Behavior
+chooses a manual skip button or automatic skipping; only automatic behavior
+reveals **Skip after**, from Immediately through 30 seconds in one-second steps.
+The default delayed skip remains five seconds. Movies, TV Shows, and Anime can
+be enabled independently, using the existing audio/subtitle content classifier.
+Disabling a category suppresses skip prompts and automatic skips, not the
+independent Up Next or autoplay preferences. Advanced per-marker choices retain
+independent Off/manual/automatic behavior and timing. Existing saved modes,
+including mixed immediate/delayed marker overrides, migrate without changing
+their playback behavior. Community-marker attribution and identifier sharing
+appear as a short caption attached to its switch, without a separate section
+footer.
 
 The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
 profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off

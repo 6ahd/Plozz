@@ -733,7 +733,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
         case .autoInstant:
             actions.autoSkipSegment()
         case .beginAutoDelay:
-            autoSkipAtSeconds = model.currentSeconds + SkipIntrosMode.autoSkipDelay
+            autoSkipAtSeconds = model.currentSeconds + model.automaticSkipDelay
             model.autoSkipAtSeconds = autoSkipAtSeconds
             enterSkipButton()
         case .fireAutoDelay:
@@ -843,7 +843,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
         case .presentManual:
             enterUpNext()
         case .beginAutoDelay:
-            upNextAdvanceAtSeconds = model.currentSeconds + SkipIntrosMode.autoSkipDelay
+            upNextAdvanceAtSeconds = model.currentSeconds + model.automaticUpNextDelay
             model.upNextCard.advanceAtSeconds = upNextAdvanceAtSeconds
             enterUpNext()
         case .advance:

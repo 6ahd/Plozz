@@ -6,6 +6,28 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`SettingsCheckableRow` is shared by Settings and channel-library selection.
+Its prominence controls the common row metrics; `.contained` keeps focus inside
+a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu
+height, while `SettingsMenuLabel` and `SettingsDisclosureLabel` remain padding-free.
+
+`ChannelLogoArtwork` renders generated Plozz channels with the shared Byline
+layout: a name-first title and inset pixel-mascot signature. Its optional
+`LibraryChannelArtworkMood` comes from channel rules, not display-name guessing.
+Category tint blends over `themePalette.cardOpaqueSurface`, so Light, Dark,
+and Black keep their own brightness and foreground contrast. Supplied logos
+always retain precedence; external channels keep the ordinary name fallback.
+
+`PlozzStartupLogo` starts from a smile and rotates through wink, delight, and
+surprise on successive cold launches. The device-local choice is saved once per
+process when animation first becomes active; view remounts and foreground
+transitions reuse it. Reduce Motion leaves the smile and does not advance the
+rotation. Each selected expression begins at 0.25 seconds and reports intro completion
+from the animation timeline at 0.7 seconds. The optional completion is one-shot,
+does not advance in inactive scenes, and fires immediately with Reduce Motion.
+The shell may retain the launch presentation for that intro without delaying
+startup work. Longer loading keeps the existing eight-second expression loop.
+
 Loading placeholders share `shimmering()`. Its static gradient band is rasterized
 before the animated translation, avoiding repeated gradient work without
 rasterizing the placeholder content or changing the sweep, masking, or intensity.
@@ -143,8 +165,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
   Both keep icons centered and text leading-aligned in either layout direction.
 
-- **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
-  error layout, bounded symbol inline with the heading, readable summary, adaptive
+- **Recovery screens** — `RecoveryScreen` supplies the bounded, vertically
+  centered, scrolling card and adaptive horizontal/vertical action layout used by
+  playback failures and account recovery. Hosts supply the heading and native
+  actions, and retain ownership of theme, focus, retry and dismissal.
+- **Playback failures** — `PlaybackFailureView` uses that shared TV/mobile
+  layout with a bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
   its dark palette without changing browsing themes. Its opaque themed surface
   stays legible over video without depending on glass or motion.
@@ -291,6 +317,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
   held-press cancellation, and navigation-rail protection. VoiceOver adjustment
   uses the same stepping operation. Mobile retains separate buttons.
+  Use `textTitle` for mixed localized labels and formatted values, such as
+  Immediately or a duration; do not resolve localized copy into `verbatimTitle`.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
@@ -311,6 +339,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   internal dividers. Grouped steppers inherit
   the same leading inset as their neighboring rows, with no extra resting chip.
   Mobile keeps its existing stack/native-list presentation.
+  `settingsGroupSurface(cornerRadii:)` shares the same paint and accessibility
+  fallbacks for [connected TV control groups](../FeatureSettings/README.md).
 - **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal
   layout when it fits. On tvOS, longer copy switches to a wrapping label above
   its control rather than overlapping it or reducing the shared body font.
@@ -395,6 +425,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   PIN digit/delete keys use native Liquid Glass at rest and during interaction
   on iOS/tvOS 26+, independent of the page gradient. `PINDialPad` and `PINKeyStyle`
   own this for profile, Plex, parental, and Live TV authorization/setup prompts.
+  In the tvOS Settings workspace, digit 1 uses the shared page-entry focus
+  handoff after the transition enables input. Both layout directions must receive
+  native keypad focus; do not rely on automatic focus selection after the slide.
   The system owns their glass appearance, focus, hover, and press treatment;
   digits keep their original circular size and Delete spans two columns at the
   same height. Mobile activation retains haptic feedback. Reduce Transparency
@@ -472,8 +505,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   radius at every display size and responsive width. Borderless cards use that
   radius directly; glass frames add their inset to remain concentric. Loaded
   artwork, missing-art placeholders, and skeletons agree. TV rounding is unchanged.
-  Regular mobile artwork progress bars use an 8pt minimum height, leaving their
-  length and the separate Continue Watching, hero, and TV bars unchanged.
+  Regular artwork progress bars use the shared Detailed bar metric described
+  above, including its density and Dynamic Type scaling.
   Mobile library, episode, and download artwork uses the same metric, keeping
   its caption clearance consistent with its actual corners. Mobile captions use
   a shared 4pt horizontal inset from the artwork edge, independently of their

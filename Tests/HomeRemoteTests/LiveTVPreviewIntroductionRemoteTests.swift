@@ -3,6 +3,35 @@ import Vision
 
 @MainActor
 final class LiveTVPreviewIntroductionRemoteTests: XCTestCase {
+    func testChannelAvailabilityOpensWithoutLibraryChannels() {
+        let app = launch(suite: "SourcesNavigation.\(UUID())", reset: true)
+        defer { app.terminate() }
+        assertFocused(app.buttons["live-tv-preview-enable"])
+        XCUIRemote.shared.press(.menu)
+        _ = focusFirstGuideContent(in: app)
+        XCUIRemote.shared.press(.select, forDuration: 1)
+        let sources = app.cells.containing(.any, identifier: "Sources").firstMatch
+        XCTAssertTrue(sources.waitForExistence(timeout: 5), app.debugDescription)
+        for _ in 0..<10 where !containsFocus(sources) {
+            XCUIRemote.shared.press(.down)
+        }
+        assertFocused(sources)
+        XCUIRemote.shared.press(.select)
+        let check = app.buttons["live-tv-check-channel-availability"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["live-tv-manage-library-channels"].exists)
+        for _ in 0..<12 where !containsFocus(check) {
+            XCUIRemote.shared.press(.down)
+        }
+        assertFocused(check)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.staticTexts["Check channels"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["live-tv-cancel-scan"].exists)
+        capture("sources-standalone-channel-availability", in: app)
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(check.waitForExistence(timeout: 5), app.debugDescription)
+    }
+
     func testRefreshChannelsReplacesAnEmptyCachedServerCatalog() {
         exerciseExplicitCatalogRefresh(fromSources: false)
     }

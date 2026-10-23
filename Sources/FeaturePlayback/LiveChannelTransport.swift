@@ -52,6 +52,7 @@ struct LiveChannelOverlay: View {
     let title: String // l10n:content — provider-supplied channel name
     let logoURL: URL?
     let plozzChannelID: String?
+    var plozzChannelMood: LibraryChannelArtworkMood? = nil
     let channelID: String
     let input: LiveChannelInput
     let program: LiveChannelProgramInfo?
@@ -430,7 +431,7 @@ struct LiveChannelOverlay: View {
             HStack(spacing: 12) {
                 ChannelLogoArtwork(
                     name: title, logoURL: logoURL, size: Self.logoSize,
-                    cornerRadius: 8, plozzChannelID: plozzChannelID
+                    cornerRadius: 8, plozzChannelID: plozzChannelID, plozzChannelMood: plozzChannelMood
                 )
                 if program != nil {
                     Text(title)
@@ -1023,7 +1024,8 @@ struct LiveChannelOverlay: View {
             switch cardTab {
             case .info:
                 LiveChannelInfoCard(
-                    title: title, logoURL: logoURL, plozzChannelID: plozzChannelID, program: program,
+                    title: title, logoURL: logoURL, plozzChannelID: plozzChannelID,
+                    plozzChannelMood: plozzChannelMood, program: program,
                     compact: isTouchPortrait,
                     diagnosticsEnabled: diagnosticsEnabled, toggleDiagnostics: toggleDiagnostics,
                     focus: $focus
@@ -1711,6 +1713,7 @@ struct LiveChannelProgramArtwork: View {
     let channelName: String // l10n:content — provider-supplied channel name
     let logoURL: URL?
     let plozzChannelID: String?
+    var plozzChannelMood: LibraryChannelArtworkMood? = nil
     let size: CGSize
     var cornerRadius: CGFloat = 12
 
@@ -1737,7 +1740,7 @@ struct LiveChannelProgramArtwork: View {
     private var logo: some View {
         ChannelLogoArtwork(
             name: channelName, logoURL: logoURL, size: size,
-            cornerRadius: cornerRadius, plozzChannelID: plozzChannelID
+            cornerRadius: cornerRadius, plozzChannelID: plozzChannelID, plozzChannelMood: plozzChannelMood
         )
     }
 }
@@ -1750,6 +1753,7 @@ private struct LiveChannelInfoCard: View {
     let title: String // l10n:content — provider-supplied channel name
     let logoURL: URL?
     let plozzChannelID: String?
+    var plozzChannelMood: LibraryChannelArtworkMood? = nil
     let program: LiveChannelProgramInfo?
     /// A stood-up phone: the art stays but shrinks, and the synopsis goes so
     /// the title and timing have room to wrap instead.
@@ -1771,6 +1775,7 @@ private struct LiveChannelInfoCard: View {
                 LiveChannelProgramArtwork(
                     artworkURL: program?.artworkURL, channelName: title, logoURL: logoURL,
                     plozzChannelID: plozzChannelID,
+                    plozzChannelMood: plozzChannelMood,
                     size: CGSize(width: (artHeight * 16 / 9).rounded(), height: artHeight),
                     cornerRadius: PlozzTheme.Metrics.mediumMediaCornerRadius
                 )
@@ -2763,7 +2768,8 @@ struct LiveChannelOnNowCard: View {
     private var artwork: some View {
         LiveChannelProgramArtwork(
             artworkURL: item.program?.artworkURL, channelName: item.channelName, logoURL: item.logoURL,
-            plozzChannelID: item.plozzChannelID, size: CGSize(width: artWidth, height: artHeight),
+            plozzChannelID: item.plozzChannelID, plozzChannelMood: item.plozzChannelMood,
+            size: CGSize(width: artWidth, height: artHeight),
             cornerRadius: artCornerRadius
         )
     }

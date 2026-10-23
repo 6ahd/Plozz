@@ -1889,11 +1889,14 @@ public final class PlayerViewModel {
         // not the segments, and a viewer with skipping and the Up Next card off
         // would otherwise leave the container reading a stale default.
         controls.upNextCard.autoPlayEnabled = playbackSettings.autoPlayNextEpisode
-        let modes = playbackSettings.skipMarkerModes
-        let wantsMarkers = modes.fetchesMarkers || playbackSettings.showUpNextCard
-        guard wantsMarkers else { return }
+        let category = request.map { ContentClassifier.classify($0.item).subtitleCategory } ?? .other
+        let modes = playbackSettings.skipMarkerModes(for: category)
         controls.skipModes = modes
         segmentsTask?.cancel()
+        segmentsTask = nil
+        controls.skipSegments.segments = []
+        let wantsMarkers = modes.fetchesMarkers || playbackSettings.showUpNextCard
+        guard wantsMarkers else { return }
         let provider = provider
         let itemID = itemID
         let looksUpCommunity = modes.fetchesMarkers && playbackSettings.useCommunityMarkers
@@ -2015,6 +2018,17 @@ public final class PlayerViewModel {
         progressReporter.checkpointNow()
     }
 
+    public func didBecomeInactive() {
+        #if os(tvOS)
+        // Control Center and Siri do not mean the viewer paused or left playback.
+        // An explicit pause also disarms the engine's audio-interruption resume.
+        progressReporter.emitCheckpoint(includingPaused: true)
+        foregroundReload.captureBeforeInactivity()
+        #else
+        suspendForBackground()
+        #endif
+    }
+
     /// Handles the app leaving the foreground (TV Home button, sleep, or app
     /// switcher) — a path that never fires the view's `onDisappear`/`stop()`. It
     /// first takes a durable checkpoint at the **live** position (while still
@@ -2069,6 +2083,9 @@ public final class PlayerViewModel {
     /// engine seam at their existing position and session URL. Driven by
     /// ``ForegroundReloadCoordinator``.
     public func resumeAfterBackground() async {
+        if foregroundReload.captureCoalescedBackground() {
+            suspendForBackground()
+        }
         isInBackground = false
         HandoffDiagnostics.emit(
             "session FOREGROUND vm=\(instanceID) pausedIntent=\(!intendsPlayback) loading=\(phase == .loading)"

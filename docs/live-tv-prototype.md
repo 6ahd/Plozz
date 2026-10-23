@@ -319,11 +319,36 @@ request. This avoids downloading a large guide again for each channel batch;
 matching and parsing still run separately for each batch. Initial download
 assembly still uses Data. Backing failures are logged and leave a valid response
 uncached rather than failing its guide import.
-XMLTV accepts compact and colon-separated numeric timezone offsets, with strict
-date/offset validation. Programme-only feeds can supply exact channel IDs without
-invented display names or relaxed station matching. Referenced IDs and declared
-channels share the channel/text budgets; later declarations still provide names
-and conflicting duplicate declarations remain invalid.
+XMLTV accepts minute- or second-precision programme timestamps, compact and
+colon-separated numeric timezone offsets, and the unambiguous UTC/GMT/Z labels.
+Absent zones mean UTC. Calendar and offset validation remains strict; coarser
+dates and ambiguous regional timezone abbreviations do not invent airtimes.
+Programme-only feeds can supply exact channel IDs without invented display names
+or relaxed station matching. Repeated channel declarations with the same exact
+ID combine distinct display names in source order, rather than rejecting the
+whole guide. Different IDs remain separate and ambiguous names do not establish
+a match. Referenced IDs and declared channels share the channel/text budgets;
+repeated declarations still count toward the declaration limit. Declarations
+with missing, empty or whitespace-only IDs are skipped without inventing an
+identity; they still count toward declaration limits and their display names
+remain subject to text limits. Other channels and programme-only IDs remain usable.
+
+Programme titles, subtitles and descriptions select the first nonempty variant
+in the requested language, then untagged text, then the first nonempty variant.
+The default is the device language, independent of the profile's UI-language
+override and audio/subtitle preferences. Matching reuses the shared ISO-639
+normalization, including two/three-letter codes and regional variants. Empty
+variants never erase usable text. Indexed guide settings include the normalized
+language and parser version so old selections cannot pass cache-restore checks.
+
+XML remains strict: malformed markup, unknown entities, external/internal entity
+declarations and exhausted resource budgets fail the import, not a partial-success
+fallback. Standard external DOCTYPEs do not fetch their DTD. Harmless entity-like
+text in comments, processing instructions and CDATA is not a declaration.
+`XMLTV_PARSE` diagnostics identify the failing pass, a closed-vocabulary reason,
+numeric parser code, line/column and channel/programme counts. They never include
+XML fragments, station names, URLs or native error descriptions. Compatible
+duplicate and skipped declarations are reported once per metadata pass as counts.
 Playlist and imported-file accounts without an explicit or playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
@@ -527,6 +552,18 @@ compact icon/name/status rows instead of repeating every control and hostname.
 Playlist icons optionally load the source origin's favicon, with a generic
 fallback; no playlist credentials or third-party favicon service are used.
 Each source opens its controls and diagnostics on a child page with Back.
+Plozz channels and Check channel availability are disclosure actions, not
+enabled-state indicators. They open sibling child pages through the Settings
+workspace; the Plozz channels page contains the actual enable switch. Custom
+channel creation/editing and save dismissal use the same page navigation.
+The guide's separate Sources presentation also opens channel checks directly,
+without requiring Plozz channels to be available or open first.
+On tvOS, Generated channels is a bounded scrolling group with focusable,
+read-only rows. It shows four full rows and half of the next row to hint at more
+content; Up/Down browses the lineup and leaves it at either end.
+Custom-channel actions and menus use the shared form sizing, and Source
+libraries uses the same multi-select check rows as other Settings pages.
+Genre and ordering rules are explicit controls, without a one-off Comedy preset.
 Guide lookback/lookahead use native value menus on TV so all day choices fit
 the fixed detail column without overflowing horizontal pills.
 Child pages inherit the workspace background rather than drawing a second
@@ -834,12 +871,21 @@ is no prior in-memory history to migrate on the first updated launch.
   logo and its backing together, so a warmed guide logo appears immediately in
   the player with the same appearance. Hero/search/player sizes remain
   independent of the full-row guide treatment.
-  Plozz library channels without supplied artwork use a locally rendered wordmark:
-  heavy compressed channel lettering, a small rounded Plozz signature and a
-  solid broadcast-style color field. FNV-1a over the stable channel identity picks
-  from a fixed palette, so names, schedules, view size and app restarts do not
-  randomly change the branding. Guide and player pass the same channel identity
-  to the shared renderer. Real source logos still take precedence; missing
+  Plozz library channels without supplied artwork use the locally rendered Byline:
+  a prominent, original-case channel name above a small pixel-mascot and Plozz
+  signature. Both share an inset leading edge; the signature is lifted away
+  from the bottom corner. Category moods tint the active theme's opaque surface:
+  cinematic blue, playful amber, calm green, warm rose, intense terracotta,
+  mysterious plum, and imaginative indigo. Light, Dark, and Black keep their
+  own surface and text contrast, including increased-contrast borders.
+  Automatic group keys and custom recipe genres determine the mood, never
+  translated or renamed display titles, current programmes, or provider order.
+  Unrecognized categories and mixed custom moods use a neutral field; unfiltered
+  movie-only channels use cinematic blue. Studio/director channels use cinematic
+  blue without guessing their content, and decade channels use warm rose.
+  The guide and player carry the same mood to the shared renderer. No saved
+  channel identity, schedule, recipe, or sync format is changed by this styling.
+  Real source logos still take precedence; missing
   external-channel logos keep their ordinary name fallback. No network service,
   generated image asset or per-channel manual design is needed.
   Station tiles show only the logo, or a name fallback when artwork is missing,
@@ -1072,6 +1118,17 @@ already signed-in user to add the same account again. Saved groups belonging
 to temporarily unavailable servers are retained, but cannot play without
 current library authority. Media-share libraries are not yet supported by
 the automatic channel generator.
+
+Automatic scans skip individual items with invalid scheduling metadata as well
+as missing or invalid durations, and show the skipped-item count in management.
+Only validated native identities and metadata enter saved schedules; rejected
+values are never repaired by guessing or logged. Page diagnostics contain only
+item type, offset and counts. Source identities are checked before paging.
+Malformed responses and unstable pagination discard that server's incomplete
+scan, report it as unavailable and allow healthy servers to finish. An entirely
+malformed scan retains the server's saved groups instead of treating it as an
+empty library. Access changes, cancellation, catalogue limits and publication
+failures still stop publication. Custom-channel previews remain strict.
 
 Preparation reports the current server/library, actual page counts and total
 library items checked, followed by building-channel and saving-guide stages.

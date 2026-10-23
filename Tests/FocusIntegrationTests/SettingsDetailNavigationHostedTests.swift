@@ -331,8 +331,10 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                     let labels = try self.captureLabels(window, name: "profile-pin-\(parental)-\(direction)")
                     let heading = try self.label(parental ? "Create a Parental PIN" : "Add a Profile PIN?", in: labels)
                     XCTAssertLessThan(heading.height, 80)
-                    let focused = UIFocusSystem.focusSystem(for: window)?.focusedItem
-                    let keys = try self.focusItems(in: window).map { item in
+                    let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+                    let items = self.focusItems(in: window)
+                    XCTAssertTrue(items.contains { $0 === focused }, "Entry focus must land on the keypad.")
+                    let keys = try items.map { item in
                         let frame = try XCTUnwrap(NavigationRowFocusRequester.frame(of: item, relativeTo: window))
                         if item !== focused {
                             XCTAssertEqual(frame.height, 108, accuracy: 1,
@@ -343,6 +345,15 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                     }
                     XCTAssertEqual(keys.count, 11, "All ten digits and Delete must remain focusable.")
                     let pad = keys.reduce(CGRect.null) { $0.union($1) }
+                    let focusedFrame = try XCTUnwrap(
+                        NavigationRowFocusRequester.frame(of: focused, relativeTo: window)
+                    )
+                    XCTAssertEqual(focusedFrame.minY, pad.minY, accuracy: 1)
+                    XCTAssertEqual(
+                        direction == .leftToRight ? focusedFrame.minX : focusedFrame.maxX,
+                        direction == .leftToRight ? pad.minX : pad.maxX,
+                        accuracy: 1, "Digit 1 must receive entry focus in both layout directions."
+                    )
                     let padOffset: CGFloat = 420 // Half the shared 720pt prose column plus 120pt gap.
                     XCTAssertEqual(
                         pad.midX, window.bounds.midX + (direction == .leftToRight ? padOffset : -padOffset),

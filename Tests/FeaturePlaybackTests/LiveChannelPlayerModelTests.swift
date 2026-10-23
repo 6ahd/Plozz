@@ -1210,8 +1210,8 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(model.manualRetryCount, 0)
     }
 
-    func testPauseInactivityBufferingAndSeekingDiscardHealthyRecoveryCredit() async {
-        for interruption in ["pause", "inactive", "buffering", "seek"] {
+    func testPauseBackgroundBufferingAndSeekingDiscardHealthyRecoveryCredit() async {
+        for interruption in ["pause", "background", "buffering", "seek"] {
             let clock = LiveTestClock()
             let engine = LiveEngineSpy()
             let model = makeModel(engine: engine, clock: clock)
@@ -1232,9 +1232,10 @@ final class LiveChannelPlayerModelTests: XCTestCase {
             case "pause":
                 model.togglePlayPause()
                 model.togglePlayPause()
-            case "inactive":
-                model.handleScenePhase(.inactive)
+            case "background":
+                model.handleScenePhase(.background)
                 model.handleScenePhase(.active)
+                await waitForLiveLoads(5, engine: engine)
             case "buffering":
                 engine.liveSnapshot.phase = .rebuffering
                 model.refreshFromEngine()
@@ -1254,7 +1255,7 @@ final class LiveChannelPlayerModelTests: XCTestCase {
             engine.onLiveSourceReset?()
             XCTAssertNil(model.requestRetune(), interruption)
             XCTAssertEqual(model.phase, .failed(.recoveryExhausted), interruption)
-            XCTAssertEqual(engine.liveLoads, 4, interruption)
+            XCTAssertEqual(engine.liveLoads, interruption == "background" ? 5 : 4, interruption)
         }
     }
 
@@ -1273,18 +1274,17 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(model.phase, .playing)
     }
 
-    func testSourceResetWhileInactiveWaitsForForeground() async {
+    func testSourceResetWhileBackgroundedWaitsForForeground() async {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)
         defer { model.stop() }
         await model.start()
-        model.handleScenePhase(.inactive)
+        model.handleScenePhase(.background)
         engine.onLiveSourceReset?()
         XCTAssertNil(model.requestRetune())
         XCTAssertEqual(engine.liveLoads, 1)
         model.handleScenePhase(.active)
-        await model.requestRetune()?.value
-        XCTAssertEqual(engine.liveLoads, 2)
+        await waitForLiveLoads(2, engine: engine)
     }
 
     func testRepeatedResetSignalsCoalesceBeforeRetuneStarts() async {
@@ -1335,11 +1335,57 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         defer { model.stop() }
         await model.start()
         model.handleScenePhase(.inactive)
+        #if os(tvOS)
+        XCTAssertEqual(engine.pauseCount, 0)
+        XCTAssertFalse(engine.isPaused)
+        XCTAssertEqual(model.phase, .playing)
+        #else
+        XCTAssertTrue(engine.isPaused)
+        #endif
         model.handleScenePhase(.active)
         XCTAssertEqual(engine.liveLoads, 1)
         XCTAssertEqual(engine.stopCount, 0)
         XCTAssertEqual(model.phase, .playing)
+        #if os(tvOS)
+        XCTAssertEqual(engine.playCount, 0, "Closing an overlay must not synthesize a resume")
+        #endif
     }
+
+    func testInactiveReturnKeepsUserPausedStreamPaused() async {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        model.togglePlayPause()
+
+        model.handleScenePhase(.inactive)
+        model.handleScenePhase(.active)
+
+        XCTAssertTrue(engine.isPaused)
+        XCTAssertEqual(model.phase, .paused)
+        XCTAssertEqual(engine.playCount, 0)
+        XCTAssertEqual(engine.liveLoads, 1)
+    }
+
+    #if os(tvOS)
+    func testSourceResetUnderSystemOverlayCanStillRecover() async {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        model.handleScenePhase(.inactive)
+        engine.onLiveSourceReset?()
+
+        let recovery = model.requestRetune()
+        XCTAssertNotNil(recovery)
+        await recovery?.value
+
+        XCTAssertEqual(engine.liveLoads, 2)
+        XCTAssertEqual(model.phase, .playing)
+        model.handleScenePhase(.active)
+        XCTAssertEqual(engine.liveLoads, 2)
+    }
+    #endif
 
     private func waitForLiveLoads(
         _ expected: Int,
