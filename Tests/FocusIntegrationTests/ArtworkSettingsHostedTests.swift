@@ -616,6 +616,12 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                     XCTAssertTrue(trailers.contains("Start muted"), trailers)
                 }
                 navigation.pop(animated: false)
+                let returnDeadline = ContinuousClock.now + .seconds(5)
+                while (navigation.awaitingFocus || system.focusedItem == nil),
+                      ContinuousClock.now < returnDeadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                XCTAssertFalse(navigation.awaitingFocus, "Wait for native return focus before blocking on OCR.")
                 let returned = try await self.capture(window, name: "hero-return-\(page.rawValue)", includeMaster: true)
                 if page != .titles {
                     XCTAssertTrue(returned.contains("On"), returned)

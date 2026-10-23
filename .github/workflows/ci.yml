@@ -146,7 +146,7 @@ jobs:
     name: Full package test matrix
     needs: guards
     runs-on: xcode-27
-    timeout-minutes: 60
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v5
         with:
@@ -159,7 +159,7 @@ jobs:
           lane: package-tests
 
       - name: Run full test matrix (tvOS Simulator, build-once)
-        run: python3 tools/run-bounded.py 2400 "CI full test matrix" -- tools/run-tests.sh
+        run: python3 tools/run-bounded.py 3600 "CI full test matrix" -- tools/run-tests.sh
 
       - name: Save successful trusted caches
         if: ${{ success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}

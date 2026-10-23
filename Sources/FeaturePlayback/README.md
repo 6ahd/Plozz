@@ -67,6 +67,14 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Live channel recovery
 
+On tvOS, temporary scene inactivity from Control Center or Siri does not issue
+a player pause, cancel a live seek, or reload the stream. Playback and explicit
+pause intent survive the overlay; genuine system audio interruptions remain
+engine/OS-owned. Actual background entry (Home, sleep, or switching apps) still
+checkpoints and suspends VOD and tears down live playback. Foreground recovery
+keeps its existing play/pause policy. iOS/iPadOS inactivity, PiP, AirPlay, and
+background-audio behavior are unchanged.
+
 Live source-reset recovery retains its three-attempt cap and 20-second minimum
 spacing. `LiveChannelRetuneBudget` replenishes attempts only after five minutes
 of observed playing state, a presented frame and advancing playback position.
@@ -957,16 +965,24 @@ buffering delays use the scrub-bar indicator, not a center overlay over video.
 AVFoundation, including empty states that clear the display. They are scheduled
 at the supplied **item presentation time**, never callback arrival time or a
 timestamp guessed from the source file. Successive states close the preceding
-intervals, including overlapping lines. Selection replaces the output to fence
-old callbacks; seeks flush its state; teardown detaches it. Replacement removes
+intervals, including overlapping lines. Changing the selected rendition replaces
+the output to fence old callbacks; selecting the already active rendition keeps
+its output and cue timeline intact instead of briefly clearing paused captions
+and relying on the decoder to send them again. An initially selected rendition
+still enables extraction, and Off always clears it.
+Seeks flush its state; teardown detaches it. Replacement removes
 the previous registration before adding the next: even a transient overlap can
 prevent paused track switches from delivering cues on tvOS 26.2. The registration
 order is covered independently of the runtime, alongside real paused HLS switching.
-Native track changes clear the old selection and yield its teardown, replace the
-output, and then select the requested rendition, without seeking or resuming
-playback. Replacing an output while its tx3g rendition is selected can leave
-tvOS 27's decoder delivering no captions. Renderer handoffs use the same
-deselect/register/reselect order. Real embedded MP4 and paused HLS switches
+Track changes from an active embedded tx3g rendition first clear that selection
+and yield its teardown, then replace the output and select the requested rendition.
+Replacing an output while its tx3g rendition is selected can leave tvOS 27's
+decoder delivering no captions. This workaround uses AVFoundation's actual
+subtitle subtype, not provider codec labels. HLS changes replace the output and
+switch directly; an intermediate Off can lose paused cues on tvOS 26.2.
+Neither path seeks or resumes playback. Renderer ownership handoffs retain their
+deselect/register/reselect order to clear the old native line.
+Real embedded MP4 and paused HLS switches
 cover both tvOS 26.2 and 27, including repeated Off/reselection at a paused time.
 Explicit Off still clears the selection and cue timeline.
 In-app drawing is suppressed at the native output, with an explicit selected-rendition handoff

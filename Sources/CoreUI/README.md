@@ -425,6 +425,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   PIN digit/delete keys use native Liquid Glass at rest and during interaction
   on iOS/tvOS 26+, independent of the page gradient. `PINDialPad` and `PINKeyStyle`
   own this for profile, Plex, parental, and Live TV authorization/setup prompts.
+  In the tvOS Settings workspace, digit 1 uses the shared page-entry focus
+  handoff after the transition enables input. Both layout directions must receive
+  native keypad focus; do not rely on automatic focus selection after the slide.
   The system owns their glass appearance, focus, hover, and press treatment;
   digits keep their original circular size and Delete spans two columns at the
   same height. Mobile activation retains haptic feedback. Reduce Transparency
