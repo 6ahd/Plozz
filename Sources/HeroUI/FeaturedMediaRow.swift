@@ -210,10 +210,10 @@ private struct FeaturedMediaCard: View {
     let showsVideo: Bool
     let onFocus: (Bool) -> Void
     let onSelect: () -> Void
-    @FocusState private var focused: Bool
+    @PlozzCardFocus private var focused: Bool
     @Environment(\.plozzCardFocusStyle) private var focusStyle
 
-    private func artwork(usesNativeClipping: Bool = false) -> some View {
+    private func artwork(usesNativeClipping: Bool = false) -> FeaturedCardArtwork<some View> {
         FeaturedCardArtwork(
             item: item, size: size, spoilerSettings: spoilers, usesNativeClipping: usesNativeClipping
         ) {
@@ -239,11 +239,7 @@ private struct FeaturedMediaCard: View {
     @ViewBuilder
     private var televisionControl: some View {
         if focusStyle.usesSystemEffect {
-            Button(action: onSelect) { artwork(usesNativeClipping: true) }
-                .buttonStyle(.card)
-                .buttonBorderShape(.roundedRectangle(radius: 20))
-                .focused($focused)
-                .frame(width: size.width, height: size.height)
+            artwork().nativeButton(focus: $focused, action: onSelect)
         } else {
             artwork()
                 .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)

@@ -24,7 +24,8 @@ final class SystemDirectionalFocusTests: XCTestCase {
         initial.lifetime = .keepAlways
         add(initial)
         let restingGaps = try Self.featuredArtworkTopGaps(in: app)
-        XCTAssertTrue(restingGaps.allSatisfy { $0 > 8 }, "The baseline must distinguish the raised first card.")
+        XCTAssertTrue(restingGaps.allSatisfy { $0 > 8 },
+                      "Untouched and previously focused cards must both rest below the raised first card: \(restingGaps)")
         for _ in 0..<3 {
             XCUIRemote.shared.press(.right, forDuration: 1.2)
             XCUIRemote.shared.press(.left, forDuration: 2.5)
@@ -69,16 +70,26 @@ final class SystemDirectionalFocusTests: XCTestCase {
             context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
         }
         let scale = CGFloat(bitmap.width) / app.frame.width
+        func isArtwork(x: Int, y: Int) -> Bool {
+            let offset = (y * bitmap.width + x) * 4
+            let red = Int(pixels[offset])
+            let green = Int(pixels[offset + 1])
+            let blue = Int(pixels[offset + 2])
+            return blue > 140 && blue > 2 * red && blue * 2 > green * 3
+        }
         let tops = try (0..<3).map { index -> CGFloat in
             let card = app.buttons.matching(NSPredicate(format: "label == %@", "Row 0 Item \(index)")).firstMatch
             XCTAssertTrue(card.exists)
+            if index > 0 {
+                for x in [Int(card.frame.minX * scale) + 2, Int(card.frame.maxX * scale) - 2] {
+                    for y in [Int(card.frame.minY * scale) + 2, Int(card.frame.maxY * scale) - 2] {
+                        XCTAssertFalse(isArtwork(x: x, y: y), "Unfocused card \(index) must retain rounded corners.")
+                    }
+                }
+            }
             let x = min(bitmap.width - 1, max(0, Int(card.frame.midX * scale)))
             let y = try XCTUnwrap((0..<bitmap.height).first { y in
-                let offset = (y * bitmap.width + x) * 4
-                let red = Int(pixels[offset])
-                let green = Int(pixels[offset + 1])
-                let blue = Int(pixels[offset + 2])
-                return blue > 140 && blue > 2 * red && blue * 2 > green * 3
+                isArtwork(x: x, y: y)
             }, "Expected the fixture's solid blue artwork for card \(index).")
             return CGFloat(y) / scale
         }

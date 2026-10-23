@@ -234,9 +234,18 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             return (layer.sublayers ?? []).flatMap { players(in: $0) }
         }
         try await waitUntil { self.focusTargets(in: window).filter { $0.frame.height > 300 }.count == 2 }
-        let cards = focusTargets(in: window).filter { $0.frame.height > 300 }.sorted { $0.frame.minX < $1.frame.minX }
+        let cards = try focusTargets(in: window).filter { $0.frame.height > 300 }
+            .map { try XCTUnwrap($0 as? UIView) }
+            .sorted { $0.convert($0.bounds, to: window).minX < $1.convert($1.bounds, to: window).minX }
+        XCTAssertEqual(cards.map(\.accessibilityLabel), items.map { Optional($0.title) })
         let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        var previousLayer: AVPlayerLayer?
         for (index, card) in cards.enumerated() {
+            let poster = try XCTUnwrap(card as? NativePosterButton,
+                                      "Featured must use the image-based native renderer, not SwiftUI's card surface.")
+            XCTAssertFalse(poster.artworkView.masksFocusEffectToContents)
+            let overlay = try XCTUnwrap(poster.hostedOverlay)
+            XCTAssertFalse(overlay.layer.shouldRasterize, "The live trailer must not be flattened into an overlay bitmap.")
             host.target = card
             system.requestFocusUpdate(to: host)
             system.updateFocusIfNeeded()
@@ -245,10 +254,15 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     && controller.isPlaying && players(in: window.layer).contains { $0.isReadyForDisplay }
             }
             XCTAssertTrue(system.focusedItem === card, "The requested Featured control must own native focus.")
+            XCTAssertTrue(poster.artworkView.adjustsImageWhenAncestorFocused)
+            XCTAssertFalse(poster.artworkView.clipsToBounds, "Native focus alone must own the tilted outer edge.")
             XCTAssertEqual(coordinator.activeItemID, items[index].stablePresentationID)
             let layers = players(in: window.layer)
             XCTAssertEqual(layers.count, 1, "Only the focused card may host the shared trailer player.")
             let layer = try XCTUnwrap(layers.first)
+            if let previousLayer { XCTAssertTrue(layer === previousLayer, "Focus must reparent the same video surface.") }
+            previousLayer = layer
+            XCTAssertEqual(players(in: poster.overlayView.layer).count, 1)
             XCTAssertTrue(layer.player === controller.player)
             XCTAssertFalse(layer.isHidden)
             XCTAssertGreaterThan(layer.bounds.width, 300)
@@ -259,6 +273,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         system.requestFocusUpdate(to: host)
         system.updateFocusIfNeeded()
         try await waitUntil { system.focusedItem === outside && coordinator.activeItemID == nil }
+        let posters = try cards.map { try XCTUnwrap($0 as? NativePosterButton) }
+        try await waitUntil {
+            posters.allSatisfy { !$0.artworkView.adjustsImageWhenAncestorFocused && $0.artworkView.clipsToBounds }
+        }
         XCTAssertEqual(controller.player.rate, 0)
     }
 

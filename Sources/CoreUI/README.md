@@ -715,13 +715,14 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   The alpha-derived highlight mask produced an offset crescent at extreme tilt.
   Continue Watching, landscape/square artwork, transparent landscape library
   covers keep their no-internal-zoom alpha-masked path.
-  Alpha-masked images arm native enlargement only on actual focus and release
-  it after the native defocus animation. This keeps newly mounted episode
-  previews at their 480pt artwork width with 40pt gaps, rather than painting
-  every preview at its enlarged focus width. Portraits keep UIKit's mask active
-  at rest so opaque artwork retains its native rounded corners.
-  Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
-  the visible surface. Pre-rounded alpha pixels beneath that native mask create
+  Images arm native enlargement only on actual focus and release it after the
+  current native defocus animation completes. This applies to opaque portraits
+  too: arming them before focus can mount untouched lazy-row cards already lifted.
+  A resting-only rounded clip preserves their corners while native effects are
+  disarmed. It is removed before focus, so it never trims enlargement or tilt;
+  stale animation completions cannot restore it during a newer transition.
+  Portrait artwork and placeholders are opaque rectangles. Pre-rounded alpha
+  pixels beneath the focused native mask create
   a second corner silhouette that can separate from the highlight. Transparent
   portrait sources receive the same dark backing as missing artwork.
   Alpha-masked landscape/square artwork remains rounded in the bitmap.
@@ -734,7 +735,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   native depth projection; its badge alone is aligned to the public artwork
   viewport so it does not drift outside the image.
   Async logos, focus-reactive progress and animated content remain live in
-  `overlayContentView`; edge backgrounds and full-card legibility washes do not. Continue Watching
+  `overlayContentView`; ordinary poster edge backgrounds and full-card legibility
+  washes do not. Featured cards instead host their complete live composition on
+  that surface without rasterization; see [Featured sections](../FeatureHome/README.md).
+  Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks, including when series artwork is disabled. This uses
   the Continue Watching presentation area, not instant-play or resume-chip flags:

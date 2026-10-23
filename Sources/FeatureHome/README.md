@@ -174,14 +174,17 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   place the title logo (or text fallback) and real metadata at the lower left.
   TV rows reuse the standard media-row heading and See all action, with the same
   pinned-navigation keyline, leading fade and card-slot parking as ordinary rows.
-  System-focus Featured cards use native SwiftUI card buttons rather than the
-  generic hosted `TVCardView` bridge, which can retain enlarged artwork after
-  held directional navigation. Artwork, overlays and live video stay in the
-  button label; non-system styles retain the shared focus fallback. Native
-  Featured labels remain untrimmed until the control applies its outer clip:
-  do not add separate rectangular image/video clips or a second rounded label
-  mask. TV widths round outward to multiples of four points, keeping both
-  dimensions integral and the 4:5 ratio exact. Keep native clip geometry in
+  System-focus Featured cards share the image-based native poster renderer.
+  Physical comparisons reproduced the exposed edge with SwiftUI card buttons,
+  including a flattened label, but not with the native image renderer. Do not
+  restore that card surface or the generic hosted `TVCardView` bridge, which can
+  retain enlarged artwork after held directional navigation. One artwork
+  resolution supplies the native image and its live composition. Artwork,
+  video, scrim and metadata use the public image overlay surface with its shared
+  outer clip; do not add individual image/video clips or rasterize live video.
+  Ordinary poster overlays retain rasterization. Non-system styles retain the
+  shared focus fallback. TV widths round outward to multiples of four points,
+  keeping both dimensions integral and the 4:5 ratio exact. Keep native clip geometry in
   whole points rather than rounding each dimension separately to physical
   pixels. Standalone previews and mobile cards keep their own outer rounded clip.
   Rails reserve the shared shadow clearance without increasing row spacing.

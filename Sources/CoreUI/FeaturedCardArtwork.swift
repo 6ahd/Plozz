@@ -24,6 +24,19 @@ public struct FeaturedCardArtwork<Video: View>: View {
     private let video: Video
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.plozzNativeFocusSurface) private var nativeFocusSurface
+    #if os(tvOS)
+    private struct NativeControl {
+        let focus: PlozzCardFocus.Binding
+        let action: () -> Void
+    }
+    private var nativeControl: NativeControl?
+
+    public func nativeButton(focus: PlozzCardFocus.Binding, action: @escaping () -> Void) -> Self {
+        var copy = self
+        copy.nativeControl = NativeControl(focus: focus, action: action)
+        return copy
+    }
+    #endif
 
     public init(
         item: MediaItem, size: CGSize, spoilerSettings: SpoilerSettings = .default,
@@ -48,11 +61,23 @@ public struct FeaturedCardArtwork<Video: View>: View {
     }
 
     public var body: some View {
+        #if os(tvOS)
+        if let nativeControl {
+            nativeButton(control: nativeControl)
+        } else {
+            standaloneArtwork
+        }
+        #else
+        standaloneArtwork
+        #endif
+    }
+
+    private var standaloneArtwork: some View {
         Group {
             if usesNativeClipping || nativeFocusSurface {
-                layers
+                layers { artwork }
             } else {
-                layers.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                layers { artwork }.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
         .accessibilityElement(children: .ignore)
@@ -60,25 +85,58 @@ public struct FeaturedCardArtwork<Video: View>: View {
         .accessibilityValue(Text(verbatim: metadata))
     }
 
-    private var layers: some View {
-        ZStack(alignment: .bottomLeading) {
-            FallbackAsyncImage(
-                references: spoilerSettings.shouldHideThumbnail(for: item)
-                    ? item.seriesArtworkReferences() : item.artworkReferences(for: .homeHero),
-                variant: .posterCard,
-                previewVariant: .posterPreview,
-                artworkPolicy: artworkPolicy.forPlacement(.homeHero),
-                asyncFallbackURL: { [item, spoilerSettings] in
-                    guard !spoilerSettings.shouldHideThumbnail(for: item) else { return nil }
-                    return await ArtworkSession.resolveArtwork(background: false) {
-                        await ArtworkRouter.shared.portraitHeroArtworkURL(for: item)
+    private var artwork: FallbackAsyncImage<ArtworkFillImage, MediaArtworkPlaceholder> {
+        FallbackAsyncImage(
+            references: spoilerSettings.shouldHideThumbnail(for: item)
+                ? item.seriesArtworkReferences() : item.artworkReferences(for: .homeHero),
+            variant: .posterCard,
+            previewVariant: .posterPreview,
+            artworkPolicy: artworkPolicy.forPlacement(.homeHero),
+            asyncFallbackURL: { [item, spoilerSettings] in
+                guard !spoilerSettings.shouldHideThumbnail(for: item) else { return nil }
+                return await ArtworkSession.resolveArtwork(background: false) {
+                    await ArtworkRouter.shared.portraitHeroArtworkURL(for: item)
+                }
+            },
+            pinIdentity: "\(item.stablePresentationID)|featured"
+        ) {
+            placeholder
+        }
+    }
+
+    private var placeholder: MediaArtworkPlaceholder {
+        MediaArtworkPlaceholder(tint: .white, glyphSize: size.width * 0.12)
+    }
+
+    #if os(tvOS)
+    private func nativeButton(control: NativeControl) -> some View {
+        artwork.resolvedBitmap { image in
+            NativeTVPoster(
+                image: image, treatment: .original, aspectRatio: size.width / size.height,
+                fallbackWidth: size.width,
+                title: spoilerSettings.shouldHideText(for: item)
+                    ? .localized(spoilerSettings.maskedTitle(for: item)) : .content(item.title),
+                subtitle: metadata,
+                overlay: layers {
+                    if let image {
+                        Image(uiImage: image).resizable().scaledToFill()
+                    } else {
+                        placeholder
                     }
                 },
-                pinIdentity: "\(item.stablePresentationID)|featured"
-            ) {
-                MediaArtworkPlaceholder(tint: .white, glyphSize: size.width * 0.12)
-            }
+                rasterizesOverlay: false,
+                focus: control.focus, action: control.action
+            )
+            .focused(control.focus.focusState)
             .frame(width: size.width, height: size.height)
+        }
+    }
+    #endif
+
+    private func layers<Artwork: View>(@ViewBuilder artwork: () -> Artwork) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            artwork()
+                .frame(width: size.width, height: size.height)
             video
                 .frame(width: size.width, height: size.height)
                 .accessibilityHidden(true)
