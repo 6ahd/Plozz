@@ -841,7 +841,13 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                                "Offscreen rows must still leave the displayed set.")
                 XCTAssertLessThan(collection.visibleCells.count, 50, "Do not keep the entire library mounted.")
                 collection.setContentOffset(CGPoint(x: 0, y: origin), animated: true)
-                try await Task.sleep(for: .milliseconds(500))
+                let returnDeadline = ContinuousClock.now + .seconds(5)
+                while abs(collection.contentOffset.y - origin) > 0.5, ContinuousClock.now < returnDeadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                XCTAssertEqual(collection.contentOffset.y, origin, accuracy: 0.5,
+                               "Measure the returning row after its native scroll reaches the original offset.")
+                collection.layoutIfNeeded()
                 let restored = try await self.waitForGridItem(itemID, at: path, in: collection)
                 let restoredArtwork = try self.libraryArtwork(in: restored)
                 XCTAssertEqual(restoredArtwork.convert(restoredArtwork.bounds, to: window).minY,

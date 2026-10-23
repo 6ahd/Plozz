@@ -325,11 +325,25 @@ Runner verdict regressions use the existing host-side unittest runner:
 Episode-panel fixtures activate native window focus before reissuing their
 SwiftUI Browse entry request. Repeated window handoffs must start on Browse and
 still allow the playing episode to receive actual native focus.
+The rapid native-tab and Live TV Sources editor fixtures wait for each real
+navigation push and pop to finish before issuing the next stack mutation or
+tearing down their window. The native-tab fixture also verifies that a subsequent
+window receives focus. Mutating or removing a stack during its transition can
+leave UIKit focus updates postponed and contaminate unrelated hosted tests.
+Library return-scroll geometry is measured after the native scroll reaches its
+original offset, not after a fixed delay or merely remounting the target cell.
 
-`PlayerSkipMarkerHostedTests` updates one live scrub track and waits for stable
-rendered frames before comparing native fills. Liquid Glass can keep changing
-after layout; comparing its first frames must not be mistaken for a marker color
-regression or worked around by relaxing the pixel assertions.
+OCR fixtures preserve point-scale measurements when cropping rendered content.
+Recognize settings within their page bounds, and reprocess merged version-badge
+rows even when their observation box is taller than the individual glyphs.
+Profile alignment uses OCR to locate each title, then measures its rendered ink:
+character boxes can interpolate across an adjacent icon misrecognized as text.
+Copy, minimum glyph sizes, and alignment tolerances remain asserted.
+
+`PlayerSkipMarkerHostedTests` compares one live scrub track before and after
+adding skip boundaries, at the same screen coordinates. Separate native-glass
+instances at different positions are not pixel-identical reference materials.
+Retain extended-range capture precision before converting to comparison pixels.
 Capture at the window's native display scale and sample every backing pixel in
 the asserted point ranges. Downsampling a 2x TV render to 1x introduces ringing
 even around plain opaque capsules; a separate capsule fixture protects snapshot

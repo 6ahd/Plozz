@@ -355,7 +355,8 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         for recognitionImage in [cgImage, invertedImage] {
             let observations = try measure(recognitionImage, pointHeight: image.size.height)
             // Whole-screen OCR downsamples compact labels. Preserve point units in cropped passes.
-            for observation in observations where observation.boundingBox.height * image.size.height < 40 {
+            // A merged badge row's box can be taller than the compact glyphs it contains.
+            for observation in observations {
                 let box = observation.boundingBox
                 let region = CGRect(
                     x: box.minX * CGFloat(cgImage.width),

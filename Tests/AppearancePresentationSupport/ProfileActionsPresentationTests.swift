@@ -243,12 +243,57 @@ final class ProfileActionsPresentationTests: XCTestCase {
     }
 
     private struct RecognizedLabel {
-        let text: String
+        let candidate: VNRecognizedText
         let frame: CGRect
+        let image: CGImage
+        let imageSize: CGSize
+        let scrollOffset: CGFloat
+        var text: String { candidate.string }
     }
 
-    private func frame(_ prefix: String, in labels: [RecognizedLabel]) throws -> CGRect {
-        try XCTUnwrap(labels.first { $0.text.hasPrefix(prefix) }, "Missing \(prefix)").frame
+    private func frame(_ text: String, in labels: [RecognizedLabel]) throws -> CGRect {
+        let label = try XCTUnwrap(labels.first { $0.text.contains(text) }, "Missing \(text)")
+        let range = try XCTUnwrap(label.text.range(of: text))
+        let approximate = try XCTUnwrap(label.candidate.boundingBox(for: range)).boundingBox
+        let region = CGRect(
+            x: approximate.minX * CGFloat(label.image.width),
+            y: (1 - approximate.maxY) * CGFloat(label.image.height),
+            width: approximate.width * CGFloat(label.image.width),
+            height: approximate.height * CGFloat(label.image.height)
+        ).insetBy(dx: 0, dy: -4).intersection(
+            CGRect(x: 0, y: 0, width: label.image.width, height: label.image.height)
+        ).integral
+        // Character boxes interpolate across icons mistaken for text. Use OCR
+        // to locate the title, then measure its ink rather than that interpolation.
+        let crop = try XCTUnwrap(label.image.cropping(to: region))
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        var bounds = CGRect.null
+        for y in 0..<crop.height {
+            for x in 0..<crop.width {
+                let offset = (y * crop.width + x) * 4
+                if (0..<3).contains(where: { abs(Int(pixels[offset + $0]) - Int(pixels[$0])) > 80 }) {
+                    bounds = bounds.union(CGRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+        }
+        XCTAssertFalse(bounds.isNull, "Missing rendered title ink for \(text)")
+        let scaleX = label.imageSize.width / CGFloat(label.image.width)
+        let scaleY = label.imageSize.height / CGFloat(label.image.height)
+        return CGRect(
+            x: (region.minX + bounds.minX) * scaleX,
+            y: (region.minY + bounds.minY) * scaleY + label.scrollOffset,
+            width: bounds.width * scaleX,
+            height: bounds.height * scaleY
+        )
     }
 
     private func withWindow(
@@ -299,9 +344,11 @@ final class ProfileActionsPresentationTests: XCTestCase {
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.recognitionLanguages = ["en-US"]
-            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+            let cgImage = try XCTUnwrap(image.cgImage)
+            try VNImageRequestHandler(cgImage: cgImage).perform([request])
             for observation in request.results ?? [] {
-                guard let text = observation.topCandidates(1).first?.string else { continue }
+                guard let candidate = observation.topCandidates(1).first else { continue }
+                let text = candidate.string
                 let bounds = observation.boundingBox
                 let frame = CGRect(
                     x: bounds.minX * window.bounds.width,
@@ -310,7 +357,10 @@ final class ProfileActionsPresentationTests: XCTestCase {
                     height: bounds.height * window.bounds.height
                 )
                 if !labels.contains(where: { $0.text == text && abs($0.frame.minY - frame.minY) < 5 }) {
-                    labels.append(RecognizedLabel(text: text, frame: frame))
+                    labels.append(RecognizedLabel(
+                        candidate: candidate, frame: frame, image: cgImage,
+                        imageSize: window.bounds.size, scrollOffset: scroll.contentOffset.y
+                    ))
                 }
             }
             let bottom = max(-scroll.adjustedContentInset.top,

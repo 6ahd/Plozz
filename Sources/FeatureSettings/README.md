@@ -7,6 +7,12 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Server sign-ins offer **Sign In Again** without removing the saved account.
+Plex, Jellyfin, Emby, and Silo share the same guarded recovery contract; IPTV
+uses **Edit connection**. Failed library authentication routes to that exact
+account rather than the add-another-user flow. A network failure remains Retry,
+and Connection addresses stays available for managed servers that moved.
+
 Diagnostic reporting requires an explicit device-wide choice on every build
 channel. `CrashReportingConsentView` appears before first-time setup or normal
 startup when the build has a reporting endpoint and the current consent version

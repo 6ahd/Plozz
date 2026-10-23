@@ -11,6 +11,35 @@ import XCTest
 
 @MainActor
 final class NativeSubtitlePresentationTests: XCTestCase {
+    func testEmbeddedMP4CaptionsRecoverAfterOffAndPausedReselection() async throws {
+        let engine = NativeVideoEngine(startsMuted: true)
+        let model = LiveSubtitleModel()
+        model.beginLiveFeed(permitsTimingOffsets: false)
+        var cues: [SubtitleCue] = []
+        engine.onSubtitleCues = { cues = $0; model.updateLiveCues($0) }
+        let window = try await mount(engine, subtitles: model)
+        defer { engine.stop(); window.isHidden = true }
+        let track = MediaTrack(id: 2, kind: .subtitle, displayTitle: "English", language: "en", codec: "mov_text")
+        await engine.load(request: request(try fixtureURL("embedded.mp4"), tracks: [track]), startPosition: 0)
+        try await waitUntil(timeout: 30) { engine.underlyingPlayer?.currentItem?.status == .readyToPlay }
+        engine.selectSubtitleTrack(track)
+        try await waitUntil { cues.contains { $0.text == "Repeated" && $0.start == 9 } }
+        engine.pause()
+        await engine.seek(to: 6.5)
+        try await waitUntil { model.primary.map(\.text) == ["Repeated"] }
+        let item = try XCTUnwrap(engine.underlyingPlayer?.currentItem)
+        for _ in 0..<3 {
+            engine.selectSubtitleTrack(nil)
+            try await waitUntil { cues.isEmpty && model.primary.isEmpty }
+            engine.selectSubtitleTrack(track)
+            try await waitUntil { model.primary.map(\.text) == ["Repeated"] }
+            XCTAssertTrue(engine.underlyingPlayer?.currentItem === item)
+            XCTAssertTrue(engine.isPaused)
+            XCTAssertEqual(engine.currentTime, 6.5, accuracy: 1.0 / 24)
+            try assertOnlySuppressedOutput(engine)
+        }
+    }
+
     func testLocalASSAnimationFrameBudget() async throws {
         guard let path = ProcessInfo.processInfo.environment["PLOZZ_ASS_ANIMATION_REPRO"] else {
             throw XCTSkip("Requires the explicitly supplied private ASS animation fixture.")

@@ -104,6 +104,25 @@ public final class AccountsProvidersModel {
     /// This device's stable client identifier.
     public var deviceID: String { accountStore.deviceID() }
 
+    public func makeAccountReauthentication(
+        account: Account, isAuthorized: @escaping () -> Bool, onComplete: @escaping () -> Void
+    ) -> AccountReauthenticationModel {
+        let profile = AutomaticSignInStore.Session.ProfileAccess(profilesModel.activeProfile)
+        return AccountReauthenticationModel(
+            account: account, deviceID: deviceID, store: accountStore,
+            isAuthorized: { [weak self] in
+                guard let self else { return false }
+                return profile == .init(self.profilesModel.activeProfile) && isAuthorized()
+            },
+            onComplete: { [weak self] in
+                guard let self else { return }
+                self.registry.invalidate(accountID: account.id)
+                self.reloadAccounts()
+                onComplete()
+            }
+        )
+    }
+
     private var accountSelectionIsUnavailable: Bool {
         profilesModel.unconfirmedAccountSelectionProfileIDs.contains(profilesModel.activeProfileID)
     }
