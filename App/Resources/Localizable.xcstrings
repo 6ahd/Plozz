@@ -216253,6 +216253,7 @@
       }
     },
     "Comedy preset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
