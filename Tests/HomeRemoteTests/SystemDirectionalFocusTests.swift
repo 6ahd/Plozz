@@ -4,10 +4,19 @@ import UIKit
 @MainActor
 final class SystemDirectionalFocusTests: XCTestCase {
     func testFeaturedCardsSettleAfterHeldDirectionalNavigation() throws {
+        try exerciseFeaturedDirections(bright: false)
+    }
+
+    func testBrightFeaturedCornersStayCoveredAfterHeldDirectionalNavigation() throws {
+        try exerciseFeaturedDirections(bright: true)
+    }
+
+    private func exerciseFeaturedDirections(bright: Bool) throws {
         #if targetEnvironment(simulator)
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
         app.launchArguments = ["--focus-navigation-fixture", "--featured-rails"]
+            + (bright ? ["--white-artwork"] : [])
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["Navigation fixture ready"].waitForExistence(timeout: 15))
@@ -23,7 +32,7 @@ final class SystemDirectionalFocusTests: XCTestCase {
         initial.name = "featured-after-slow-navigation"
         initial.lifetime = .keepAlways
         add(initial)
-        let restingGaps = try Self.featuredArtworkTopGaps(in: app)
+        let restingGaps = try Self.featuredArtworkTopGaps(in: app, bright: bright)
         XCTAssertTrue(restingGaps.allSatisfy { $0 > 8 },
                       "Untouched and previously focused cards must both rest below the raised first card: \(restingGaps)")
         for _ in 0..<3 {
@@ -36,7 +45,7 @@ final class SystemDirectionalFocusTests: XCTestCase {
         screenshot.name = "featured-after-held-directional-navigation"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        let finalGaps = try Self.featuredArtworkTopGaps(in: app)
+        let finalGaps = try Self.featuredArtworkTopGaps(in: app, bright: bright)
         for (baseline, final) in zip(restingGaps, finalGaps) {
             XCTAssertEqual(final, baseline, accuracy: 1, "Previously focused cards must return to their resting painted size.")
         }
@@ -57,7 +66,7 @@ final class SystemDirectionalFocusTests: XCTestCase {
         #endif
     }
 
-    private static func featuredArtworkTopGaps(in app: XCUIApplication) throws -> [CGFloat] {
+    private static func featuredArtworkTopGaps(in app: XCUIApplication, bright: Bool) throws -> [CGFloat] {
         let image = app.screenshot().image
         let bitmap = try XCTUnwrap(image.cgImage)
         var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
@@ -75,7 +84,7 @@ final class SystemDirectionalFocusTests: XCTestCase {
             let red = Int(pixels[offset])
             let green = Int(pixels[offset + 1])
             let blue = Int(pixels[offset + 2])
-            return blue > 140 && blue > 2 * red && blue * 2 > green * 3
+            return bright ? min(red, green, blue) > 245 : blue > 140 && blue > 2 * red && blue * 2 > green * 3
         }
         let tops = try (0..<3).map { index -> CGFloat in
             let card = app.buttons.matching(NSPredicate(format: "label == %@", "Row 0 Item \(index)")).firstMatch
@@ -86,11 +95,32 @@ final class SystemDirectionalFocusTests: XCTestCase {
                         XCTAssertFalse(isArtwork(x: x, y: y), "Unfocused card \(index) must retain rounded corners.")
                     }
                 }
+                if bright {
+                    let frame = CGRect(
+                        x: card.frame.minX * scale, y: card.frame.minY * scale,
+                        width: card.frame.width * scale, height: card.frame.height * scale
+                    ).integral
+                    let band = Int(28 * scale)
+                    var excess = 0
+                    for y in (Int(frame.maxY) - band)..<Int(frame.maxY) {
+                        let reference = Int(pixels[(y * bitmap.width + Int(frame.midX)) * 4])
+                        for x in Array(Int(frame.minX)..<(Int(frame.minX) + band))
+                            + Array((Int(frame.maxX) - band)..<Int(frame.maxX)) {
+                            let outsideX = x < Int(frame.midX)
+                                ? Int(frame.minX - 4 * scale) : Int(frame.maxX + 4 * scale)
+                            let background = Int(pixels[(y * bitmap.width + outsideX) * 4])
+                            // Rounded-edge antialiasing may blend with the page, but not the white backing.
+                            excess = max(excess, Int(pixels[(y * bitmap.width + x) * 4]) - max(reference, background))
+                        }
+                    }
+                    XCTAssertLessThanOrEqual(excess, 4,
+                        "Bright poster \(index) must keep its scrim through the corners after actual remote defocus.")
+                }
             }
             let x = min(bitmap.width - 1, max(0, Int(card.frame.midX * scale)))
             let y = try XCTUnwrap((0..<bitmap.height).first { y in
                 isArtwork(x: x, y: y)
-            }, "Expected the fixture's solid blue artwork for card \(index).")
+            }, "Expected the fixture's solid \(bright ? "white" : "blue") artwork for card \(index).")
             return CGFloat(y) / scale
         }
         return tops.dropFirst().map { $0 - tops[0] }

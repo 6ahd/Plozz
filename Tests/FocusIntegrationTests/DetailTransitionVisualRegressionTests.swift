@@ -197,6 +197,111 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         }
     }
 
+    func testFeaturedBrightPosterCornersStayCoveredAfterFocusExit() async throws {
+        let scene = try await activeScene()
+        let artwork = try await seedArtwork(color: .white)
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        let host = HomeRowsFocusHost(rootView: AnyView(VStack {
+            Button("Outside") {}.frame(height: 80)
+            FeaturedMediaRow(
+                title: Text("Featured"),
+                items: (0..<2).map {
+                    MediaItem(
+                        id: "bright-corners-\($0)", title: "White poster \($0)", kind: .movie,
+                        posterURL: artwork, backdropURL: artwork, allowsTitleBasedMetadataMatching: false
+                    )
+                },
+                scope: ObjectIdentifier(controller), coordinator: coordinator, controller: controller,
+                settings: .default, resolver: { _ in nil }, isActive: false, onSelect: { _ in }
+            )
+        }
+        .environment(\.plozzCardFocusStyle, .system)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)))
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            coordinator.stop()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await waitUntil { self.focusTargets(in: window).filter { $0.frame.height > 300 }.count == 2 }
+        let posters = try focusTargets(in: window).filter { $0.frame.height > 300 }
+            .map { try XCTUnwrap($0 as? NativePosterButton) }
+        let outside = try XCTUnwrap(focusTargets(in: window).first { $0.frame.height < 150 })
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        func focus(_ target: any UIFocusItem) async throws {
+            host.target = target
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            try await waitUntil { system.focusedItem === target }
+        }
+        func capture(_ name: String) -> UIImage {
+            let image = renderedKeylineSnapshot(in: window)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Featured white corners \(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            return image
+        }
+        try await focus(outside)
+        try await Task.sleep(for: .seconds(1))
+        for phase in ["initial", "after focus", "after rapid focus"] {
+            if phase != "initial" {
+                for poster in posters {
+                    try await focus(poster)
+                    try await Task.sleep(for: .milliseconds(phase == "after focus" ? 600 : 40))
+                }
+                if phase == "after focus" {
+                    XCTAssertTrue(posters.allSatisfy { !$0.isFocused || !$0.artworkView.clipsToBounds })
+                    _ = capture("focused")
+                }
+                try await focus(outside)
+                if phase == "after focus" {
+                    for sample in 0..<4 {
+                        try await Task.sleep(for: .milliseconds(40))
+                        _ = capture("defocus \(sample)")
+                    }
+                }
+                try await Task.sleep(for: .milliseconds(700))
+            }
+            let snapshot = capture(phase)
+            let image = try XCTUnwrap(snapshot.cgImage)
+            var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+            try pixels.withUnsafeMutableBytes {
+                let context = try XCTUnwrap(CGContext(
+                    data: $0.baseAddress, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            }
+            for poster in posters {
+                XCTAssertFalse(poster.artworkView.adjustsImageWhenAncestorFocused)
+                let frame = poster.convert(poster.bounds, to: window).integral
+                XCTAssertGreaterThan(pixels[
+                    (Int(frame.minY + 80) * image.width + Int(frame.midX)) * 4
+                ], 245, "The regression must render the seeded white artwork, not online fallback art.")
+                var excess = 0
+                for y in (Int(frame.maxY) - 28)..<Int(frame.maxY) {
+                    let reference = Int(pixels[(y * image.width + Int(frame.midX)) * 4])
+                    for x in Array(Int(frame.minX)..<(Int(frame.minX) + 28))
+                        + Array((Int(frame.maxX) - 28)..<Int(frame.maxX)) {
+                        excess = max(excess, Int(pixels[(y * image.width + x) * 4]) - reference)
+                    }
+                }
+                XCTAssertLessThanOrEqual(excess, 4,
+                    "The dark scrim must cover white artwork through both bottom corners \(phase).")
+            }
+        }
+    }
+
     func testFeaturedNativeButtonsKeepTheLiveTrailerSurfaceAndReleaseItOnExit() async throws {
         try XCTSkipIf(UIAccessibility.isReduceMotionEnabled, "Featured previews intentionally stay static with Reduce Motion.")
         let scene = try await activeScene()

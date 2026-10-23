@@ -737,7 +737,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Async logos, focus-reactive progress and animated content remain live in
   `overlayContentView`; ordinary poster edge backgrounds and full-card legibility
   washes do not. Featured cards instead host their complete live composition on
-  that surface without rasterization; see [Featured sections](../FeatureHome/README.md).
+  that surface without rasterization or a second overlay corner clip. Native
+  artwork clipping owns their complete outer edge; clipping the overlay again
+  exposes bright backing pixels at the antialiased corners, including after
+  defocus. See [Featured sections](../FeatureHome/README.md).
   Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks, including when series artwork is disabled. This uses

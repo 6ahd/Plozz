@@ -182,6 +182,9 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   resolution supplies the native image and its live composition. Artwork,
   video, scrim and metadata use the public image overlay surface with its shared
   outer clip; do not add individual image/video clips or rasterize live video.
+  Featured disables the ordinary overlay's additional rounded clip so its
+  scrim covers bright backing artwork through the corners throughout focus
+  transitions. The native image surface alone supplies the outer silhouette.
   Ordinary poster overlays retain rasterization. Non-system styles retain the
   shared focus fallback. TV widths round outward to multiples of four points,
   keeping both dimensions integral and the 4:5 ratio exact. Keep native clip geometry in

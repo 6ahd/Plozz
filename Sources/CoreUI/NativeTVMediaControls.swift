@@ -511,6 +511,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let subtitle: String? // l10n:content — provider metadata and preformatted runtime
     let overlay: Overlay
     var rasterizesOverlay = true
+    var clipsOverlayToArtwork = true
     var indicators: NativePosterIndicators? = nil
     var artworkBackground: NativePosterArtworkBackground = .init()
     let focus: PlozzCardFocus.Binding
@@ -819,9 +820,14 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     private func overlayConfiguration(in context: Context) -> any UIContentConfiguration {
         UIHostingConfiguration {
-            overlay
-                .clipShape(RoundedRectangle(
-                    cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius, style: .circular))
+            Group {
+                if clipsOverlayToArtwork {
+                    overlay.clipShape(RoundedRectangle(
+                        cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius, style: .circular))
+                } else {
+                    overlay
+                }
+            }
                 .environment(\.plozzNativeArtworkSurface, true)
                 .environment(\.plozzNativeFocusSurface, true)
                 .environment(\.self, context.environment)

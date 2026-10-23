@@ -108,9 +108,10 @@ struct SystemFocusNavigationFixture: View {
         var settings = store.load()
         settings.preferOnlineArtwork = false
         store.save(settings)
-        let url = URL(string: "https://navigation-fixture.example.test/artwork.png")!
+        let bright = ProcessInfo.processInfo.arguments.contains("--white-artwork")
+        let url = URL(string: "https://navigation-fixture.example.test/\(bright ? "white" : "blue").png")!
         let image = UIGraphicsImageRenderer(size: CGSize(width: 320, height: 180)).image {
-            UIColor.systemBlue.setFill()
+            (bright ? UIColor.white : .systemBlue).setFill()
             $0.fill(CGRect(x: 0, y: 0, width: 320, height: 180))
         }
         let data = image.pngData()!
@@ -134,7 +135,7 @@ struct SystemFocusNavigationFixture: View {
             (0..<8).map { index in
                 MediaItem(
                     id: "navigation-\(row)-\(index)", title: "Row \(row) Item \(index)",
-                    kind: .movie, posterURL: url, backdropURL: url
+                    kind: .movie, posterURL: url, backdropURL: url, allowsTitleBasedMetadataMatching: false
                 )
             }
         }

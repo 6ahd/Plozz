@@ -125,6 +125,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
                     }
                 },
                 rasterizesOverlay: false,
+                clipsOverlayToArtwork: false,
                 focus: control.focus, action: control.action
             )
             .focused(control.focus.focusState)
