@@ -123,7 +123,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
                     } else {
                         placeholder
                     }
-                },
+                }.clipped(),
                 rasterizesOverlay: false,
                 clipsOverlayToArtwork: false,
                 focus: control.focus, action: control.action

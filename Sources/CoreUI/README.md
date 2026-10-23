@@ -740,7 +740,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   that surface without rasterization or a second overlay corner clip. Native
   artwork clipping owns their complete outer edge; clipping the overlay again
   exposes bright backing pixels at the antialiased corners, including after
-  defocus. See [Featured sections](../FeatureHome/README.md).
+  defocus. The live composition still needs a rectangular viewport clip:
+  aspect-fill artwork must not paint beyond its scrim while the native
+  projection settles. This is not another rounded silhouette.
+  See [Featured sections](../FeatureHome/README.md).
   Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks, including when series artwork is disabled. This uses

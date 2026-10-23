@@ -185,6 +185,9 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Featured disables the ordinary overlay's additional rounded clip so its
   scrim covers bright backing artwork through the corners throughout focus
   transitions. The native image surface alone supplies the outer silhouette.
+  A rectangular clip bounds the complete live composition to the scrim's
+  viewport. Without it, oversized aspect-fill pixels extend beyond the scrim
+  and flash along straight edges as the native projection settles.
   Ordinary poster overlays retain rasterization. Non-system styles retain the
   shared focus fallback. TV widths round outward to multiples of four points,
   keeping both dimensions integral and the 4:5 ratio exact. Keep native clip geometry in

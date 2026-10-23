@@ -199,7 +199,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
 
     func testFeaturedBrightPosterCornersStayCoveredAfterFocusExit() async throws {
         let scene = try await activeScene()
-        let artwork = try await seedArtwork(color: .white)
+        let artworks = [
+            try await seedArtwork(color: .white),
+            try await seedArtwork(color: .white, size: CGSize(width: 300, height: 900))
+        ]
         let controller = HeroTrailerController()
         let coordinator = FeaturedTrailerCoordinator()
         let host = HomeRowsFocusHost(rootView: AnyView(VStack {
@@ -209,7 +212,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 items: (0..<2).map {
                     MediaItem(
                         id: "bright-corners-\($0)", title: "White poster \($0)", kind: .movie,
-                        posterURL: artwork, backdropURL: artwork, allowsTitleBasedMetadataMatching: false
+                        posterURL: artworks[$0], backdropURL: artworks[$0], allowsTitleBasedMetadataMatching: false
                     )
                 },
                 scope: ObjectIdentifier(controller), coordinator: coordinator, controller: controller,
@@ -298,6 +301,50 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 }
                 XCTAssertLessThanOrEqual(excess, 4,
                     "The dark scrim must cover white artwork through both bottom corners \(phase).")
+            }
+        }
+
+        // Inspect the actual live configuration without the native outer mask,
+        // which can conceal oversized fill until its projection settles.
+        let matte = UIView(frame: window.bounds)
+        matte.backgroundColor = .black
+        window.addSubview(matte)
+        defer { matte.removeFromSuperview() }
+        for poster in posters {
+            let overlay = try XCTUnwrap(poster.hostedOverlay).configuration.makeContentView()
+            overlay.frame = CGRect(origin: CGPoint(x: 160, y: 120), size: poster.bounds.size)
+            matte.addSubview(overlay)
+            defer { overlay.removeFromSuperview() }
+            overlay.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+            let snapshot = capture("live viewport \(poster.accessibilityLabel ?? "")")
+            let image = try XCTUnwrap(snapshot.cgImage)
+            let bounds = overlay.frame
+            func brightness(at point: CGPoint) throws -> UInt8 {
+                let pixel = try XCTUnwrap(image.cropping(to: CGRect(origin: point, size: CGSize(width: 1, height: 1))))
+                var bytes = [UInt8](repeating: 0, count: 4)
+                try bytes.withUnsafeMutableBytes {
+                    let context = try XCTUnwrap(CGContext(
+                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                    ))
+                    context.draw(pixel, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+                }
+                return try XCTUnwrap(bytes.prefix(3).max())
+            }
+            XCTAssertGreaterThan(try brightness(at: CGPoint(x: bounds.midX, y: bounds.minY + 80)), 245)
+            let shaded = try brightness(at: CGPoint(x: bounds.midX, y: bounds.minY + bounds.height * 0.8))
+            XCTAssertGreaterThan(shaded, 40, "The probe must render real artwork, not an empty hosting view.")
+            XCTAssertLessThan(shaded, 150, "The live scrim must retain its intended darkening.")
+            let samples = [
+                CGPoint(x: bounds.minX - 2, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.maxX + 2, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.midX, y: bounds.minY - 2),
+                CGPoint(x: bounds.midX, y: bounds.maxY + 2)
+            ]
+            for point in samples {
+                XCTAssertLessThanOrEqual(try brightness(at: point), 2,
+                    "Aspect-fill artwork must not extend beyond its scrim's rectangular viewport: \(point).")
             }
         }
     }
