@@ -1,6 +1,8 @@
 import CoreImage
 import CoreModels
 import CoreUI
+import FeatureHomeCore
+import HeroUI
 #if os(tvOS)
 @testable import FeatureHome
 #elseif os(iOS)
@@ -13,8 +15,490 @@ import UIKit
 import Vision
 import XCTest
 
+#if os(tvOS)
+@MainActor
+extension HomeRowArrangementHostedTests {
+    func testFeaturedTVLayoutKeepsWholePointFourByFiveGeometry() {
+        for width: CGFloat in [390, 1024, 1696, 1760.25, 1776, 1920] {
+            let size = FeaturedCardLayout.size(viewportWidth: width, television: true)
+            let unalignedWidth = min(560, max(280, (width - 96) / 3.15))
+            XCTAssertEqual(size.width.truncatingRemainder(dividingBy: 4), 0)
+            XCTAssertEqual(size.height, size.height.rounded())
+            XCTAssertEqual(size.height / size.width, 1.25)
+            XCTAssertGreaterThanOrEqual(size.width, unalignedWidth)
+            XCTAssertLessThan(size.width - unalignedWidth, 4)
+            for scale: CGFloat in [1, 2] {
+                XCTAssertEqual(size.width * scale, (size.width * scale).rounded())
+                XCTAssertEqual(size.height * scale, (size.height * scale).rounded())
+            }
+        }
+        XCTAssertEqual(
+            FeaturedCardLayout.size(viewportWidth: 1776, television: true),
+            CGSize(width: 536, height: 670),
+            "The pinned-navigation case must not retain a half-point width or distort the aspect ratio."
+        )
+        XCTAssertEqual(
+            FeaturedCardLayout.size(viewportWidth: 393, television: false),
+            CGSize(width: 345, height: 388.125),
+            "TV alignment must not change the mobile layout."
+        )
+    }
+
+    func testFeaturedLabelDefersItsOnlyClipToTheNativeCard() async throws {
+        for nativeClipping in [false, true] {
+            var frame = CGRect.zero
+            try await withWindow {
+                FeaturedCardArtwork(
+                    item: MediaItem(id: "clip-owner", title: "Clip owner", kind: .movie),
+                    size: CGSize(width: 520.25, height: 650.3125),
+                    usesNativeClipping: nativeClipping
+                ) {
+                    Color.white
+                }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+            } inspect: { window in
+                let image = try await self.snapshot(window, name: "Featured clip ownership native \(nativeClipping)")
+                let bitmap = try XCTUnwrap(image.cgImage)
+                let pixels = try self.rgba(bitmap)
+                XCTAssertGreaterThan(frame.width, 500)
+                let corners = frame.insetBy(dx: 2, dy: 2)
+                for x in [corners.minX, corners.maxX] {
+                    for y in [corners.minY, corners.maxY] {
+                        let value = pixels[(Int(y) * bitmap.width + Int(x)) * 4]
+                        if nativeClipping {
+                            XCTAssertGreaterThan(value, 20, "The native card must receive opaque, untrimmed content.")
+                        } else {
+                            XCTAssertLessThan(value, 12, "Standalone previews must retain their own rounded clip.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func testFeaturedFocusedShadowClearsTheFollowingRow() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        try await withWindow(colorScheme: .light) {
+            ZStack {
+                Color.white.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    FeaturedMediaRow(
+                        title: Text("Featured"),
+                        items: [MediaItem(id: "shadow", title: "Shadow", kind: .movie)],
+                        scope: ObjectIdentifier(controller), coordinator: coordinator, controller: controller,
+                        settings: .default, resolver: { _ in nil }, isActive: false, onSelect: { _ in }
+                    )
+                    Text("Following row").frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 100)
+                }
+            }
+            .environment(\.plozzCardFocusStyle, .system)
+            .environment(\.plozzNavigationContentInset, 64)
+            .environment(\.plozzPinnedSidebarActive, true)
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured shadow baseline")
+            let label = try XCTUnwrap(lines.first { $0.0 == "Shadow" }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let card = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            try await self.focus(card, in: window)
+            let image = try await self.snapshot(window, name: "Featured focused shadow")
+            let bitmap = try XCTUnwrap(image.cgImage)
+            let pixels = try self.rgba(bitmap)
+            let frame = try XCTUnwrap(self.focusTarget(at: point, in: window)).frame
+            let x = Int(frame.midX)
+            // Focus-item bounds exclude the system's visual lift.
+            let paintedBottom = try XCTUnwrap(
+                (Int(frame.maxY)..<min(Int(frame.maxY) + 60, bitmap.height)).first { y in
+                    pixels[(y * bitmap.width + x) * 4] > 100
+                })
+            let start = paintedBottom + 5
+            let end = min(start + 95, bitmap.height)
+            let values = (start..<end).map { y in Int(pixels[(y * bitmap.width + x) * 4]) }
+            XCTAssertLessThan(try XCTUnwrap(values.min()), 245, "The sampled region must contain the real shadow.")
+            let jump = zip(values, values.dropFirst()).map { abs($0 - $1) }.max() ?? 0
+            XCTAssertLessThanOrEqual(jump, 8, "The shadow must fade smoothly rather than ending at the rail's clip.")
+            let attachment = XCTAttachment(string: "\(frame): \(values)")
+            attachment.name = "Featured shadow samples"
+            attachment.lifetime = .keepAlways
+            self.add(attachment)
+        }
+    }
+
+    func testFeaturedSeeAllKeepsTheTrailingTitleSafeInset() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        try await withWindow {
+            GeometryReader { geometry in
+                ScrollView {
+                    FeaturedMediaRow(
+                        title: Text("Featured"), items: [], scope: ObjectIdentifier(controller),
+                        coordinator: coordinator, controller: controller, settings: .default,
+                        resolver: { _ in nil }, isActive: false, onSeeAll: {}, onSelect: { _ in }
+                    )
+                }
+                .ignoresSafeArea(.container, edges: .trailing)
+                .environment(\.mediaRowHeaderTrailingInset, geometry.safeAreaInsets.trailing)
+                .environment(\.plozzNavigationContentInset, 64)
+                .environment(\.plozzPinnedSidebarActive, true)
+            }
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured full-bleed header", scale: 2)
+            let action = try XCTUnwrap(lines.first { $0.0.hasPrefix("See all") }, lines.map(\.0).joined(separator: " | ")).1
+            XCTAssertGreaterThan(window.safeAreaInsets.right, 0)
+            XCTAssertLessThanOrEqual(
+                action.maxX * window.bounds.width,
+                window.bounds.width - window.safeAreaInsets.right + 3)
+        }
+    }
+
+    private func focus(_ target: any UIFocusItem, in window: UIWindow) async throws {
+        let host = try XCTUnwrap(window.rootViewController as? HomeRowsFocusHost)
+        host.target = target
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        if system.focusedItem !== target {
+            let focused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in system.focusedItem === target }, object: nil)
+            await fulfillment(of: [focused], timeout: 3)
+        }
+        try await Task.sleep(for: .milliseconds(400))
+    }
+
+    private func rgba(_ bitmap: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(
+                CGContext(
+                    data: buffer.baseAddress, width: bitmap.width, height: bitmap.height,
+                    bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+        }
+        return pixels
+    }
+
+}
+#endif
+
+final class HomeRowsFocusHost: UIHostingController<AnyView> {
+    weak var target: (any UIFocusEnvironment)?
+    override var preferredFocusEnvironments: [any UIFocusEnvironment] {
+        target.map { [$0] } ?? super.preferredFocusEnvironments
+    }
+}
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testCollectionChooserShowsBrandedLibrarySourceLines() async throws {
+        let accounts = [ProviderKind.plex, .jellyfin].map { kind in
+            let provider = HomeSettingsLibraryProvider(
+                name: kind == .plex ? "Plex server" : "Jellyfin server", kind: kind,
+                capabilities: [.video, .libraryCollections]
+            )
+            return ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        }
+        let libraries = accounts.map { account in
+            AggregatedLibrary(
+                accountID: account.account.id, accountName: "Viewer",
+                serverName: account.account.server.name, providerKind: account.account.server.provider,
+                library: MediaLibrary(id: "movies", title: "Movies", kind: .movie)
+            )
+        }
+        try await withWindow {
+            NavigationStack {
+                HeroCollectionPickerView(selections: .constant([]), libraries: libraries, accounts: accounts) { _ in }
+            }
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Collection chooser source marks")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Plex server"), text)
+            XCTAssertTrue(text.contains("Jellyfin server"), text)
+            XCTAssertTrue(text.contains("Movies"), text)
+        }
+    }
+
+    func testFeaturedRailShowsRealMetadataAndNativeCardFocus() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        let items = ["Orbit", "Voyage", "Horizon", "Arrival"].enumerated().map {
+            MediaItem(id: "featured-\($0.offset)", title: $0.element, kind: .movie,
+                      productionYear: 2024, officialRating: "PG", genres: ["Adventure"])
+        }
+        let phone = FeaturedCardLayout.size(viewportWidth: 393, television: false)
+        XCTAssertEqual(phone.width, 345)
+        XCTAssertEqual(phone.height / phone.width, 1.125)
+        let tv = FeaturedCardLayout.size(viewportWidth: 1920, television: true)
+        XCTAssertEqual(tv.height / tv.width, 1.25)
+        XCTAssertLessThan(tv.width * 3 + 64, 1920, "The next card should peek into the rail.")
+        try await withWindow {
+            ScrollView {
+                FeaturedMediaRow(
+                    title: Text("Weekend picks"), items: items, scope: ObjectIdentifier(controller),
+                    coordinator: coordinator, controller: controller, settings: .default,
+                    resolver: { _ in nil }, isActive: true, onSelect: { _ in }
+                )
+            }
+            .environment(\.scenePhase, .active)
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured collection rail")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Weekend picks"), text)
+            XCTAssertTrue(text.contains("Orbit"), text)
+            XCTAssertTrue(text.contains("2024"), text)
+            XCTAssertTrue(text.contains("Adventure"), text)
+            #if os(tvOS)
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Orbit") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: target)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === target && controller.isFeaturedReserved },
+                object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+            #else
+            let visible = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in coordinator.activeItemID == items[0].stablePresentationID },
+                object: nil
+            )
+            await self.fulfillment(of: [visible], timeout: 3)
+            #endif
+        }
+    }
+
+    func testSectionWarningShowsSourceAndNativeActions() async throws {
+        let choice = HomeRowChoice(
+            id: .server(accountID: "fixture", section: "top"),
+            title: "Top picks", isProviderDefault: true
+        )
+        let issue = HomeSectionIssue(
+            choice: choice, reason: .failed(.serverUnreachable),
+            serverName: "Living room server", providerKind: .jellyfin
+        )
+        try await withWindow {
+            HomeSectionStatusView(issue: issue, onRetry: {})
+                .padding()
+                #if os(iOS)
+                .environment(\.plozzMetrics, .touch(density: .standard))
+                #endif
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Home section load warning")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Top picks"), text)
+            XCTAssertTrue(text.contains("Living room server"), text)
+            XCTAssertTrue(text.contains("Details"), text)
+            XCTAssertTrue(text.contains("Retry"), text)
+            #if os(tvOS)
+            for title in ["Details", "Retry"] {
+                let label = try XCTUnwrap(lines.first { $0.0.contains(title) }).1
+                let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+                let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+                XCTAssertTrue(target.canBecomeFocused, title)
+            }
+            #endif
+        }
+    }
+
+    func testPersonalCollectionSourceUsesCurrentAccountBrand() throws {
+        for kind in [ProviderKind.plex, .jellyfin] {
+            let provider = HomeSettingsLibraryProvider(name: "Collection server", kind: kind)
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let section = CollectionSection(source: .init(
+                accountID: account.account.id, collectionID: "personal", title: "Personal picks",
+                serverUserID: provider.session.userID
+            ))
+            let choice = HomeRowChoice(collectionSection: section)
+            XCTAssertNil(choice.library)
+            XCTAssertEqual(choice.homeEditorProvider(in: [account]), kind)
+            XCTAssertNil(choice.homeEditorProvider(in: []))
+            let differentViewer = HomeRowChoice(collectionSection: CollectionSection(source: .init(
+                accountID: account.account.id, collectionID: "personal", title: "Personal picks",
+                serverUserID: "different-viewer"
+            )))
+            XCTAssertNil(differentViewer.homeEditorProvider(in: [account]))
+        }
+    }
+
+    #if os(tvOS)
+    func testFeaturedRailUsesTheSharedPinnedNavigationKeyline() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        let items = (0..<6).map { MediaItem(id: "aligned-\($0)", title: "Title \($0)", kind: .movie) }
+        for pinned in [false, true] {
+            try await withWindow {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        MediaRowView(title: Text("Reference row"), items: [], onSeeAll: {}, onSelect: { _ in })
+                        FeaturedMediaRow(
+                            title: Text("Featured row"), items: items, scope: ObjectIdentifier(controller),
+                            coordinator: coordinator, controller: controller, settings: .default,
+                            resolver: { _ in nil }, isActive: false, onSeeAll: {}, onSelect: { _ in }
+                        )
+                        .disabled(true)
+                    }
+                }
+                .environment(\.plozzPinnedSidebarActive, pinned)
+                .environment(\.plozzNavigationContentInset, pinned ? 64 : 0)
+                .environment(\.plozzCardFocusStyle, .system)
+            } inspect: { window in
+                let lines = try await self.capture(window, name: "Featured keyline pinned \(pinned)")
+                let reference = try XCTUnwrap(lines.first { $0.0 == "Reference row" }).1
+                let featured = try XCTUnwrap(lines.first { $0.0 == "Featured row" }).1
+                XCTAssertEqual(featured.minX * window.bounds.width, reference.minX * window.bounds.width, accuracy: 3)
+                XCTAssertEqual(featured.height * window.bounds.height, reference.height * window.bounds.height, accuracy: 3)
+                let actions = lines.filter { $0.0 == "See all" }.map(\.1)
+                XCTAssertEqual(actions.count, 2)
+                if actions.count == 2 {
+                    XCTAssertEqual(actions[0].maxX * window.bounds.width, actions[1].maxX * window.bounds.width, accuracy: 3)
+                    XCTAssertEqual(actions[0].height * window.bounds.height, actions[1].height * window.bounds.height, accuracy: 3)
+                }
+                let image = try await self.snapshot(window, name: "Resting keyline")
+                let bitmap = try XCTUnwrap(image.cgImage)
+                let pixels = try self.rgba(bitmap)
+                let y = Int((1 - featured.minY) * window.bounds.height) + 150
+                let edge = try XCTUnwrap((0..<bitmap.width / 2).first { x in
+                    pixels[(y * bitmap.width + x) * 4] > 3
+                })
+                XCTAssertEqual(CGFloat(edge), reference.minX * window.bounds.width, accuracy: 4,
+                               "The resting artwork and both headings must share the same keyline.")
+            }
+        }
+    }
+
+    func testFeaturedNativeCardDoesNotExposeBackingAroundDarkArtwork() async throws {
+        var frames: [Int: CGRect] = [:]
+        var focused: Set<Int> = []
+        try await withWindow {
+            HStack(spacing: 50) {
+                ForEach(0..<2) { index in
+                    FeaturedCornerFixture(
+                        onFrame: { frames[index] = $0 },
+                        onFocus: { value in
+                            if value { focused.insert(index) } else { focused.remove(index) }
+                        }
+                    )
+                }
+            }
+            .environment(\.plozzCardFocusStyle, .system)
+            .environment(\.themePalette, .light)
+        } inspect: { window in
+            let image = try await self.snapshot(window, name: "Featured resting dark corners")
+            XCTAssertEqual(frames.count, 2)
+            XCTAssertEqual(focused.count, 1)
+            let index = try XCTUnwrap((0..<2).first { !focused.contains($0) })
+            let frame = try XCTUnwrap(frames[index])
+            let bitmap = try XCTUnwrap(image.cgImage)
+            let pixels = try self.rgba(bitmap)
+            var lightest = 0
+            for x in Int(frame.minX)..<Int(frame.maxX) {
+                for y in Int(frame.minY)..<Int(frame.maxY) {
+                    guard x < Int(frame.minX) + 24 || x >= Int(frame.maxX) - 24
+                            || y < Int(frame.minY) + 24 || y >= Int(frame.maxY) - 24 else { continue }
+                    let index = (y * bitmap.width + x) * 4
+                    lightest = max(lightest, Int(pixels[index]), Int(pixels[index + 1]), Int(pixels[index + 2]))
+                }
+            }
+            XCTAssertLessThan(lightest, 12, "A second artwork clip must not uncover the native card's light backing.")
+        }
+    }
+
+    func testReorderInitialTargetOwnsNativeFocusWithoutAnotherSelection() async throws {
+        try await withWindow {
+            LiftableReorderList(
+                sections: .init(enabled: [0, 1, 2], disabled: []),
+                disabledSectionTitle: "Hidden", disabledPlaceholder: "None",
+                isLifting: .constant(false), allowsHiding: false, initialElement: 1,
+                row: { .init(title: Text(verbatim: "Section \($0)")) }, onChange: { _ in }
+            )
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Selected section lifted")
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Section 1") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let target = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === target }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+        }
+    }
+    #endif
+
+    func testCollectionEditorPreviewsActualTitlesBesidePresentationChoices() async throws {
+        for style in CollectionSection.CardStyle.allCases {
+            let requested = expectation(description: "Collection preview requested")
+            let provider = HomeSettingsLibraryProvider(
+                name: "Collection server",
+                collectionItems: [MediaItem(id: "orbit", title: "Orbit", kind: .movie)],
+                onCollectionRequest: { requested.fulfill() }
+            )
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let section = CollectionSection(
+                source: .init(
+                    accountID: account.account.id, collectionID: "weekend",
+                    title: "Weekend picks", serverUserID: account.provider.session.userID
+                ),
+                cardStyle: style
+            )
+            let suite = "CollectionPreview.\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+            try await withWindow {
+                CollectionSectionSettingsView(
+                    section: section, isNew: true, inventory: HomeSectionCatalogModel(),
+                    visibility: visibility, libraries: [], accounts: [account]
+                )
+                #if os(tvOS)
+                .frame(width: SettingsFormMetrics.pageWidth)
+                #elseif os(iOS)
+                .environment(\.plozzMetrics, .touch(density: .standard))
+                #endif
+            } inspect: { window in
+                await self.fulfillment(of: [requested], timeout: 5)
+                let lines = try await self.capture(window, name: "Collection preview \(style.rawValue)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertTrue(text.contains("Weekend picks"), text)
+                XCTAssertTrue(text.contains("Orbit"), "Preview must display the provider's title: \(text)")
+                XCTAssertGreaterThan(try self.y("Posters", in: lines), try self.y("Orbit", in: lines))
+                XCTAssertTrue(visibility.visibility.collectionSections.isEmpty, "Previewing does not save a section.")
+            }
+        }
+    }
+
+    #if os(tvOS)
+    func testEmptyCollectionSeeAllIsFocusableAndReportsRowEntry() async throws {
+        var entries = 0
+        try await withWindow {
+            MediaRowView(
+                title: Text("Weekend picks"), items: [],
+                onFocusEntered: { entries += 1 },
+                onSeeAll: {}, onSelect: { _ in }
+            )
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Empty collection navigation")
+            XCTAssertTrue(lines.contains { $0.0.contains("No titles") })
+            let label = try XCTUnwrap(lines.first { $0.0.contains("See all") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let item = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: item)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === item && entries > 0 }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 3)
+        }
+    }
+    #endif
+
     func testReorderRemovalPreservesOtherSettingsAndRemainsAvailableToAdd() throws {
         let suite = "HomeReorderRemoval.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -34,6 +518,31 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         try visibility.setHomeSectionVisible(true, id: .global(.continueWatching), catalog: catalog)
         XCTAssertEqual(catalog.sections(in: store.load()).enabled.last, .global(.continueWatching))
         XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
+    }
+
+    func testAddSectionSeparatesCreationFromAvailableSections() async throws {
+        let suite = "HomeAddSectionLanguage.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        visibility.setGlobalRowEnabled(false, for: .recentlyAdded)
+        try await withWindow {
+            HomeAddSectionView(
+                inventory: HomeSectionCatalogModel(), visibility: visibility, libraries: [], accounts: []
+            )
+            #if os(tvOS)
+            .frame(width: SettingsFormMetrics.pageWidth)
+            #endif
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Create or add a Home section")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Start with a library collection"), text)
+            XCTAssertGreaterThan(try self.y("Create section", in: lines), try self.y("Available sections", in: lines))
+            XCTAssertGreaterThan(try self.y("Available sections", in: lines), try self.y("Recently Added", in: lines))
+            XCTAssertFalse(text.contains("Choose the titles"), text)
+            XCTAssertTrue(visibility.visibility.collectionSections.isEmpty)
+        }
     }
 
     func testReorderSnapshotSavesKnownRowsBeforeOrAfterDiscoveryWithoutLosingPreferences() async throws {
@@ -178,6 +687,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     private func focusableItem(at point: CGPoint, in window: UIWindow) -> (any UIFocusItem)? {
+        focusTarget(at: point, in: window)?.item
+    }
+
+    private func focusTarget(at point: CGPoint, in window: UIWindow) -> (item: any UIFocusItem, frame: CGRect)? {
         var containers: [any UIFocusItemContainer] = [window]
         var seen = Set<ObjectIdentifier>()
         while let container = containers.popLast() {
@@ -187,7 +700,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 if let child = item.focusItemContainer { containers.append(child) }
                 if let view = item as? UIView { containers.append(view) }
                 let frame = container.coordinateSpace.convert(item.frame, to: window)
-                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return item }
+                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return (item, frame) }
             }
         }
         return nil
@@ -228,6 +741,31 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             _ = try await self.capture(window, name: "Preset after server recovery")
         }
     }
+
+    #if os(tvOS)
+    private struct FeaturedCornerFixture: View {
+        let onFrame: (CGRect) -> Void
+        let onFocus: (Bool) -> Void
+        @FocusState private var focused: Bool
+
+        var body: some View {
+            Button {} label: {
+                FeaturedCardArtwork(
+                    item: MediaItem(id: "corners", title: "Dark artwork", kind: .movie),
+                    size: CGSize(width: 520.25, height: 650.3125), usesNativeClipping: true
+                ) {
+                    Color.black
+                }
+            }
+            .buttonStyle(.card)
+            .buttonBorderShape(.roundedRectangle(radius: 20))
+            .focused($focused)
+            .frame(width: 520.25, height: 650.3125)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrame($0) }
+            .onChange(of: focused, initial: true) { _, value in onFocus(value) }
+        }
+    }
+    #endif
 
     #if os(iOS)
     func testMobilePresetScrollsWithSectionsWhileToolbarRemainsVisible() async throws {
@@ -506,6 +1044,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertTrue(text.contains("Reorder"), text)
             XCTAssertTrue(text.contains("Hero"), text)
             XCTAssertTrue(text.contains("Continue Watching"), text)
+            XCTAssertTrue(text.contains("Add section"), text)
             XCTAssertFalse(text.contains("Artwork"), text)
             XCTAssertFalse(text.contains("Merge Next Up rows"), text)
             XCTAssertFalse(text.contains("No video libraries are available"), text)
@@ -1135,7 +1674,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let window = UIWindow(windowScene: scene)
         window.frame = size.map { CGRect(origin: .zero, size: $0) } ?? scene.coordinateSpace.bounds
         window.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
-        window.rootViewController = UIHostingController(rootView:
+        window.rootViewController = HomeRowsFocusHost(rootView: AnyView(
             content()
                 .environment(HeroSettingsModel(store: InMemoryHeroSettingsStore()))
                 .environment(HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()))
@@ -1144,7 +1683,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 .environment(\.colorScheme, colorScheme)
                 .environment(\.locale, Locale(identifier: "en_US"))
                 .background(.black)
-        )
+        ))
         window.makeKeyAndVisible()
         defer {
             window.isHidden = true
@@ -1248,7 +1787,8 @@ private struct HomeSettingsViewerHost: View {
 }
 #endif
 
-private actor HomeSettingsLibraryProvider: MediaProvider {
+private actor HomeSettingsLibraryProvider: MediaProvider, CapabilityReporting {
+    let capabilities: ProviderCapability
     let session: UserSession
     let isOffline: Bool
     let kind: ProviderKind
@@ -1263,14 +1803,19 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     private let onFirstHomeRequest: (@Sendable () -> Void)?
     private var requestedHome = false
     private(set) var homeRequests = 0
+    private let collectionItems: [MediaItem]
+    private let onCollectionRequest: (@Sendable () -> Void)?
 
     init(
         name: String, isOffline: Bool = false, homeError: AppError? = nil,
         libraryTitle: String = "Movies", kind: ProviderKind = .jellyfin,
         holdsLibraries: Bool = false, homeLayout: ServerHomeLayout? = nil,
-        holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil
+        holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil,
+        collectionItems: [MediaItem] = [], onCollectionRequest: (@Sendable () -> Void)? = nil,
+        capabilities: ProviderCapability = .videoOnly
     ) {
         self.isOffline = isOffline
+        self.capabilities = capabilities
         self.homeError = homeError
         self.libraryTitle = libraryTitle
         self.kind = kind
@@ -1278,6 +1823,8 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         self.homeLayout = homeLayout
         self.holdsHome = holdsHome
         self.onFirstHomeRequest = onFirstHomeRequest
+        self.collectionItems = collectionItems
+        self.onCollectionRequest = onCollectionRequest
         session = UserSession(
             server: MediaServer(
                 id: name, name: name,
@@ -1319,6 +1866,17 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
+    func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
+        .init(items: [], startIndex: 0, totalCount: 0)
+    }
+
+    func collectionMembers(of collectionID: String, page: PageRequest) async throws -> MediaPage {
+        onCollectionRequest?()
+        return .init(
+            items: Array(collectionItems.dropFirst(page.startIndex).prefix(page.limit)),
+            startIndex: page.startIndex, totalCount: collectionItems.count
+        )
+    }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: page.startIndex, totalCount: 0)
     }

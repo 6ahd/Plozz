@@ -88,7 +88,7 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   app-wide maturity threshold.
 - **Home section customization** — Settings > Screens & Navigation > Customize Home
   uses the same section editor on TV, iPhone and iPad. Tap a section to configure
-  it, Reorder to move it, or Add section to show another existing feed. Hero
+  it, Reorder to move it, or Add section to choose a collection or another existing feed. Hero
   stays configurable at the top, outside the movable row list. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries
   tiles. `HomeRowCustomization` stores typed identity, order and explicit
@@ -146,12 +146,66 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   each failed server, distinguishing offline, sign-in, and Home-loading problems
   instead of showing a blanket warning about server arrangements. Recovery clears
   that server's status; failures never reset saved row choices.
+  Enabled sections missing their content retain a compact warning on Home with
+  source, Details, and Retry. Customize Home shares the same completed-load
+  evidence, distinguishing typed failures, empty results, and saved sections
+  absent from the latest refresh. Missing sections do not prove a server error:
+  dynamic recommendations may be empty or changed. Normal empty default library
+  feeds remain quiet unless explicitly added. Existing usable cached/partial
+  cards remain visible, with any load warning available in the editor.
+  Warnings are runtime-only, scoped to the current profile, accounts, server
+  users, credentials, and settings; cancellation is not a failure and successful
+  recovery clears the warning. Details expose safe error categories, not URLs,
+  credentials, or response bodies.
   Mobile library discovery follows the effective credential and Plex Home viewer,
   and cancelled lookups cannot restore another viewer's library choices.
   The section catalog enumerates optional recommendations only while the editor
-  is open. Section editing retains `HomeRowID` and the existing renderer; there
-  are no duplicate section instances, mixed feeds, per-section source filters
-  or new card layouts in this foundation. Home omits
+  is open. Authored collection rows have independent stable section identities,
+  names and poster, landscape or Featured presentation. Each references one account/viewer-qualified
+  collection through `MediaProvider`; its bounded preview preserves server order
+  and membership, showing supported movie and series cards without reconstructing
+  library membership. **See all** opens the existing collection browser using
+  the original provider ID. All card styles open title details.
+  Collection definitions persist with the profile separately from arrangement:
+  removing a row or choosing a preset retains its configuration in Add section.
+  Disabled libraries and a different server viewer prevent collection requests;
+  failures remain distinct from empty collections.
+  Featured is available only for authored collection rows. Large artwork cards
+  place the title logo (or text fallback) and real metadata at the lower left.
+  TV rows reuse the standard media-row heading and See all action, with the same
+  pinned-navigation keyline, leading fade and card-slot parking as ordinary rows.
+  System-focus Featured cards share the image-based native poster renderer.
+  Physical comparisons reproduced the exposed edge with SwiftUI card buttons,
+  including a flattened label, but not with the native image renderer. Do not
+  restore that card surface or the generic hosted `TVCardView` bridge, which can
+  retain enlarged artwork after held directional navigation. One artwork
+  resolution supplies the native image and its live composition. Artwork,
+  video, scrim and metadata use the public image overlay surface with its shared
+  outer clip; do not add individual image/video clips or rasterize live video.
+  Featured disables the ordinary overlay's additional rounded clip so its
+  scrim covers bright backing artwork through the corners throughout focus
+  transitions. The native image surface alone supplies the outer silhouette.
+  The TV scrim extends 40pt beyond each edge without moving its fade stops or
+  changing the image, video and metadata layout. This covers oversized
+  aspect-fill pixels during native settling; the live composition must not
+  apply a rectangular clip that would discard that extra coverage.
+  Ordinary poster overlays retain rasterization. Non-system styles retain the
+  shared focus fallback. TV widths round outward to multiples of four points,
+  keeping both dimensions integral and the 4:5 ratio exact. Keep native clip geometry in
+  whole points rather than rounding each dimension separately to physical
+  pixels. Standalone previews and mobile cards keep their own outer rounded clip.
+  Rails reserve the shared shadow clearance without increasing row spacing.
+  Full-bleed Home artwork preserves the measured trailing title-safe inset for
+  row actions. Remote-driven coverage checks resting painted sizes after rapid
+  navigation; simulator rendering is not proof of physical remote-tilt behavior.
+  The focused TV card or settled visible mobile card can play a supported
+  local/server trailer, using the profile's Home trailer enable/mute preferences.
+  A shared coordinator arbitrates visible rails and borrows the existing hero
+  player; it never creates per-card players or performs online trailer extraction.
+  Scrolling away, navigation, backgrounding, source changes and full playback
+  cancel the preview. Reduce Motion keeps the cards static. Missing or failed
+  trailers retain artwork. Mixed feeds, filters and library-page placement are
+  not part of this slice. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.

@@ -201,6 +201,251 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         }
     }
 
+    func testFeaturedBrightPosterCornersStayCoveredAfterFocusExit() async throws {
+        let scene = try await activeScene()
+        let artworks = [
+            try await seedArtwork(color: .white),
+            try await seedArtwork(color: .white, size: CGSize(width: 300, height: 900))
+        ]
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        let host = HomeRowsFocusHost(rootView: AnyView(VStack {
+            Button("Outside") {}.frame(height: 80)
+            FeaturedMediaRow(
+                title: Text("Featured"),
+                items: (0..<2).map {
+                    MediaItem(
+                        id: "bright-corners-\($0)", title: "White poster \($0)", kind: .movie,
+                        posterURL: artworks[$0], backdropURL: artworks[$0], allowsTitleBasedMetadataMatching: false
+                    )
+                },
+                scope: ObjectIdentifier(controller), coordinator: coordinator, controller: controller,
+                settings: .default, resolver: { _ in nil }, isActive: false, onSelect: { _ in }
+            )
+        }
+        .environment(\.plozzCardFocusStyle, .system)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)))
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            coordinator.stop()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await waitUntil { self.focusTargets(in: window).filter { $0.frame.height > 300 }.count == 2 }
+        let posters = try focusTargets(in: window).filter { $0.frame.height > 300 }
+            .map { try XCTUnwrap($0 as? NativePosterButton) }
+        let outside = try XCTUnwrap(focusTargets(in: window).first { $0.frame.height < 150 })
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        func focus(_ target: any UIFocusItem) async throws {
+            host.target = target
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            try await waitUntil { system.focusedItem === target }
+        }
+        func capture(_ name: String) -> UIImage {
+            let image = renderedKeylineSnapshot(in: window)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Featured white corners \(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            return image
+        }
+        try await focus(outside)
+        try await Task.sleep(for: .seconds(1))
+        for phase in ["initial", "after focus", "after rapid focus"] {
+            if phase != "initial" {
+                for poster in posters {
+                    try await focus(poster)
+                    try await Task.sleep(for: .milliseconds(phase == "after focus" ? 600 : 40))
+                }
+                if phase == "after focus" {
+                    XCTAssertTrue(posters.allSatisfy { !$0.isFocused || !$0.artworkView.clipsToBounds })
+                    _ = capture("focused")
+                }
+                try await focus(outside)
+                if phase == "after focus" {
+                    for sample in 0..<4 {
+                        try await Task.sleep(for: .milliseconds(40))
+                        _ = capture("defocus \(sample)")
+                    }
+                }
+                try await Task.sleep(for: .milliseconds(700))
+            }
+            let snapshot = capture(phase)
+            let image = try XCTUnwrap(snapshot.cgImage)
+            var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+            try pixels.withUnsafeMutableBytes {
+                let context = try XCTUnwrap(CGContext(
+                    data: $0.baseAddress, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            }
+            for poster in posters {
+                XCTAssertFalse(poster.artworkView.adjustsImageWhenAncestorFocused)
+                let frame = poster.convert(poster.bounds, to: window).integral
+                XCTAssertGreaterThan(pixels[
+                    (Int(frame.minY + 80) * image.width + Int(frame.midX)) * 4
+                ], 245, "The regression must render the seeded white artwork, not online fallback art.")
+                var excess = 0
+                for y in (Int(frame.maxY) - 28)..<Int(frame.maxY) {
+                    let reference = Int(pixels[(y * image.width + Int(frame.midX)) * 4])
+                    for x in Array(Int(frame.minX)..<(Int(frame.minX) + 28))
+                        + Array((Int(frame.maxX) - 28)..<Int(frame.maxX)) {
+                        excess = max(excess, Int(pixels[(y * image.width + x) * 4]) - reference)
+                    }
+                }
+                XCTAssertLessThanOrEqual(excess, 4,
+                    "The dark scrim must cover white artwork through both bottom corners \(phase).")
+            }
+        }
+
+        // The live scrim must cover exposed white pixels beyond the layout
+        // bounds before the native surface applies its final silhouette.
+        let matte = UIView(frame: window.bounds)
+        matte.backgroundColor = .white
+        window.addSubview(matte)
+        defer { matte.removeFromSuperview() }
+        for poster in posters {
+            let overlay = try XCTUnwrap(poster.hostedOverlay).configuration.makeContentView()
+            overlay.frame = CGRect(origin: CGPoint(x: 160, y: 120), size: poster.bounds.size)
+            matte.addSubview(overlay)
+            defer { overlay.removeFromSuperview() }
+            overlay.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+            let snapshot = capture("live viewport \(poster.accessibilityLabel ?? "")")
+            let image = try XCTUnwrap(snapshot.cgImage)
+            let bounds = overlay.frame
+            func brightness(at point: CGPoint) throws -> UInt8 {
+                let pixel = try XCTUnwrap(image.cropping(to: CGRect(origin: point, size: CGSize(width: 1, height: 1))))
+                var bytes = [UInt8](repeating: 0, count: 4)
+                try bytes.withUnsafeMutableBytes {
+                    let context = try XCTUnwrap(CGContext(
+                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                    ))
+                    context.draw(pixel, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+                }
+                return try XCTUnwrap(bytes.prefix(3).max())
+            }
+            XCTAssertGreaterThan(try brightness(at: CGPoint(x: bounds.midX, y: bounds.minY + 80)), 245)
+            let shaded = try brightness(at: CGPoint(x: bounds.midX, y: bounds.minY + bounds.height * 0.8))
+            XCTAssertGreaterThan(shaded, 40, "The probe must render real artwork, not an empty hosting view.")
+            XCTAssertLessThan(shaded, 150, "The live scrim must retain its intended darkening.")
+            let bottom = try brightness(at: CGPoint(x: bounds.midX, y: bounds.maxY - 1))
+            // Stay inside the overscan's antialiased final pixels.
+            for outset: CGFloat in [2, 36] {
+                for x in [bounds.minX - outset, bounds.maxX + outset] {
+                    let point = CGPoint(x: x, y: bounds.minY + bounds.height * 0.8)
+                    XCTAssertLessThanOrEqual(abs(Int(try brightness(at: point)) - Int(shaded)), 4,
+                        "The scrim must shade white pixels throughout its 40pt side overscan: \(point).")
+                }
+                XCTAssertLessThanOrEqual(
+                    abs(Int(try brightness(at: CGPoint(x: bounds.midX, y: bounds.maxY + outset))) - Int(bottom)), 4,
+                    "The bottom edge color must continue through the 40pt overscan.")
+            }
+            for point in [
+                CGPoint(x: bounds.minX - 41, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.maxX + 41, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.midX, y: bounds.maxY + 41)
+            ] {
+                XCTAssertGreaterThan(try brightness(at: point), 245,
+                    "Overscan must stop at 40pt without enlarging the card layout.")
+            }
+        }
+    }
+
+    func testFeaturedNativeButtonsKeepTheLiveTrailerSurfaceAndReleaseItOnExit() async throws {
+        try XCTSkipIf(UIAccessibility.isReduceMotionEnabled, "Featured previews intentionally stay static with Reduce Motion.")
+        let scene = try await activeScene()
+        let video = try await makeTrailerVideo()
+        let artwork = try await seedArtwork(color: .blue)
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator(settleDelay: .zero)
+        let items = (0..<2).map {
+            MediaItem(id: "featured-video-\($0)", title: "Trailer \($0)", kind: .movie, posterURL: artwork)
+        }
+        let host = HomeRowsFocusHost(rootView: AnyView(VStack {
+            Button("Outside") {}.frame(height: 80)
+            FeaturedMediaRow(
+                title: Text("Featured"), items: items, scope: ObjectIdentifier(controller),
+                coordinator: coordinator, controller: controller, settings: .default,
+                resolver: { item in
+                    HeroTrailerSource(ownerItemID: item.id, trailerItemID: "clip", url: video, duration: 30)
+                }, isActive: true, onSelect: { _ in }
+            )
+        }
+        .environment(\.scenePhase, .active)
+        .environment(\.plozzCardFocusStyle, .system)))
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            coordinator.stop()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        func players(in layer: CALayer) -> [AVPlayerLayer] {
+            if let player = layer as? AVPlayerLayer { return [player] }
+            return (layer.sublayers ?? []).flatMap { players(in: $0) }
+        }
+        try await waitUntil { self.focusTargets(in: window).filter { $0.frame.height > 300 }.count == 2 }
+        let cards = try focusTargets(in: window).filter { $0.frame.height > 300 }
+            .map { try XCTUnwrap($0 as? UIView) }
+            .sorted { $0.convert($0.bounds, to: window).minX < $1.convert($1.bounds, to: window).minX }
+        XCTAssertEqual(cards.map(\.accessibilityLabel), items.map { Optional($0.title) })
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        var previousLayer: AVPlayerLayer?
+        for (index, card) in cards.enumerated() {
+            let poster = try XCTUnwrap(card as? NativePosterButton,
+                                      "Featured must use the image-based native renderer, not SwiftUI's card surface.")
+            XCTAssertFalse(poster.artworkView.masksFocusEffectToContents)
+            let overlay = try XCTUnwrap(poster.hostedOverlay)
+            XCTAssertFalse(overlay.layer.shouldRasterize, "The live trailer must not be flattened into an overlay bitmap.")
+            host.target = card
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            try await waitUntil {
+                system.focusedItem === card && coordinator.activeItemID == items[index].stablePresentationID
+                    && controller.isPlaying && players(in: window.layer).contains { $0.isReadyForDisplay }
+            }
+            XCTAssertTrue(system.focusedItem === card, "The requested Featured control must own native focus.")
+            XCTAssertTrue(poster.artworkView.adjustsImageWhenAncestorFocused)
+            XCTAssertFalse(poster.artworkView.clipsToBounds, "Native focus alone must own the tilted outer edge.")
+            XCTAssertEqual(coordinator.activeItemID, items[index].stablePresentationID)
+            let layers = players(in: window.layer)
+            XCTAssertEqual(layers.count, 1, "Only the focused card may host the shared trailer player.")
+            let layer = try XCTUnwrap(layers.first)
+            if let previousLayer { XCTAssertTrue(layer === previousLayer, "Focus must reparent the same video surface.") }
+            previousLayer = layer
+            XCTAssertEqual(players(in: poster.overlayView.layer).count, 1)
+            XCTAssertTrue(layer.player === controller.player)
+            XCTAssertFalse(layer.isHidden)
+            XCTAssertGreaterThan(layer.bounds.width, 300)
+            XCTAssertGreaterThan(layer.bounds.height, 300)
+        }
+        let outside = try XCTUnwrap(focusTargets(in: window).first { $0.frame.height < 150 })
+        host.target = outside
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { system.focusedItem === outside && coordinator.activeItemID == nil }
+        let posters = try cards.map { try XCTUnwrap($0 as? NativePosterButton) }
+        try await waitUntil {
+            posters.allSatisfy { !$0.artworkView.adjustsImageWhenAncestorFocused && $0.artworkView.clipsToBounds }
+        }
+        XCTAssertEqual(controller.player.rate, 0)
+    }
+
     func testProductionDetailStopsTrailerAfterReturningToNonHeroRoot() async throws {
         try await withTrailerFixture { model, video in
             model.path.append(1)

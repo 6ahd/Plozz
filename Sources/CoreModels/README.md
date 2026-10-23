@@ -68,6 +68,12 @@ language every other module speaks.
   content-aware Home visibility predicate hides confirmed-empty tiles by default,
   while profile-scoped explicit enable choices override that automatic hiding.
   Unknown availability is not emptiness; discovery and browse retain the entry.
+  `CollectionSection` separates an authored row's stable identity, source, name
+  and card presentation from placement. Home stores these definitions in its
+  existing profile-scoped settings, outside the preset/order selection.
+  `CollectionPreviewLoader` shares bounded membership paging with Hero, validates
+  page progress and identity, and never treats a selected library as inferred
+  membership for returned titles.
 
 ## Public surface, at a glance
 

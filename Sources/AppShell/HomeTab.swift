@@ -232,6 +232,7 @@ struct HomeTab: View {
                 identitySources: identitySources,
                 currentVisibility: { homeVisibility.visibility },
                 prepareVisibility: { await homeVisibility.prepareServerDefaults(accounts: accounts) },
+                sectionDiagnostics: homeVisibility.sectionDiagnostics,
                 pendingWatchMutations: pendingWatchMutations,
                 recentlyAppliedRecency: appliedWatchRecency,
                 mediaItemActionHandler: mediaItemActionHandler,

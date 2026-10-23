@@ -32,6 +32,7 @@ import Foundation
 public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// Nil preserves an existing profile's legacy combined/grouped choices.
     public var rowCustomization: HomeRowCustomization?
+    public var collectionSections: [CollectionSection]
 
     public var intent: Self {
         var copy = self
@@ -127,7 +128,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails = .default,
         continueWatchingAction: ContinueWatchingAction = .default,
         rowCustomization: HomeRowCustomization? = nil,
-        mergeNextUpIntoContinueWatching: Bool = true
+        mergeNextUpIntoContinueWatching: Bool = true,
+        collectionSections: [CollectionSection] = []
     ) {
         self.mergeLibrariesOnHome = mergeLibrariesOnHome
         self.disabledKeys = disabledKeys
@@ -141,6 +143,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.continueWatchingAction = continueWatchingAction
         self.rowCustomization = rowCustomization
         self.mergeNextUpIntoContinueWatching = mergeNextUpIntoContinueWatching
+        self.collectionSections = collectionSections
     }
 
     /// Fresh profiles match their server; existing blobs retain legacy behavior.
@@ -238,7 +241,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         switch id {
         case let .global(row): return isGlobalRowEnabled(row)
         case .libraries: return true
-        case .server, .liveTV: return false
+        case .server, .liveTV, .section: return false
         case let .library(key, _):
             return !mergeLibrariesOnHome
                 && id.libraryKind.map { isLibraryRowEnabled(key, kind: $0) } == true
@@ -319,7 +322,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
                 library: $0.library,
                 isProviderDefault: rowCustomization?.defaults == .legacy
                     ? (isLegacyRowVisible($0.id) && $0.isLegacyDefault) : $0.isProviderDefault,
-                serverRow: $0.serverRow
+                serverRow: $0.serverRow, collectionSection: $0.collectionSection
             )
         }
         rowCustomization?.apply(sections, choices: resolvedChoices)
@@ -373,6 +376,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         case continueWatchingPlaybackDetails = "continueWatchingPortraitDetails"
         case continueWatchingAction
         case rowCustomization
+        case collectionSections
         case mergeNextUpIntoContinueWatching
     }
 
@@ -414,6 +418,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
             ContinueWatchingAction.self, forKey: .continueWatchingAction
         ) ?? .default
         self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
+        self.collectionSections = try container.decodeIfPresent([CollectionSection].self, forKey: .collectionSections) ?? []
         self.mergeNextUpIntoContinueWatching = try container.decodeIfPresent(
             Bool.self, forKey: .mergeNextUpIntoContinueWatching
         ) ?? true
@@ -432,6 +437,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         try container.encode(continueWatchingPlaybackDetails, forKey: .continueWatchingPlaybackDetails)
         try container.encode(continueWatchingAction, forKey: .continueWatchingAction)
         try container.encodeIfPresent(rowCustomization, forKey: .rowCustomization)
+        if !collectionSections.isEmpty { try container.encode(collectionSections, forKey: .collectionSections) }
         try container.encode(mergeNextUpIntoContinueWatching, forKey: .mergeNextUpIntoContinueWatching)
     }
 }

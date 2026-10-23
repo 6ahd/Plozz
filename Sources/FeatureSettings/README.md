@@ -201,21 +201,45 @@ watch history and planning-list behavior are documented in
   with a trailing native menu capsule and a divider, not another section card.
   TV gives this control row additional vertical separation from the header and sections.
   It scrolls with the content and stacks at large text sizes when needed.
-  An accessible + action remains beside Reorder/Done in the native toolbar.
-  TV keeps its labeled Add section beside Preset. A second, labeled
-  Add section action follows the list. Reorder/Done switches to
+  Full-width Add section actions bracket the editable sections
+  on both platforms, after the page-level Preset and Home layout controls and
+  again below the list. A centered plus-and-label, native capsule button style,
+  and extra vertical spacing distinguish these actions from the editable rows.
+  Mobile keeps Reorder/Done in the native toolbar rather
+  than duplicating Add section as a small icon. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Its editable row carries a subtle pin rather than a
   lock, without a “Pinned at top” subtitle in either editing mode.
   On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
   reflecting the active layout and opening the Home layout settings page.
   Mobile uses the shared page inset without extra gutters.
-  Add section offers available existing rows not already shown. Removing a
+  Add section separates **Create section** from **Available sections** not already
+  shown. Creation starts with a library collection; the editor identifies that
+  source as Content and its presentation as Layout. Section names the configurable
+  Home area, row its horizontal layout, and collection its source grouping
+  (see [Home terminology](../../CONTEXT.md)). Choose a source collection first,
+  then edit its name and Posters, Landscape or Featured presentation with the layout control immediately above a real-title
+  preview. The preview uses the existing artwork preferences and spoiler protection.
+  Save places a new independently configured row before Libraries; the ordinary
+  arranger can move it anywhere among the movable rows. Editing never changes
+  the collection on the server. Preview loading is bounded and retains server order;
+  filtering and combining multiple sources are not yet supported. Removing a
   section hides it without erasing its configuration or disabling its libraries.
-  Section context menus also offer removal. Reorder menus include Move to top
+  Holding a normal section opens Reorder and Remove section. Reorder keeps the
+  selected section as the movement target: TV lifts and focuses it immediately;
+  mobile exposes native drag handles without losing its position. Collection
+  subtitles resolve their server mark from the current account even without a
+  discovered library. The collection chooser also shows the active account's
+  provider mark beside each library's second-line server label, including personal
+  collection sources. Featured previews share the live card's artwork, logo and
+  metadata layout without starting playback in Settings. Reorder menus include Move to top
   and Move to bottom within the movable sections, never above Home layout.
   On TV, picked-up rows retain native focus during rapid directional presses
   and held Up/Down; reaching an edge does not move focus out of the list.
+  Home's latest section warnings also appear here with Details and Retry.
+  These are transient results fenced by profile, account, effective viewer,
+  credentials, and the loaded Home settings; catalog discovery is not treated
+  as evidence that the actual Home content request succeeded.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
   **Center button action** on TV and **When tapping an item** on iPhone/iPad

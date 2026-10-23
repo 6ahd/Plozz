@@ -25,6 +25,83 @@ public enum PlozzRailTitle {
     }
 }
 
+private struct MediaRowHeaderTrailingInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+public extension EnvironmentValues {
+    /// Title-safe space restored by a page whose artwork ignores the trailing safe area.
+    var mediaRowHeaderTrailingInset: CGFloat {
+        get { self[MediaRowHeaderTrailingInsetKey.self] }
+        set { self[MediaRowHeaderTrailingInsetKey.self] = newValue }
+    }
+}
+
+public struct MediaRowHeader: View {
+    private let title: Text
+    private let leadingInset: CGFloat
+    private let onSeeAll: (() -> Void)?
+    private let onFocusEntered: (() -> Void)?
+    @FocusState private var seeAllFocused: Bool
+    @Environment(\.plozzMetrics) private var metrics
+    @Environment(\.redactionReasons) private var redactionReasons
+    @Environment(\.themePalette) private var palette
+    @Environment(\.plozzNavigationContentInset) private var navigationContentInset
+    @Environment(\.mediaRowHeaderTrailingInset) private var trailingInset
+
+    public init(
+        title: Text, leadingInset: CGFloat = PlozzTheme.Metrics.screenPadding,
+        onSeeAll: (() -> Void)? = nil, onFocusEntered: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.leadingInset = leadingInset
+        self.onSeeAll = onSeeAll
+        self.onFocusEntered = onFocusEntered
+    }
+
+    public var body: some View {
+        Group {
+            if let onSeeAll {
+                HStack {
+                    heading
+                    Spacer()
+                    Button("See all", action: onSeeAll)
+                        .font(.callout)
+                        .plozzActionButton(role: .secondary)
+                        .focused($seeAllFocused)
+                        .onChange(of: seeAllFocused) { _, focused in
+                            if focused { onFocusEntered?() }
+                        }
+                }
+                .padding(.trailing, leadingInset + trailingInset)
+            } else {
+                heading
+            }
+        }
+        .accessibilityIdentifier("media-row-title")
+        .padding(.leading, leadingInset + navigationContentInset)
+        .modifier(PlozzRowTitlePosition())
+    }
+
+    private var heading: some View {
+        let header = title.font(PlozzRailTitle.font(sectionHeaderFontSize: metrics.sectionHeaderFontSize))
+        return Group {
+            if redactionReasons.contains(.placeholder) {
+                header
+                    .hidden()
+                    .overlay(alignment: .leading) {
+                        Capsule(style: .continuous)
+                            .fill(palette.fill)
+                            .frame(width: 220, height: 26)
+                    }
+                    .shimmering()
+            } else {
+                header
+            }
+        }
+    }
+}
+
 public struct MediaRowView: View {
     public enum Presentation: Equatable, Sendable {
         case poster
@@ -55,6 +132,7 @@ public struct MediaRowView: View {
     /// name (provider content), and only the caller knows which. `nil` renders no
     /// heading (previously spelled as an empty string).
     private let title: Text?
+    private let onSeeAll: (() -> Void)?
     private let loadingPlaceholderCount: Int
     /// Gives the first pending Home row a visible waiting destination. Other
     /// skeletons stay inert; data arriving below must not choose initial focus.
@@ -213,6 +291,7 @@ public struct MediaRowView: View {
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onPlay: ((MediaItem) -> Void)? = nil,
+        onSeeAll: (() -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.init(
@@ -244,6 +323,7 @@ public struct MediaRowView: View {
             liveChannels: liveChannels,
             onLiveChannelFocused: onLiveChannelFocused,
             onPlay: onPlay,
+            onSeeAll: onSeeAll,
             onSelect: onSelect
         )
     }
@@ -277,9 +357,11 @@ public struct MediaRowView: View {
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onPlay: ((MediaItem) -> Void)? = nil,
+        onSeeAll: (() -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.title = title
+        self.onSeeAll = onSeeAll
         self.loadingPlaceholderCount = max(loadingPlaceholderCount, 0)
         self.reservesLoadingFocus = reservesLoadingFocus
         _tracksLoadingFocus = State(initialValue: reservesLoadingFocus)
@@ -465,42 +547,19 @@ public struct MediaRowView: View {
         }?.stablePresentationID ?? suppliedID
     }
 
-    private struct MediaRowHeader: View {
-        let title: Text
-        @Environment(\.plozzMetrics) private var metrics
-        @Environment(\.redactionReasons) private var redactionReasons
-        @Environment(\.themePalette) private var palette
-
-        var body: some View {
-            let header = title
-                .font(PlozzRailTitle.font(
-                    sectionHeaderFontSize: metrics.sectionHeaderFontSize
-                ))
-            if redactionReasons.contains(.placeholder) {
-                // A loading row keeps the title's exact height and draws Home's
-                // skeleton title pill in place of the words.
-                header
-                    .hidden()
-                    .overlay(alignment: .leading) {
-                        Capsule(style: .continuous)
-                            .fill(palette.fill)
-                            .frame(width: 220, height: 26)
-                    }
-                    .shimmering()
-            } else {
-                header
-            }
-        }
-    }
-
     public var body: some View {
-        if !items.isEmpty || !liveChannels.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil {
+        if !items.isEmpty || !liveChannels.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil || onSeeAll != nil {
             VStack(alignment: .leading, spacing: layoutMetrics.sectionTitleSpacing - titleTightening) {
                 if let title {
-                    MediaRowHeader(title: title)
-                        .accessibilityIdentifier("media-row-title")
+                    MediaRowHeader(
+                        title: title, leadingInset: leadingInset,
+                        onSeeAll: onSeeAll, onFocusEntered: onFocusEntered
+                    )
+                }
+                if items.isEmpty && loadingPlaceholderCount == 0 && onSeeAll != nil {
+                    Text("No titles in this collection.")
+                        .plozzForeground(.secondary)
                         .padding(.leading, leadingInset + navigationContentInset)
-                        .modifier(PlozzRowTitlePosition())
                 }
 
                 PinnedSidebarLeadingFade(

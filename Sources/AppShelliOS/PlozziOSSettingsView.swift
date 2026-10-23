@@ -1716,7 +1716,8 @@ private struct PlozziOSScreensNavigationSettingsView: View {
                     hero: appModel.settings.hero, heroBackground: appModel.settings.heroBackground,
                     cards: appModel.settings.cardStyle,
                     visibility: appModel.settings.homeVisibility,
-                    accounts: appModel.accountsProviders.resolvedActiveAccounts
+                    accounts: appModel.accountsProviders.resolvedActiveAccounts,
+                    spoilerSettings: appModel.settings.spoilers.settings
                 )
                 .id(ObjectIdentifier(appModel.settings.homeVisibility))
             case .navigation:
@@ -1846,6 +1847,7 @@ struct PlozziOSHomeSettingsView: View {
     let cards: CardStyleSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
+    var spoilerSettings: SpoilerSettings = .default
     @State private var librarySnapshot: (scope: HomeSectionCatalogModel.RequestID, choices: [HomeLibraryChoice])?
 
     private var libraryRequestID: HomeSectionCatalogModel.RequestID {
@@ -1858,7 +1860,10 @@ struct PlozziOSHomeSettingsView: View {
     }
 
     var body: some View {
-        HomeRowsSettingsView(libraries: aggregatedHomeLibraries, accounts: accounts, visibility: visibility)
+        HomeRowsSettingsView(
+            libraries: aggregatedHomeLibraries, accounts: accounts, visibility: visibility,
+            spoilerSettings: spoilerSettings
+        )
         .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)

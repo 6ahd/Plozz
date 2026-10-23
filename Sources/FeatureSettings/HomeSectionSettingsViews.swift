@@ -113,6 +113,21 @@ struct HomeEditorRowLabel: View {
 
 extension HomeRowChoice {
     var homeEditorTitle: Text { localizedTitle.map(Text.init) ?? Text(verbatim: title) }
+    func homeEditorProvider(in accounts: [ResolvedAccount]) -> ProviderKind? {
+        library?.providerKind ?? serverRow?.providerKind
+            ?? collectionSection.flatMap { section in
+                accounts.first(where: section.source.matches)?.account.server.provider
+            }
+    }
+
+    func homeEditorSource(in accounts: [ResolvedAccount]) -> Text {
+        if library == nil, let collectionSection,
+           let account = accounts.first(where: collectionSection.source.matches) {
+            return Text(verbatim: "\(collectionSection.source.title) · \(account.account.server.name)")
+        }
+        return homeEditorSource
+    }
+
     @ViewBuilder var homeEditorProviderMark: some View {
         if let provider = library?.providerKind ?? serverRow?.providerKind {
             ProviderBrandMark(
@@ -129,6 +144,7 @@ extension HomeRowChoice {
             return library.library.displayName + Text(verbatim: " · \(library.serverName)")
         }
         if let serverRow { return Text(verbatim: serverRow.serverName) }
+        if let collectionSection { return Text(verbatim: collectionSection.source.title) }
         return id == .liveTV ? Text("All live sources") : Text("All libraries")
     }
 }
@@ -136,12 +152,13 @@ extension HomeRowChoice {
 struct HomeSectionChoiceLabel: View {
     let choice: HomeRowChoice
     var accessory = "chevron.forward"
+    var accounts: [ResolvedAccount] = []
 
     var body: some View {
         HomeEditorRowLabel(
-            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource(in: accounts),
             accessory: accessory,
-            subtitleProvider: choice.library?.providerKind ?? choice.serverRow?.providerKind,
+            subtitleProvider: choice.homeEditorProvider(in: accounts),
             mediaShareTransport: choice.library?.transportKind
         )
     }
@@ -309,16 +326,30 @@ struct HomeAddSectionView: View {
     let visibility: HomeLibraryVisibilityModel
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
+    var spoilerSettings: SpoilerSettings = .default
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
+            HomeEditorLink {
+                CollectionSectionCreationView(
+                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts,
+                    spoilerSettings: spoilerSettings
+                )
+            } label: {
+                HomeEditorRowLabel(title: Text("Create section"), subtitle: Text("Start with a library collection"))
+            }
+            .accessibilityIdentifier("home-add-collection")
+            Text("Available sections")
+                .font(.headline)
+                .padding(.top, 12)
+                .accessibilityAddTraits(.isHeader)
             let catalog = inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
             if choices.isEmpty && !inventory.isLoading {
-                Text("No sections are available to add.").plozzForeground(.secondary)
+                Text("No other sections are available to add.").plozzForeground(.secondary)
             }
             ForEach(choices) { choice in
                 Button {
@@ -327,7 +358,7 @@ struct HomeAddSectionView: View {
                         dismiss()
                     } catch { failed = true }
                 } label: {
-                    HomeSectionChoiceLabel(choice: choice, accessory: "plus")
+                    HomeSectionChoiceLabel(choice: choice, accessory: "plus", accounts: accounts)
                 }
                 .buttonStyle(SettingsFormButtonStyle())
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")
@@ -489,7 +520,7 @@ struct HomeRowPresetPicker: View {
         }
         .frame(minHeight: 44)
         .confirmationDialog(
-            "Replace your row arrangement?",
+            "Replace your section arrangement?",
             isPresented: Binding(
                 get: { resetDefaults != nil },
                 set: { if !$0 { resetDefaults = nil } }
@@ -508,7 +539,7 @@ struct HomeRowPresetPicker: View {
             Button("Cancel", role: .cancel) { resetDefaults = nil }
         } message: {
             if resetDefaults == .matchServer { Text("Follow your servers' Home sections.") }
-            else { Text("Start with rows across all libraries.") }
+            else { Text("Start with sections across all libraries.") }
         }
     }
 

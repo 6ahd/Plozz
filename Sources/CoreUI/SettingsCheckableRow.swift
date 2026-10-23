@@ -1,5 +1,6 @@
 #if canImport(SwiftUI)
 import SwiftUI
+import CoreModels
 
 /// One focusable, checkable row for the Settings detail pane — a leading optional
 /// icon, a title, and a trailing checkmark shown when `isChecked`.
@@ -16,6 +17,7 @@ import SwiftUI
 public struct SettingsCheckableRow: View {
     let title: Text
     var subtitle: Text? = nil
+    var subtitleProvider: ProviderKind? = nil
     var titleLineLimit: Int? = 1
     var subtitleLineLimit: Int? = 2
     var icon: String? = nil
@@ -34,9 +36,10 @@ public struct SettingsCheckableRow: View {
     var size: SettingsRowSize = .standard
     let action: () -> Void
     @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
+    @ScaledMetric(relativeTo: .footnote) private var sourceMarkSize: CGFloat = 20
 
     public init(
-        title: Text, subtitle: Text? = nil, titleLineLimit: Int? = 1,
+        title: Text, subtitle: Text? = nil, subtitleProvider: ProviderKind? = nil, titleLineLimit: Int? = 1,
         subtitleLineLimit: Int? = 2, icon: String? = nil, isChecked: Bool,
         isEnabled: Bool = true, prominence: SettingsRowProminence = .primary,
         flushLeading: Bool = true, size: SettingsRowSize = .standard,
@@ -44,6 +47,7 @@ public struct SettingsCheckableRow: View {
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.subtitleProvider = subtitleProvider
         self.titleLineLimit = titleLineLimit
         self.subtitleLineLimit = subtitleLineLimit
         self.icon = icon
@@ -87,10 +91,16 @@ public struct SettingsCheckableRow: View {
                         .font(titleFont)
                         .lineLimit(titleLineLimit)
                     if let subtitle {
-                        subtitle
-                            .font(SettingsRowMetrics.descriptionFont)
-                            .settingsRowSecondary()
-                            .lineLimit(subtitleLineLimit)
+                        HStack(spacing: 6) {
+                            if let subtitleProvider {
+                                ProviderBrandMark(provider: subtitleProvider, size: sourceMarkSize, showsBackground: false)
+                                    .accessibilityHidden(true)
+                            }
+                            subtitle
+                                .font(SettingsRowMetrics.descriptionFont)
+                                .settingsRowSecondary()
+                                .lineLimit(subtitleLineLimit)
+                        }
                     }
                 }
                 Spacer(minLength: rowSpacing)
