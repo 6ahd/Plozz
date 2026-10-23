@@ -844,20 +844,11 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
 
     func testBrowserScrollGuardRestoresItsOwnerWithoutDisablingNestedRails() async throws {
         let scene = try await activeScene()
-        let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        let host = UIViewController()
-        window.rootViewController = host
-        window.makeKeyAndVisible()
-        defer {
-            window.isHidden = true
-            window.rootViewController = nil
-            previous?.makeKeyAndVisible()
-        }
         let page = UIScrollView(frame: window.bounds)
         let rail = UIScrollView(frame: CGRect(x: 0, y: 0, width: 500, height: 300))
         let guardView = SeriesBrowserRevealScrollGuard.GuardView()
-        host.view.addSubview(page)
+        window.addSubview(page)
         page.addSubview(rail)
         page.addSubview(guardView)
         guardView.isActive = true
@@ -1383,7 +1374,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        try await waitUntil { focused }
+        host.view.layoutIfNeeded()
+        let monogram = try XCTUnwrap(focusTargets(in: host.view).first { $0 is NativeTVMonogram.Monogram })
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: monogram)
+        system.updateFocusIfNeeded()
+        try await waitUntil { focused && system.focusedItem === monogram }
         try await Task.sleep(for: .milliseconds(700))
         let image = DetailTransitionSnapshot.image(of: window)
         let attachment = XCTAttachment(image: image)
@@ -1392,7 +1388,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         add(attachment)
         let painted = try redArtworkBounds(in: window)
         XCTAssertEqual(painted.width, painted.height, accuracy: 2)
-        XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+        XCTAssertTrue(system.focusedItem === monogram)
         let cgImage = try XCTUnwrap(image.cgImage)
         for corner in [
             CGPoint(x: painted.minX + 4, y: painted.minY + 4),

@@ -349,6 +349,10 @@ their native default entry and wait for its actual focus, not just its SwiftUI
 binding while a row still owns focus. Their
 window-handoff coverage also returns to Browse and waits for native focus
 animations to finish, ensuring an earlier entry request cannot steal focus back.
+The scroll-guard restoration fixture needs a window-backed view hierarchy, not
+a visible key-window controller appearance. The circular-tile pixel fixture
+explicitly requests its native monogram and verifies that exact focused item
+before capture; it measures the focused rendering, not automatic window entry.
 
 `PlayerSkipMarkerHostedTests` compares one live scrub track before and after
 adding skip boundaries, at the same screen coordinates. Separate native-glass
