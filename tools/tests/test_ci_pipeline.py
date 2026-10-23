@@ -78,7 +78,7 @@ class WorkflowTests(unittest.TestCase):
                 self.assertIn("    needs: guards\n", block)
                 self.assertEqual(block.count("needs:"), 1)
                 self.assertIn("    runs-on: xcode-27\n", block)
-                timeout = 140 if lane == "hosted-focus" else 60
+                timeout = {"app-build": 60, "package-tests": 80, "hosted-focus": 140}[lane]
                 self.assertIn(f"    timeout-minutes: {timeout}\n", block)
                 self.assertIn(f"          lane: {lane}\n", block)
                 self.assertIn("uses: ./.github/actions/ci-prepare", block)
@@ -110,9 +110,15 @@ class WorkflowTests(unittest.TestCase):
 
     def test_full_matrix_and_hosted_tests_remain_unconditional_and_bounded(self):
         self.assertIn(
-            'run: python3 tools/run-bounded.py 2400 "CI full test matrix" -- tools/run-tests.sh\n',
+            'run: python3 tools/run-bounded.py 3600 "CI full test matrix" -- tools/run-tests.sh\n',
             JOBS["package-tests"],
         )
+        package_deadline = int(re.search(
+            r'run-bounded\.py (\d+) "CI full test matrix"', JOBS["package-tests"]
+        )[1])
+        package_job_minutes = int(re.search(r"timeout-minutes: (\d+)", JOBS["package-tests"])[1])
+        self.assertGreaterEqual(package_job_minutes * 60 - package_deadline, 15 * 60,
+                                "Keep setup, timeout teardown, and diagnostic uploads inside the outer job budget.")
         self.assertIn("run: tools/run-focus-tests.sh\n", JOBS["hosted-focus"])
         self.assertIn('PLOZZ_FOCUS_TEST_TIMEOUT: "5400"', JOBS["hosted-focus"])
         self.assertEqual(

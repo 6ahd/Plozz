@@ -1331,7 +1331,7 @@ job log. CI configuration regressions run without simulator builds:
 ### CI lanes and required check
 
 CI first runs every deterministic preflight guard and host-side regression
-suite. Successful preflight unlocks **three independent `macos-15` runners**:
+suite. Successful preflight unlocks **three independent `xcode-27` runners**:
 the tvOS simulator app build, the complete package test matrix, and app-hosted
 focus integration. A failed preflight stops expensive work; a failure in one
 build/test lane does not suppress either sibling. There is no change-scoped CI
@@ -1345,14 +1345,20 @@ unchanged.
 
 Each test runner selects its own tvOS simulator matching Xcode 27's SDK; no
 simulator or mutable build directory crosses runners. A missing runtime fails
-instead of choosing an older installed runtime. The full matrix retains its
-40-minute wall-clock deadline. Hosted integration builds once with
+instead of choosing an older installed runtime. The full package matrix has a
+60-minute combined build/execution deadline inside an 80-minute job budget.
+Run `39888935447` spent about 23 minutes on setup and compilation, then passed
+41 complete test bundles before the former 40-minute limit interrupted the
+still-progressing CoreModels bundle. The longer total budget preserves the
+runner's existing no-progress watchdog and result-finalization checks, with
+outer headroom for setup, termination, and retained diagnostic uploads.
+Hosted integration builds once with
 `build-for-testing`, then runs `test-without-building`, with separate build/test
 deadlines and retained build/test logs and result bundles. It uses optimized
 Debug (`-O`) so the large-catalog main-thread budget measures optimized code
 without losing `DEBUG` test seams or relaxing its one-second threshold. Package
-logic tests retain their ordinary Debug configuration. Cold compilation must
-not consume the test execution budget: run `38059892922` spent about 19 minutes
+logic tests retain their ordinary Debug configuration. For hosted tests, cold
+compilation must not consume the test execution budget: run `38059892922` spent about 19 minutes
 building before the former combined 40-minute limit killed still-progressing
 tests. Run `39857697957` also exhausted a full 40-minute execution window while
 still progressing through the expanded hosted suite. CI now allows 40 minutes
