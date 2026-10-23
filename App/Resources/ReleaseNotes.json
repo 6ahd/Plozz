@@ -66,6 +66,10 @@
               "platforms": ["iOS"]
             },
             {
+              "text": "Playback now prefers a downloaded copy over streaming, even when another server or version is selected.",
+              "platforms": ["iOS"]
+            },
+            {
               "text": "Live TV options sit above the timeline in portrait mode; the separate Stop button has been removed.",
               "platforms": ["iOS"]
             }
@@ -127,6 +131,14 @@
             },
             {
               "text": "Downloads and server activity restarting when synced preferences change.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Downloaded titles streaming when another saved copy is incomplete or missing.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "The next episode streaming even after its download has finished.",
               "platforms": ["iOS"]
             }
           ]
