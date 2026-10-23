@@ -21,11 +21,15 @@ public struct AccountReauthenticationView<ManagedSignIn: View>: View {
     public var body: some View {
         ZStack {
             if let error = model.errorMessage {
-                #if os(iOS)
-                ScrollView { failureActions(error) }
-                #else
-                failureActions(error)
-                #endif
+                AccountRecoveryScreen(
+                    provider: model.account.server.provider, name: model.account.userName,
+                    message: error,
+                    onRetry: {
+                        model.retry()
+                        attempt += 1
+                    },
+                    onCancel: cancel
+                )
             } else {
                 if model.account.server.provider == .plex {
                     PlexReauthenticationLink(model: model, onCancel: cancel)
@@ -45,21 +49,6 @@ public struct AccountReauthenticationView<ManagedSignIn: View>: View {
     private func cancel() {
         model.cancel()
         onCancel()
-    }
-
-    private func failureActions(_ error: LocalizedStringResource) -> some View {
-        VStack(spacing: 24) {
-            Text(error).multilineTextAlignment(.center)
-            Button("Try Again") {
-                model.retry()
-                attempt += 1
-            }
-            .buttonStyle(.borderedProminent)
-            Button("Cancel", role: .cancel, action: cancel)
-                .buttonStyle(.bordered)
-        }
-        .padding(32)
-        .frame(maxWidth: .infinity)
     }
 }
 

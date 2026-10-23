@@ -35,10 +35,11 @@ public struct PlexAccountRecoveryView: View {
         if let signIn {
             PlexAccountLinkView(viewModel: signIn, onCancel: onCancelSignIn)
         } else {
-            PlexAccountRecoveryActions(
-                name: name, message: message,
+            AccountRecoveryScreen(
+                provider: .plex, name: name, message: message,
                 onSignIn: onSignIn, onRetry: onRetry, onCancel: onCancel
             )
+            .accessibilityIdentifier("plex-account-recovery")
         }
     }
 }
@@ -58,46 +59,6 @@ public struct PlexAccountLinkView: View {
         #else
         PlexLinkView(viewModel: viewModel, onCancel: onCancel)
         #endif
-    }
-}
-
-private struct PlexAccountRecoveryActions: View {
-    let name: String
-    let message: LocalizedStringResource
-    let onSignIn: () -> Void
-    let onRetry: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        Group {
-            #if os(iOS)
-            ScrollView { actions }
-            #else
-            actions
-                .onExitCommand(perform: onCancel)
-            #endif
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityIdentifier("plex-account-recovery")
-    }
-
-    private var actions: some View {
-        VStack(spacing: 24) {
-            Text(verbatim: name).font(.headline)
-            Text(message)
-                .font(.title2)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 800)
-            Button("Sign In Again", action: onSignIn)
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("plex-recovery-sign-in")
-            Button("Try Again", action: onRetry)
-                .buttonStyle(.bordered)
-            Button("Cancel", role: .cancel, action: onCancel)
-                .buttonStyle(.bordered)
-        }
-        .padding(32)
-        .frame(maxWidth: .infinity)
     }
 }
 

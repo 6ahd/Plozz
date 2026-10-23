@@ -153,8 +153,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
   Both keep icons centered and text leading-aligned in either layout direction.
 
-- **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
-  error layout, bounded symbol inline with the heading, readable summary, adaptive
+- **Recovery screens** — `RecoveryScreen` supplies the bounded, vertically
+  centered, scrolling card and adaptive horizontal/vertical action layout used by
+  playback failures and account recovery. Hosts supply the heading and native
+  actions, and retain ownership of theme, focus, retry and dismissal.
+- **Playback failures** — `PlaybackFailureView` uses that shared TV/mobile
+  layout with a bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
   its dark palette without changing browsing themes. Its opaque themed surface
   stays legible over video without depending on glass or motion.

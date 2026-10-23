@@ -53,6 +53,13 @@ session persistence.
   IPTV authentication failures open its existing connection editor. Network
   failures retain Retry and do not discard credentials or send file shares
   through a media-server sign-in flow.
+- **Recovery uses the shared screen treatment.** Plex gate failures and managed
+  account sign-in errors use `RecoveryScreen`, also used by playback failures,
+  with `ProviderBrandMark` and native `plozzActionButton` controls. The provider
+  heading, affected name and error remain distinct. Account recovery inherits
+  the browsing theme rather than playback's dark-only policy. Actions adapt to
+  width, all content scrolls at large text sizes, and TV entry focuses Sign In
+  Again (or Retry when a sign-in attempt failed).
 - **Plex account recovery stays inside the profile gate.** A rejected Home-user
   list request means the saved account needs sign-in, not that the server is
   offline or the user's Home PIN is wrong. Failed activations offer Sign In Again
