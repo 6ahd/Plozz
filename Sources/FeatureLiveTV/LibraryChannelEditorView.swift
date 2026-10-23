@@ -35,7 +35,7 @@ private struct LibraryChannelEditorContent: View {
     @Bindable var model: LibraryChannelEditorModel
     let prepareLibraries: (@MainActor () async throws -> Void)?
     @State private var action: Task<Void, Never>?
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     var body: some View {
         LiveTVSettingsPage(title: model.editingChannelID == nil ? "Create custom channel" : "Edit custom channel") {
@@ -414,7 +414,7 @@ private struct LibraryChannelCustomSection: View {
 
     var body: some View {
         SettingsSectionGroup("Custom channels") {
-            NavigationLink {
+            SettingsPageLink {
                 LibraryChannelEditorView(
                     service: service, prepareLibraries: prepareLibraries, canManage: canManage)
             } label: {
@@ -423,7 +423,7 @@ private struct LibraryChannelCustomSection: View {
             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
             .accessibilityIdentifier("live-tv-create-custom-channel")
             ForEach(channels) { channel in
-                NavigationLink {
+                SettingsPageLink {
                     LibraryChannelEditorView(
                         service: service, editingChannelID: channel.id,
                         prepareLibraries: prepareLibraries, canManage: canManage)

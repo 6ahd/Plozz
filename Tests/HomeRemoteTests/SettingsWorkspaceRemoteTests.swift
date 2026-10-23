@@ -1308,6 +1308,87 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testPlozzChannelsOpensFromSourcesAndReturnsFromCustomEditor() throws {
+        #if targetEnvironment(simulator)
+        let app = launchSourcesNavigationFixture()
+        defer { app.terminate() }
+        let manage = app.buttons["live-tv-manage-library-channels"]
+        for _ in 0..<2 {
+            try focus(manage, in: app)
+            XCUIRemote.shared.press(.select)
+            let automatic = app.switches["live-tv-automatic-enabled"]
+            XCTAssertTrue(automatic.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(manage.exists && manage.isEnabled,
+                           "The retained Sources page must not accept input behind its child.")
+            let previous = automatic.value as? String
+            try focus(automatic, in: app)
+            XCUIRemote.shared.press(.select)
+            let updated = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in automatic.value as? String != previous }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 10), .completed,
+                           "The management page must reflect the live enabled state.")
+            XCUIRemote.shared.press(.select)
+            let restored = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in automatic.value as? String == previous }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 10), .completed)
+            capture("sources-plozz-channels", in: app)
+            let create = app.buttons["live-tv-create-custom-channel"]
+            try focus(create, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.buttons["library-channel-preview-save"].waitForExistence(timeout: 5),
+                          app.debugDescription)
+            XCTAssertFalse(automatic.exists && automatic.isEnabled)
+            try focus(pageBack("live-tv-settings-back", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(create.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(automatic.exists, "Back from the editor must return one level to Plozz channels.")
+            XCUIRemote.shared.press(.menu)
+            waitForEnabled(manage)
+        }
+        #else
+        throw XCTSkip("Never seeds sources on a physical device.")
+        #endif
+    }
+
+    func testChannelAvailabilityOpensDirectlyFromSources() throws {
+        #if targetEnvironment(simulator)
+        let app = launchSourcesNavigationFixture()
+        defer { app.terminate() }
+        let check = app.buttons["Check channel availability"]
+        for _ in 0..<2 {
+            try focus(check, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.staticTexts["Check channels"].waitForExistence(timeout: 5),
+                          app.debugDescription)
+            XCTAssertTrue(app.buttons.matching(identifier: "live-tv-scan-source").firstMatch
+                .waitForExistence(timeout: 10), app.debugDescription)
+            let manage = app.buttons["live-tv-manage-library-channels"]
+            XCTAssertFalse(manage.exists && manage.isEnabled)
+            XCTAssertFalse(app.buttons["live-tv-cancel-scan"].exists, "Opening the page must not start a scan.")
+            capture("sources-channel-availability", in: app)
+            try focus(pageBack("live-tv-settings-back", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            waitForEnabled(check)
+        }
+        #else
+        throw XCTSkip("Never seeds sources on a physical device.")
+        #endif
+    }
+
+    private func launchSourcesNavigationFixture() -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = [
+            "--sources-navigation-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].waitForExistence(timeout: 10),
+                      app.debugDescription)
+        return app
+    }
+
     func testCompactIPTVSourcesAndChildBackNavigation() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar", sources: true)

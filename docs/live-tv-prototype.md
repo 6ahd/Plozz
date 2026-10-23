@@ -552,6 +552,12 @@ compact icon/name/status rows instead of repeating every control and hostname.
 Playlist icons optionally load the source origin's favicon, with a generic
 fallback; no playlist credentials or third-party favicon service are used.
 Each source opens its controls and diagnostics on a child page with Back.
+Plozz channels and Check channel availability are disclosure actions, not
+enabled-state indicators. They open sibling child pages through the Settings
+workspace; the Plozz channels page contains the actual enable switch. Custom
+channel creation/editing and save dismissal use the same page navigation.
+The guide's separate Sources presentation also opens channel checks directly,
+without requiring Plozz channels to be available or open first.
 Guide lookback/lookahead use native value menus on TV so all day choices fit
 the fixed detail column without overflowing horizontal pills.
 Child pages inherit the workspace background rather than drawing a second

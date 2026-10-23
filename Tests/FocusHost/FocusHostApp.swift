@@ -30,6 +30,8 @@ struct FocusHostApp: App {
                 SyncErasureRemoteFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--preview-introduction-fixture") {
                 LiveTVPreviewIntroductionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--sources-navigation-fixture") {
+                LiveTVSourcesNavigationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--view-customization-fixture") {
                 ViewCustomizationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-setup-fixture") {

@@ -1227,25 +1227,25 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                         LibraryChannelManagementView(
                             service: libraryService, history: libraryHistory,
                             prepareLibraries: prepareLibraryChannels, automaticChannels: automaticChannels)
-                        .navigationDestination(isPresented: $showsScanSources) {
-                            LiveTVSourceAccessGate(model: sources) {
-                                if scanBinding.issue != nil {
-                                    LiveTVSettingsPage(title: "Check channels") {
-                                        SettingsSectionGroup {
-                                            Text("Channel checks are unavailable. Your channel preferences are unchanged.")
-                                            Button("Retry", action: scanBinding.retry)
-                                                .buttonStyle(PrototypeButtonStyle())
-                                        }
-                                    }
-                                } else {
-                                    LiveTVScanSourcesView(
-                                        coordinator: scanBinding.coordinator,
-                                        sourceNames: Dictionary(uniqueKeysWithValues: imports.configuration.playlists.map {
-                                            ($0.id, $0.name)
-                                        })
-                                    )
+                    }
+                }
+                .navigationDestination(isPresented: $showsScanSources) {
+                    LiveTVSourceAccessGate(model: sources) {
+                        if scanBinding.issue != nil {
+                            LiveTVSettingsPage(title: "Check channels") {
+                                SettingsSectionGroup {
+                                    Text("Channel checks are unavailable. Your channel preferences are unchanged.")
+                                    Button("Retry", action: scanBinding.retry)
+                                        .buttonStyle(PrototypeButtonStyle())
                                 }
                             }
+                        } else {
+                            LiveTVScanSourcesView(
+                                coordinator: scanBinding.coordinator,
+                                sourceNames: Dictionary(uniqueKeysWithValues: imports.configuration.playlists.map {
+                                    ($0.id, $0.name)
+                                })
+                            )
                         }
                     }
                 }
