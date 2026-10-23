@@ -338,9 +338,13 @@ struct HomeAddSectionView: View {
                     spoilerSettings: spoilerSettings
                 )
             } label: {
-                HomeEditorRowLabel(title: Text("Collection"), subtitle: Text("Choose the titles for this section"))
+                HomeEditorRowLabel(title: Text("Create section"), subtitle: Text("Start with a library collection"))
             }
             .accessibilityIdentifier("home-add-collection")
+            Text("Available sections")
+                .font(.headline)
+                .padding(.top, 12)
+                .accessibilityAddTraits(.isHeader)
             let catalog = inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
@@ -516,7 +520,7 @@ struct HomeRowPresetPicker: View {
         }
         .frame(minHeight: 44)
         .confirmationDialog(
-            "Replace your row arrangement?",
+            "Replace your section arrangement?",
             isPresented: Binding(
                 get: { resetDefaults != nil },
                 set: { if !$0 { resetDefaults = nil } }
@@ -535,7 +539,7 @@ struct HomeRowPresetPicker: View {
             Button("Cancel", role: .cancel) { resetDefaults = nil }
         } message: {
             if resetDefaults == .matchServer { Text("Follow your servers' Home sections.") }
-            else { Text("Start with rows across all libraries.") }
+            else { Text("Start with sections across all libraries.") }
         }
     }
 

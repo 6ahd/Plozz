@@ -96,6 +96,8 @@ public struct HomeRowsSettingsView: View {
             .accessibilityIdentifier("home-section-hero")
             .disabled(isReordering)
 
+            addSectionButton(identifier: "home-section-add")
+
             let catalog = reorderSession?.catalog ?? currentCatalog
             let arrangement = reorderSession?.visibility ?? visibility.visibility
             let sections = catalog.sections(in: arrangement)
@@ -186,14 +188,6 @@ public struct HomeRowsSettingsView: View {
         #if os(iOS)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                SettingsPageLink {
-                    addSectionDestination
-                } label: {
-                    Label("Add section", systemImage: "plus")
-                }
-                .labelStyle(.iconOnly)
-                .disabled(isReordering)
-                .accessibilityIdentifier("home-section-add")
                 reorderButton
             }
         }
@@ -211,29 +205,13 @@ public struct HomeRowsSettingsView: View {
     }
 
     private var editorControls: some View {
-        #if os(tvOS)
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 16) { controls }
-                .fixedSize(horizontal: true, vertical: false)
-            VStack(alignment: .leading, spacing: 8) { controls }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .focusSection()
-        #else
-        controls
+        HomeRowPresetPicker(visibility: visibility)
+            .id(ObjectIdentifier(visibility))
+            .disabled(isReordering)
             .frame(maxWidth: .infinity, alignment: .leading)
-        #endif
-    }
-
-    private var controls: some View {
-        Group {
-            HomeRowPresetPicker(visibility: visibility)
-                .id(ObjectIdentifier(visibility))
-                .disabled(isReordering)
             #if os(tvOS)
-            addSectionButton(identifier: "home-section-add")
+            .focusSection()
             #endif
-        }
     }
 
     private var reorderButton: some View {
@@ -283,12 +261,11 @@ public struct HomeRowsSettingsView: View {
     }
 
     private func addSectionButton(identifier: String) -> some View {
-        SettingsPageLink {
+        HomeEditorLink {
             addSectionDestination
         } label: {
-            Text("Add section").fixedSize(horizontal: false, vertical: true)
+            HomeEditorRowLabel(title: Text("Add section"), subtitle: nil, accessory: "plus")
         }
-        .plozzActionButton(role: .secondary)
         .disabled(isReordering)
         .accessibilityIdentifier(identifier)
     }

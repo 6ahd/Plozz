@@ -963,7 +963,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(combinedOption.waitForExistence(timeout: 5), app.debugDescription)
         try focus(combinedOption, in: app)
         XCUIRemote.shared.press(.select)
-        let confirmation = app.sheets["Replace your row arrangement?"]
+        let confirmation = app.sheets["Replace your section arrangement?"]
         XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
         try focus(confirmation.buttons.matching(identifier: "Cancel").firstMatch, in: app)
         XCUIRemote.shared.press(.select)
@@ -979,19 +979,51 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(confirmation.waitForNonExistence(timeout: 5))
         XCTAssertTrue(app.buttons["home-section-home-recentlyAdded"].waitForExistence(timeout: 5))
+        try assertAddSectionActions(in: app)
+        #else
+        throw XCTSkip("Simulator-only Home editor navigation.")
+        #endif
+    }
+
+    func testHomeSectionAddActionsFillTheListAndReturnFocus() throws {
+        #if targetEnvironment(simulator)
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--home-section-editor-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["home-section-hero"].waitForExistence(timeout: 5))
+        try assertAddSectionActions(in: app)
+        #else
+        throw XCTSkip("Simulator-only Home editor navigation.")
+        #endif
+    }
+
+    private func assertAddSectionActions(in app: XCUIApplication) throws {
+        let hero = app.buttons["home-section-hero"]
         for identifier in ["home-section-add", "home-section-add-bottom"] {
             let add = app.buttons[identifier]
             try focus(add, in: app)
+            XCTAssertEqual(add.frame.width, hero.frame.width, accuracy: 1,
+                           "Both Add section actions must fill the same content width as section rows.")
+            XCTAssertEqual(add.frame.minX, hero.frame.minX, accuracy: 1)
+            capture(identifier, in: app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts["Add section"].waitForExistence(timeout: 5), app.debugDescription)
-            XCTAssertFalse(reorder.exists)
+            XCTAssertTrue(app.buttons["home-add-collection"].label.contains("Create section"))
+            XCTAssertTrue(app.staticTexts["Available sections"].exists)
+            XCTAssertFalse(app.buttons["home-section-reorder"].exists)
+            if identifier == "home-section-add" {
+                try focus(app.buttons["home-add-collection"], in: app)
+                XCUIRemote.shared.press(.select)
+                XCTAssertTrue(app.staticTexts["Choose collection"].waitForExistence(timeout: 5))
+                XCUIRemote.shared.press(.menu)
+                XCTAssertTrue(app.staticTexts["Available sections"].waitForExistence(timeout: 5))
+            }
             XCUIRemote.shared.press(.menu)
             waitForEnabled(add)
             XCTAssertTrue(hasFocus(add))
         }
-        #else
-        throw XCTSkip("Simulator-only Home editor navigation.")
-        #endif
     }
 
     func testHomeSectionWarningDetailsAndRetryUseNativeControls() throws {

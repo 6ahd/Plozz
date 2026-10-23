@@ -520,6 +520,31 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
     }
 
+    func testAddSectionSeparatesCreationFromAvailableSections() async throws {
+        let suite = "HomeAddSectionLanguage.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        visibility.setGlobalRowEnabled(false, for: .recentlyAdded)
+        try await withWindow {
+            HomeAddSectionView(
+                inventory: HomeSectionCatalogModel(), visibility: visibility, libraries: [], accounts: []
+            )
+            #if os(tvOS)
+            .frame(width: SettingsFormMetrics.pageWidth)
+            #endif
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Create or add a Home section")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Start with a library collection"), text)
+            XCTAssertGreaterThan(try self.y("Create section", in: lines), try self.y("Available sections", in: lines))
+            XCTAssertGreaterThan(try self.y("Available sections", in: lines), try self.y("Recently Added", in: lines))
+            XCTAssertFalse(text.contains("Choose the titles"), text)
+            XCTAssertTrue(visibility.visibility.collectionSections.isEmpty)
+        }
+    }
+
     func testReorderSnapshotSavesKnownRowsBeforeOrAfterDiscoveryWithoutLosingPreferences() async throws {
         for completesBeforeMove in [false, true] {
             let suite = "HomeReorderSnapshot.\(UUID())"
@@ -1019,6 +1044,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertTrue(text.contains("Reorder"), text)
             XCTAssertTrue(text.contains("Hero"), text)
             XCTAssertTrue(text.contains("Continue Watching"), text)
+            XCTAssertTrue(text.contains("Add section"), text)
             XCTAssertFalse(text.contains("Artwork"), text)
             XCTAssertFalse(text.contains("Merge Next Up rows"), text)
             XCTAssertFalse(text.contains("No video libraries are available"), text)

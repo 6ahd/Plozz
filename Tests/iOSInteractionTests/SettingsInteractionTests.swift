@@ -1352,15 +1352,15 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertLessThan(preset.frame.maxY, hero.frame.minY)
         XCTAssertGreaterThanOrEqual(preset.frame.minX, app.frame.minX + 20)
         XCTAssertLessThanOrEqual(preset.frame.maxX, app.frame.maxX - 20)
-        let add = app.navigationBars["Customize Home"].buttons["home-section-add"]
+        let add = app.buttons["home-section-add"]
         let reorder = app.navigationBars["Customize Home"].buttons["home-section-reorder"]
         XCTAssertTrue(add.isHittable, app.debugDescription)
         XCTAssertEqual(add.label, "Add section")
-        XCTAssertLessThanOrEqual(add.frame.width, 64, "The toolbar action must be an icon, not a labeled pill.")
-        XCTAssertLessThanOrEqual(add.frame.maxX, reorder.frame.minX + 1)
-        XCTAssertLessThanOrEqual(app.navigationBars["Customize Home"].staticTexts["Customize Home"].frame.maxX, add.frame.minX)
-        XCTAssertEqual(add.frame.midY, reorder.frame.midY, accuracy: 1)
-        XCTAssertLessThan(add.frame.maxY, preset.frame.minY)
+        XCTAssertEqual(add.frame.minX, hero.frame.minX, accuracy: 2)
+        XCTAssertEqual(add.frame.width, hero.frame.width, accuracy: 2)
+        XCTAssertGreaterThan(add.frame.minY, hero.frame.maxY)
+        XCTAssertFalse(app.navigationBars["Customize Home"].buttons["home-section-add"].exists,
+                       "The full-width action replaces the small toolbar icon.")
         XCTAssertTrue(reorder.isHittable, app.debugDescription)
         XCTAssertGreaterThan(reorder.frame.minX, app.frame.midX)
         XCTAssertTrue(app.buttons["home-section-add-bottom"].exists)
@@ -1398,11 +1398,11 @@ final class SettingsInteractionTests: XCTestCase {
         let same = app.buttons["Match server"]
         XCTAssertTrue(same.waitForExistence(timeout: 3), app.debugDescription)
         same.tap()
-        XCTAssertFalse(app.staticTexts["Replace your row arrangement?"].exists)
+        XCTAssertFalse(app.staticTexts["Replace your section arrangement?"].exists)
 
         preset.tap()
         app.buttons["Combined rows"].tap()
-        XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Replace your section arrangement?"].waitForExistence(timeout: 3))
         capture("home-row-preset-confirmation")
         if app.buttons["Cancel"].exists {
             app.buttons["Cancel"].tap()
@@ -1411,7 +1411,7 @@ final class SettingsInteractionTests: XCTestCase {
             XCTAssertTrue(dismissRegion.exists, app.debugDescription)
             dismissRegion.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.95)).tap()
         }
-        XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForNonExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Replace your section arrangement?"].waitForNonExistence(timeout: 3))
         XCTAssertTrue(preset.label.contains("Match server") || preset.value as? String == "Match server")
 
         preset.tap()
@@ -1419,7 +1419,7 @@ final class SettingsInteractionTests: XCTestCase {
         let confirm = app.buttons["Combined rows"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 3), app.debugDescription)
         confirm.tap()
-        XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForNonExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Replace your section arrangement?"].waitForNonExistence(timeout: 3))
         XCTAssertTrue(app.navigationBars["Customize Home"].exists)
         XCTAssertTrue(app.buttons["home-section-home-recentlyAdded"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
@@ -1487,7 +1487,11 @@ final class SettingsInteractionTests: XCTestCase {
             XCTAssertFalse(watching.exists)
             let add = app.buttons[identifier]
             reveal(add)
+            XCTAssertEqual(add.frame.width, app.frame.width - 48, accuracy: 2,
+                           "Both Add section actions must fill the page's content width.")
             add.tap()
+            XCTAssertTrue(app.buttons["home-add-collection"].label.contains("Create section"))
+            XCTAssertTrue(app.staticTexts["Available sections"].exists)
             let option = app.buttons["home-add-home-continueWatching"]
             XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
             option.tap()

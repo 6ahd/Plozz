@@ -83,9 +83,9 @@ struct CollectionSectionSettingsView: View {
     }
 
     var body: some View {
-        HomeEditorPage(title: isNew ? Text("New section") : Text("Edit section"), showsHeader: true) {
+        HomeEditorPage(title: isNew ? Text("Create section") : Text("Edit section"), showsHeader: true) {
             VStack(alignment: .leading, spacing: 16) {
-                Picker("Card style", selection: $draft.cardStyle) {
+                Picker("Layout", selection: $draft.cardStyle) {
                     ForEach(CollectionSection.CardStyle.allCases, id: \.self) { style in
                         Text(style.title).tag(style)
                     }
@@ -101,7 +101,7 @@ struct CollectionSectionSettingsView: View {
             Button { choosingSource = true } label: {
                 let choice = HomeRowChoice(collectionSection: draft)
                 HomeEditorRowLabel(
-                    title: Text("Collection"), subtitle: choice.homeEditorSource(in: accounts),
+                    title: Text("Content"), subtitle: choice.homeEditorSource(in: accounts),
                     subtitleProvider: choice.homeEditorProvider(in: accounts)
                 )
             }
