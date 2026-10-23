@@ -261,13 +261,18 @@ public struct HomeRowsSettingsView: View {
     }
 
     private func addSectionButton(identifier: String) -> some View {
-        HomeEditorLink {
+        SettingsPageLink {
             addSectionDestination
         } label: {
-            HomeEditorRowLabel(title: Text("Add section"), subtitle: nil, accessory: "plus")
+            Label("Add section", systemImage: "plus")
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
+        .plozzActionButton(role: .secondary)
+        .buttonBorderShape(.capsule)
         .disabled(isReordering)
         .accessibilityIdentifier(identifier)
+        .padding(.vertical, PlozzTheme.Spacing.medium)
     }
 
     private var addSectionDestination: some View {

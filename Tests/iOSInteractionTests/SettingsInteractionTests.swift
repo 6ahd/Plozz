@@ -1358,7 +1358,8 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertEqual(add.label, "Add section")
         XCTAssertEqual(add.frame.minX, hero.frame.minX, accuracy: 2)
         XCTAssertEqual(add.frame.width, hero.frame.width, accuracy: 2)
-        XCTAssertGreaterThan(add.frame.minY, hero.frame.maxY)
+        XCTAssertGreaterThanOrEqual(add.frame.minY - hero.frame.maxY, 24)
+        XCTAssertGreaterThanOrEqual(app.buttons["home-section-home-continueWatching"].frame.minY - add.frame.maxY, 24)
         XCTAssertFalse(app.navigationBars["Customize Home"].buttons["home-section-add"].exists,
                        "The full-width action replaces the small toolbar icon.")
         XCTAssertTrue(reorder.isHittable, app.debugDescription)

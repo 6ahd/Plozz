@@ -1007,6 +1007,12 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertEqual(add.frame.width, hero.frame.width, accuracy: 1,
                            "Both Add section actions must fill the same content width as section rows.")
             XCTAssertEqual(add.frame.minX, hero.frame.minX, accuracy: 1)
+            if identifier == "home-section-add" {
+                XCTAssertGreaterThanOrEqual(add.frame.minY - hero.frame.maxY, 20)
+                XCTAssertGreaterThanOrEqual(
+                    app.buttons["home-section-home-continueWatching"].frame.minY - add.frame.maxY, 20
+                )
+            }
             capture(identifier, in: app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts["Add section"].waitForExistence(timeout: 5), app.debugDescription)

@@ -156,9 +156,11 @@ watch history and planning-list behavior are documented in
   with a trailing native menu capsule and a divider, not another section card.
   TV gives this control row additional vertical separation from the header and sections.
   It scrolls with the content and stacks at large text sizes when needed.
-  Full-width, labeled Add section navigation rows bracket the editable sections
+  Full-width Add section actions bracket the editable sections
   on both platforms, after the page-level Preset and Home layout controls and
-  again below the list. Mobile keeps Reorder/Done in the native toolbar rather
+  again below the list. A centered plus-and-label, native capsule button style,
+  and extra vertical spacing distinguish these actions from the editable rows.
+  Mobile keeps Reorder/Done in the native toolbar rather
   than duplicating Add section as a small icon. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Its editable row carries a subtle pin rather than a
