@@ -67,6 +67,14 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Live channel recovery
 
+On tvOS, temporary scene inactivity from Control Center or Siri does not issue
+a player pause, cancel a live seek, or reload the stream. Playback and explicit
+pause intent survive the overlay; genuine system audio interruptions remain
+engine/OS-owned. Actual background entry (Home, sleep, or switching apps) still
+checkpoints and suspends VOD and tears down live playback. Foreground recovery
+keeps its existing play/pause policy. iOS/iPadOS inactivity, PiP, AirPlay, and
+background-audio behavior are unchanged.
+
 Live source-reset recovery retains its three-attempt cap and 20-second minimum
 spacing. `LiveChannelRetuneBudget` replenishes attempts only after five minutes
 of observed playing state, a presented frame and advancing playback position.

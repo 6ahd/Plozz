@@ -2114,6 +2114,10 @@ final class LiveChannelPlayerModel {
             idleSleepGuard.allowSleep()
             return
         }
+        #if os(tvOS)
+        // Control Center/Siri must not pause, cancel a seek, or retire a live stream.
+        if scenePhase == .inactive { return }
+        #endif
         switch scenePhase {
         case .active:
             guard isSuspended, !stopped else { return }
