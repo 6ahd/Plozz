@@ -1,8 +1,9 @@
 import CoreImage
 import CoreModels
-import CoreUI
+@testable import CoreUI
 import FeatureHomeCore
 import HeroUI
+import MetadataKit
 #if os(tvOS)
 @testable import FeatureHome
 #elseif os(iOS)
@@ -167,20 +168,6 @@ extension HomeRowArrangementHostedTests {
         try await Task.sleep(for: .milliseconds(400))
     }
 
-    private func rgba(_ bitmap: CGImage) throws -> [UInt8] {
-        var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
-        try pixels.withUnsafeMutableBytes { buffer in
-            let context = try XCTUnwrap(
-                CGContext(
-                    data: buffer.baseAddress, width: bitmap.width, height: bitmap.height,
-                    bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
-                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-                ))
-            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
-        }
-        return pixels
-    }
-
 }
 #endif
 
@@ -192,6 +179,94 @@ final class HomeRowsFocusHost: UIHostingController<AnyView> {
 }
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testFeaturedLogosUseOnDarkTreatmentInEveryPageTheme() async throws {
+        let cache = try XCTUnwrap(ArtworkSession.shared.configuration.urlCache)
+        let artworkURL = try XCTUnwrap(URL(string: "https://featured-contrast.invalid/\(UUID())/artwork.png"))
+        let artwork = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 338)).image { context in
+            UIColor(white: 0.15, alpha: 1).setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 600, height: 338))
+        }
+        func seed(_ image: UIImage, at url: URL) throws {
+            let response = try XCTUnwrap(HTTPURLResponse(
+                url: url, statusCode: 200, httpVersion: nil,
+                headerFields: ["Content-Type": "image/png", "Cache-Control": "max-age=86400"]
+            ))
+            cache.storeCachedResponse(
+                CachedURLResponse(response: response, data: try XCTUnwrap(image.pngData())),
+                for: URLRequest(url: url)
+            )
+        }
+        try seed(artwork, at: artworkURL)
+        defer { cache.removeCachedResponse(for: URLRequest(url: artworkURL)) }
+        let loadedArtwork = await ArtworkImageCache.shared.image(for: .remote(artworkURL), variant: .posterCard)
+        XCTAssertNotNil(loadedArtwork)
+        for (name, color, colored) in [
+            ("black", UIColor.black, false), ("white", UIColor.white, false),
+            ("bronze", UIColor(red: 0.25, green: 0.12, blue: 0.04, alpha: 1), true)
+        ] {
+            let url = try XCTUnwrap(URL(string: "https://featured-contrast.invalid/\(UUID())/logo.png"))
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 70)).image { _ in
+                ("LOGO" as NSString).draw(at: CGPoint(x: 8, y: 8), withAttributes: [
+                    .font: UIFont.boldSystemFont(ofSize: 54), .foregroundColor: color
+                ])
+            }
+            try seed(image, at: url)
+            defer { cache.removeCachedResponse(for: URLRequest(url: url)) }
+            let item = MediaItem(
+                id: UUID().uuidString, title: "Unresolved logo", kind: .movie,
+                backdropURL: artworkURL, logoURL: url, allowsTitleBasedMetadataMatching: false
+            )
+            let policy = ArtworkPresentationPolicy().forPlacement(.logo)
+            let key = HeroLogoMemo.key(
+                for: [.remote(url)], fallback: HeroLogoFallback(for: item) { nil },
+                prefersOnlineArtwork: policy.prefersOnlineArtwork, providerPolicyIdentity: policy.identity
+            )
+            for scheme in [ColorScheme.light, .dark] {
+                var frame = CGRect.zero
+                try await withWindow(colorScheme: scheme) {
+                    FeaturedCardArtwork(item: item, size: CGSize(width: 300, height: 340))
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+                } inspect: { window in
+                    let resolved = XCTNSPredicateExpectation(
+                        predicate: NSPredicate { _, _ in HeroLogoMemo.value(for: key) != nil }, object: nil
+                    )
+                    await self.fulfillment(of: [resolved], timeout: 5)
+                    let shot = try await self.snapshot(window, name: "Featured \(name) logo \(scheme)")
+                    let bitmap = try XCTUnwrap(shot.cgImage)
+                    let pixels = try self.rgba(bitmap)
+                    var readableInk = 0
+                    for y in Int(frame.midY)..<Int(frame.maxY) {
+                        for x in Int(frame.minX)..<Int(frame.maxX) {
+                            let offset = (y * bitmap.width + x) * 4
+                            let red = Int(pixels[offset]), green = Int(pixels[offset + 1]), blue = Int(pixels[offset + 2])
+                            if colored {
+                                if red > 100, red > green * 3 / 2, blue < 80 { readableInk += 1 }
+                            } else if min(red, green, blue) > 235 {
+                                readableInk += 1
+                            }
+                        }
+                    }
+                    XCTAssertGreaterThan(readableInk, 300,
+                                         "\(name) must stay readable over the dark card in \(scheme), without bleaching coloured ink.")
+                }
+            }
+        }
+    }
+
+    private func rgba(_ bitmap: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: bitmap.width, height: bitmap.height,
+                bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+        }
+        return pixels
+    }
+
     func testCollectionChooserShowsBrandedLibrarySourceLines() async throws {
         let accounts = [ProviderKind.plex, .jellyfin].map { kind in
             let provider = HomeSettingsLibraryProvider(

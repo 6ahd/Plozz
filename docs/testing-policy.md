@@ -576,6 +576,9 @@ neighbor's tap. Collection-section coverage selects a collection, changes its so
 and layout, saves it, and reopens it. Its fixture passes card settings through the
 production Home settings page, not above the navigation stack, so missing nested
 destination dependencies still crash the test host.
+Featured-card touch coverage includes the logo, metadata, bottom padding and
+vertical scrolling with the native context menu attached. Shared hosted pixel
+coverage checks black, white and dark coloured logos in both page themes.
 Keep the shared lease, private package workspace, serial
 execution, and retained `xcresult` used by the presentation suite; select
 `-scheme PlozziOSInteractionTests -only-testing:PlozziOSInteractionTests/SettingsInteractionTests`

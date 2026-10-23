@@ -4,6 +4,16 @@ import MetadataKit
 import SwiftUI
 
 public enum FeaturedCardLayout {
+    static let scrimStops: [(location: CGFloat, opacity: Double)] = [(0.35, 0), (0.65, 0.42), (1, 0.88)]
+
+    static func scrimOpacity(at position: CGFloat) -> Double {
+        for (start, end) in zip(scrimStops, scrimStops.dropFirst()) where position <= end.location {
+            let progress = min(1, max(0, (position - start.location) / (end.location - start.location)))
+            return start.opacity + Double(progress) * (end.opacity - start.opacity)
+        }
+        return scrimStops.last!.opacity
+    }
+
     public static func size(viewportWidth: CGFloat, television: Bool) -> CGSize {
         let width = television
             ? min(560, max(280, (viewportWidth - 96) / 3.15))
@@ -22,6 +32,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
     private let spoilerSettings: SpoilerSettings
     private let usesNativeClipping: Bool
     private let video: Video
+    @State private var resolvedArtwork: ArtworkReference?
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.plozzNativeFocusSurface) private var nativeFocusSurface
     #if os(tvOS)
@@ -98,7 +109,9 @@ public struct FeaturedCardArtwork<Video: View>: View {
                     await ArtworkRouter.shared.portraitHeroArtworkURL(for: item)
                 }
             },
-            pinIdentity: "\(item.stablePresentationID)|featured"
+            onResolveReference: { resolvedArtwork = $0 },
+            pinIdentity: "\(item.stablePresentationID)|featured",
+            content: ArtworkFillImage.init
         ) {
             placeholder
         }
@@ -143,20 +156,11 @@ public struct FeaturedCardArtwork<Video: View>: View {
             video
                 .frame(width: size.width, height: size.height)
                 .accessibilityHidden(true)
+                .allowsHitTesting(false)
             scrim(outset: scrimOutset)
+                .allowsHitTesting(false)
             VStack(alignment: .leading, spacing: 12) {
-                HeroLogoArtwork(
-                    references: item.artworkReferences(for: .logo),
-                    asyncFallbackURL: HeroLogoFallback(for: item) { [item] in
-                        await ArtworkSession.resolveArtwork(background: false) {
-                            await ArtworkRouter.shared.artworkURL(.logo, for: item)
-                        }
-                    },
-                    maxWidth: size.width * 0.72, maxHeight: size.height * 0.19,
-                    constrainsToBounds: true
-                ) {
-                    title.font(.title2.bold()).lineLimit(3).foregroundStyle(.white)
-                }
+                FeaturedCardLogo(item: item, title: title, size: size, artwork: resolvedArtwork)
                 if !metadata.isEmpty {
                     Text(verbatim: metadata)
                         .font(.subheadline.weight(.medium))
@@ -165,24 +169,88 @@ public struct FeaturedCardArtwork<Video: View>: View {
                 }
             }
             .padding(size.width * 0.065)
+            .allowsHitTesting(false)
         }
         .frame(width: size.width, height: size.height)
+        .coordinateSpace(name: "featured-card")
         .background(.black)
     }
 
     private func scrim(outset: CGFloat) -> some View {
         let height = size.height + 2 * outset
-        let stops: [Gradient.Stop] = [
-            .init(color: .clear, location: 0.35),
-            .init(color: .black.opacity(0.42), location: 0.65),
-            .init(color: .black.opacity(0.88), location: 1)
-        ]
         // Extend the edge colors without moving the fade inside the artwork.
-        return LinearGradient(stops: stops.map {
-            .init(color: $0.color, location: ($0.location * size.height + outset) / height)
+        return LinearGradient(stops: FeaturedCardLayout.scrimStops.map {
+            .init(color: .black.opacity($0.opacity), location: ($0.location * size.height + outset) / height)
         }, startPoint: .top, endPoint: .bottom)
             .frame(width: size.width + 2 * outset, height: height)
             .frame(width: size.width, height: size.height)
+    }
+}
+
+private struct FeaturedCardLogo: View {
+    let item: MediaItem
+    let title: Text
+    let size: CGSize
+    let artwork: ArtworkReference?
+    @State private var logoTone: ResolvedLogoTone?
+    @State private var artworkTone: HeroBackgroundSample?
+    @State private var frame = CGRect.zero
+
+    private struct SampleRequest: Equatable {
+        let artwork: ArtworkReference?
+        let frame: CGRect
+        let size: CGSize
+    }
+
+    private var needsHelp: Double? {
+        guard let logoTone, let artworkTone else { return nil }
+        return 1 - ContinueWatchingCardShape.separation(logo: logoTone, background: artworkTone)
+    }
+
+    var body: some View {
+        HeroLogoArtwork(
+            references: item.artworkReferences(for: .logo),
+            asyncFallbackURL: HeroLogoFallback(for: item) { [item] in
+                await ArtworkSession.resolveArtwork(background: false) {
+                    await ArtworkRouter.shared.artworkURL(.logo, for: item)
+                }
+            },
+            maxWidth: size.width * 0.72, maxHeight: size.height * 0.19,
+            constrainsToBounds: true, haloStyle: .gentle, logoNeedsHelp: needsHelp,
+            onResolve: { logoTone = $0 }
+        ) {
+            title.font(.title2.bold()).lineLimit(3).foregroundStyle(.white)
+        }
+        .environment(\.colorScheme, .dark)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("featured-card")) } action: { frame = $0 }
+        .task(id: SampleRequest(artwork: artwork, frame: frame, size: size)) {
+            artworkTone = nil
+            #if canImport(UIKit)
+            guard let artwork, !frame.isEmpty, size.width > 0, size.height > 0,
+                  let image = await ArtworkImageCache.shared.image(for: artwork, variant: .posterCard),
+                  image.size.width > 0, image.size.height > 0 else { return }
+            let scale = max(size.width / image.size.width, size.height / image.size.height)
+            let width = image.size.width * scale
+            let height = image.size.height * scale
+            // Measure only the visible crop beneath the logo, not the wide image's discarded edges.
+            let region = CGRect(
+                x: (frame.minX + (width - size.width) / 2) / width,
+                y: (frame.minY + (height - size.height) / 2) / height,
+                width: frame.width / width, height: frame.height / height
+            )
+            let sample = await HeroBackgroundSampler.sample(
+                artwork: FirstPaintArtwork(image: image, reference: artwork, variant: .posterCard), region: region
+            )
+            guard !Task.isCancelled else { return }
+            if let sample {
+                let remaining = 1 - FeaturedCardLayout.scrimOpacity(at: frame.midY / size.height)
+                artworkTone = HeroBackgroundSample(
+                    red: sample.red * remaining, green: sample.green * remaining,
+                    blue: sample.blue * remaining, luminance: sample.luminance * remaining
+                )
+            }
+            #endif
+        }
     }
 }
 

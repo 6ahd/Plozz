@@ -1505,6 +1505,35 @@ final class SettingsInteractionTests: XCTestCase {
         }
     }
 
+    func testFeaturedCardIncludingMetadataAndBottomPaddingSelectsExactlyOnce() {
+        app.launchArguments = ["--featured-card-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let card = app.buttons["Featured title"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(card.frame.width, min(440, max(220, app.windows.firstMatch.frame.width - 48)), accuracy: 1)
+        XCTAssertEqual(card.frame.height, card.frame.width * 1.125, accuracy: 1,
+                       "The touch target must cover the artwork's full height, not just its upper image.")
+        capture("featured-card-touch-target")
+        let count = app.staticTexts["featured-selection-count"]
+        for (index, point) in [
+            CGVector(dx: 0.5, dy: 0.15),
+            CGVector(dx: 0.5, dy: 0.75),
+            CGVector(dx: 0.5, dy: 0.90),
+            CGVector(dx: 0.85, dy: 0.96)
+        ].enumerated() {
+            card.coordinate(withNormalizedOffset: point).tap()
+            XCTAssertTrue(count.wait(for: \.label, toEqual: "\(index + 1)", timeout: 3),
+                          "The entire card must select exactly once at \(point): \(app.debugDescription)")
+        }
+        let following = app.staticTexts["featured-following-row"]
+        let initialY = following.frame.minY
+        card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+            .press(forDuration: 0.05, thenDragTo:
+                card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)))
+        XCTAssertLessThan(following.frame.minY, initialY - 80)
+        XCTAssertEqual(count.label, "4", "Scrolling must not activate the card.")
+    }
+
     func testCollectionSelectionOpensEditorAndKeepsSettingsAcrossNestedNavigation() {
         app.launchArguments = [
             "--collection-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"

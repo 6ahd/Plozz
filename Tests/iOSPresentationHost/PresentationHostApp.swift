@@ -134,7 +134,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--collection-settings-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--featured-card-fixture") {
+                FeaturedCardInteractionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--collection-settings-fixture") {
                 CollectionSettingsInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--hero-request-controls-fixture") {
                 HeroRequestControlsFixture()
