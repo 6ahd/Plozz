@@ -31,6 +31,7 @@ public extension EnvironmentValues {
         plozzReduceTransparency = source.plozzReduceTransparency
         plozzNavigationStyle = source.plozzNavigationStyle
         plozzNavigationContentInset = source.plozzNavigationContentInset
+        mediaRowHeaderTrailingInset = source.mediaRowHeaderTrailingInset
         plozzPinnedSidebarActive = source.plozzPinnedSidebarActive
         plozzPinnedSidebarInteraction = source.plozzPinnedSidebarInteraction
         plozzRowTitleTightening = source.plozzRowTitleTightening

@@ -174,8 +174,14 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   place the title logo (or text fallback) and real metadata at the lower left.
   TV rows reuse the standard media-row heading and See all action, with the same
   pinned-navigation keyline, leading fade and card-slot parking as ordinary rows.
-  Native card focus owns the artwork's outer rounding, avoiding a second clipped
-  curve that exposes the card backing at its edges.
+  System-focus Featured cards use native SwiftUI card buttons rather than the
+  generic hosted `TVCardView` bridge, which can retain enlarged artwork after
+  held directional navigation. Artwork, overlays and live video stay in the
+  button label; non-system styles retain the shared focus fallback.
+  Rails reserve the shared shadow clearance without increasing row spacing.
+  Full-bleed Home artwork preserves the measured trailing title-safe inset for
+  row actions. Remote-driven coverage checks resting painted sizes after rapid
+  navigation; simulator rendering is not proof of physical remote-tilt behavior.
   The focused TV card or settled visible mobile card can play a supported
   local/server trailer, using the profile's Home trailer enable/mute preferences.
   A shared coordinator arbitrates visible rails and borrows the existing hero

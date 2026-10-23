@@ -5,7 +5,6 @@ import FeatureHomeCore
 import HeroUI
 #if os(tvOS)
 @testable import FeatureHome
-import TVUIKit
 #elseif os(iOS)
 @testable import AppShelliOS
 #endif
@@ -16,6 +15,123 @@ import UIKit
 import Vision
 import XCTest
 
+#if os(tvOS)
+@MainActor
+extension HomeRowArrangementHostedTests {
+    func testFeaturedFocusedShadowClearsTheFollowingRow() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        try await withWindow(colorScheme: .light) {
+            ZStack {
+                Color.white.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    FeaturedMediaRow(
+                        title: Text("Featured"),
+                        items: [MediaItem(id: "shadow", title: "Shadow", kind: .movie)],
+                        scope: ObjectIdentifier(controller), coordinator: coordinator, controller: controller,
+                        settings: .default, resolver: { _ in nil }, isActive: false, onSelect: { _ in }
+                    )
+                    Text("Following row").frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 100)
+                }
+            }
+            .environment(\.plozzCardFocusStyle, .system)
+            .environment(\.plozzNavigationContentInset, 64)
+            .environment(\.plozzPinnedSidebarActive, true)
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured shadow baseline")
+            let label = try XCTUnwrap(lines.first { $0.0 == "Shadow" }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let card = try XCTUnwrap(self.focusableItem(at: point, in: window))
+            try await self.focus(card, in: window)
+            let image = try await self.snapshot(window, name: "Featured focused shadow")
+            let bitmap = try XCTUnwrap(image.cgImage)
+            let pixels = try self.rgba(bitmap)
+            let frame = try XCTUnwrap(self.focusTarget(at: point, in: window)).frame
+            let x = Int(frame.midX)
+            // Focus-item bounds exclude the system's visual lift.
+            let paintedBottom = try XCTUnwrap(
+                (Int(frame.maxY)..<min(Int(frame.maxY) + 60, bitmap.height)).first { y in
+                    pixels[(y * bitmap.width + x) * 4] > 100
+                })
+            let start = paintedBottom + 5
+            let end = min(start + 95, bitmap.height)
+            let values = (start..<end).map { y in Int(pixels[(y * bitmap.width + x) * 4]) }
+            XCTAssertLessThan(try XCTUnwrap(values.min()), 245, "The sampled region must contain the real shadow.")
+            let jump = zip(values, values.dropFirst()).map { abs($0 - $1) }.max() ?? 0
+            XCTAssertLessThanOrEqual(jump, 8, "The shadow must fade smoothly rather than ending at the rail's clip.")
+            let attachment = XCTAttachment(string: "\(frame): \(values)")
+            attachment.name = "Featured shadow samples"
+            attachment.lifetime = .keepAlways
+            self.add(attachment)
+        }
+    }
+
+    func testFeaturedSeeAllKeepsTheTrailingTitleSafeInset() async throws {
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator()
+        defer { coordinator.stop() }
+        try await withWindow {
+            GeometryReader { geometry in
+                ScrollView {
+                    FeaturedMediaRow(
+                        title: Text("Featured"), items: [], scope: ObjectIdentifier(controller),
+                        coordinator: coordinator, controller: controller, settings: .default,
+                        resolver: { _ in nil }, isActive: false, onSeeAll: {}, onSelect: { _ in }
+                    )
+                }
+                .ignoresSafeArea(.container, edges: .trailing)
+                .environment(\.mediaRowHeaderTrailingInset, geometry.safeAreaInsets.trailing)
+                .environment(\.plozzNavigationContentInset, 64)
+                .environment(\.plozzPinnedSidebarActive, true)
+            }
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Featured full-bleed header", scale: 2)
+            let action = try XCTUnwrap(lines.first { $0.0.hasPrefix("See all") }, lines.map(\.0).joined(separator: " | ")).1
+            XCTAssertGreaterThan(window.safeAreaInsets.right, 0)
+            XCTAssertLessThanOrEqual(
+                action.maxX * window.bounds.width,
+                window.bounds.width - window.safeAreaInsets.right + 3)
+        }
+    }
+
+    private func focus(_ target: any UIFocusItem, in window: UIWindow) async throws {
+        let host = try XCTUnwrap(window.rootViewController as? HomeRowsFocusHost)
+        host.target = target
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        if system.focusedItem !== target {
+            let focused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in system.focusedItem === target }, object: nil)
+            await fulfillment(of: [focused], timeout: 3)
+        }
+        try await Task.sleep(for: .milliseconds(400))
+    }
+
+    private func rgba(_ bitmap: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(
+                CGContext(
+                    data: buffer.baseAddress, width: bitmap.width, height: bitmap.height,
+                    bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+        }
+        return pixels
+    }
+
+}
+#endif
+
+final class HomeRowsFocusHost: UIHostingController<AnyView> {
+    weak var target: (any UIFocusEnvironment)?
+    override var preferredFocusEnvironments: [any UIFocusEnvironment] {
+        target.map { [$0] } ?? super.preferredFocusEnvironments
+    }
+}
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
     func testCollectionChooserShowsBrandedLibrarySourceLines() async throws {
@@ -185,38 +301,43 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     XCTAssertEqual(actions[0].maxX * window.bounds.width, actions[1].maxX * window.bounds.width, accuracy: 3)
                     XCTAssertEqual(actions[0].height * window.bounds.height, actions[1].height * window.bounds.height, accuracy: 3)
                 }
-                let card = try XCTUnwrap(self.nativeFeaturedCards(in: window).first)
-                let edge = card.contentView.convert(card.contentView.bounds, to: window).minX
-                XCTAssertEqual(edge, reference.minX * window.bounds.width, accuracy: 4,
+                let image = try await self.snapshot(window, name: "Resting keyline")
+                let bitmap = try XCTUnwrap(image.cgImage)
+                let pixels = try self.rgba(bitmap)
+                let y = Int((1 - featured.minY) * window.bounds.height) + 150
+                let edge = try XCTUnwrap((0..<bitmap.width / 2).first { x in
+                    pixels[(y * bitmap.width + x) * 4] > 3
+                })
+                XCTAssertEqual(CGFloat(edge), reference.minX * window.bounds.width, accuracy: 4,
                                "The resting artwork and both headings must share the same keyline.")
             }
         }
     }
 
     func testFeaturedNativeCardDoesNotExposeBackingAroundDarkArtwork() async throws {
+        var frames: [Int: CGRect] = [:]
+        var focused: Set<Int> = []
         try await withWindow {
             HStack(spacing: 50) {
-                FeaturedCornerFixture()
-                FeaturedCornerFixture()
+                ForEach(0..<2) { index in
+                    FeaturedCornerFixture(
+                        onFrame: { frames[index] = $0 },
+                        onFocus: { value in
+                            if value { focused.insert(index) } else { focused.remove(index) }
+                        }
+                    )
+                }
             }
             .environment(\.plozzCardFocusStyle, .system)
             .environment(\.themePalette, .light)
         } inspect: { window in
             let image = try await self.snapshot(window, name: "Featured resting dark corners")
-            let cards = self.nativeFeaturedCards(in: window)
-            XCTAssertEqual(cards.count, 2)
-            let card = try XCTUnwrap(cards.first { !$0.isFocused })
-            XCTAssertFalse(card.isFocused)
-            let frame = card.contentView.convert(card.contentView.bounds, to: window)
+            XCTAssertEqual(frames.count, 2)
+            XCTAssertEqual(focused.count, 1)
+            let index = try XCTUnwrap((0..<2).first { !focused.contains($0) })
+            let frame = try XCTUnwrap(frames[index])
             let bitmap = try XCTUnwrap(image.cgImage)
-            var pixels = [UInt8](repeating: 0, count: bitmap.width * bitmap.height * 4)
-            let context = try XCTUnwrap(CGContext(
-                data: &pixels, width: bitmap.width, height: bitmap.height,
-                bitsPerComponent: 8, bytesPerRow: bitmap.width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ))
-            context.draw(bitmap, in: CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+            let pixels = try self.rgba(bitmap)
             var lightest = 0
             for x in Int(frame.minX)..<Int(frame.maxX) {
                 for y in Int(frame.minY)..<Int(frame.maxY) {
@@ -228,11 +349,6 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             }
             XCTAssertLessThan(lightest, 12, "A second artwork clip must not uncover the native card's light backing.")
         }
-    }
-
-    private func nativeFeaturedCards(in view: UIView) -> [TVCardView] {
-        if let card = view as? TVCardView { return [card] }
-        return view.subviews.flatMap(nativeFeaturedCards)
     }
 
     func testReorderInitialTargetOwnsNativeFocusWithoutAnotherSelection() async throws {
@@ -488,6 +604,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     private func focusableItem(at point: CGPoint, in window: UIWindow) -> (any UIFocusItem)? {
+        focusTarget(at: point, in: window)?.item
+    }
+
+    private func focusTarget(at point: CGPoint, in window: UIWindow) -> (item: any UIFocusItem, frame: CGRect)? {
         var containers: [any UIFocusItemContainer] = [window]
         var seen = Set<ObjectIdentifier>()
         while let container = containers.popLast() {
@@ -497,7 +617,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 if let child = item.focusItemContainer { containers.append(child) }
                 if let view = item as? UIView { containers.append(view) }
                 let frame = container.coordinateSpace.convert(item.frame, to: window)
-                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return item }
+                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return (item, frame) }
             }
         }
         return nil
@@ -541,19 +661,25 @@ final class HomeRowArrangementHostedTests: XCTestCase {
 
     #if os(tvOS)
     private struct FeaturedCornerFixture: View {
-        @PlozzCardFocus private var focused
+        let onFrame: (CGRect) -> Void
+        let onFocus: (Bool) -> Void
+        @FocusState private var focused: Bool
 
         var body: some View {
-            FeaturedCardArtwork(
-                item: MediaItem(id: "corners", title: "Dark artwork", kind: .movie),
-                size: CGSize(width: 520.25, height: 650.3125)
-            ) {
-                Color.black
+            Button {} label: {
+                FeaturedCardArtwork(
+                    item: MediaItem(id: "corners", title: "Dark artwork", kind: .movie),
+                    size: CGSize(width: 520.25, height: 650.3125)
+                ) {
+                    Color.black
+                }
             }
-            .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
-            .focusableCard(isFocused: $focused, cornerRadius: 20, action: {})
-            .plozzCardFocusTransition(isFocused: focused)
+            .buttonStyle(.card)
+            .buttonBorderShape(.roundedRectangle(radius: 20))
+            .focused($focused)
             .frame(width: 520.25, height: 650.3125)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrame($0) }
+            .onChange(of: focused, initial: true) { _, value in onFocus(value) }
         }
     }
     #endif
@@ -1464,7 +1590,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let window = UIWindow(windowScene: scene)
         window.frame = size.map { CGRect(origin: .zero, size: $0) } ?? scene.coordinateSpace.bounds
         window.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
-        window.rootViewController = UIHostingController(rootView:
+        window.rootViewController = HomeRowsFocusHost(rootView: AnyView(
             content()
                 .environment(HeroSettingsModel(store: InMemoryHeroSettingsStore()))
                 .environment(HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()))
@@ -1473,7 +1599,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 .environment(\.colorScheme, colorScheme)
                 .environment(\.locale, Locale(identifier: "en_US"))
                 .background(.black)
-        )
+        ))
         window.makeKeyAndVisible()
         defer {
             window.isHidden = true

@@ -197,6 +197,71 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         }
     }
 
+    func testFeaturedNativeButtonsKeepTheLiveTrailerSurfaceAndReleaseItOnExit() async throws {
+        try XCTSkipIf(UIAccessibility.isReduceMotionEnabled, "Featured previews intentionally stay static with Reduce Motion.")
+        let scene = try await activeScene()
+        let video = try await makeTrailerVideo()
+        let artwork = try await seedArtwork(color: .blue)
+        let controller = HeroTrailerController()
+        let coordinator = FeaturedTrailerCoordinator(settleDelay: .zero)
+        let items = (0..<2).map {
+            MediaItem(id: "featured-video-\($0)", title: "Trailer \($0)", kind: .movie, posterURL: artwork)
+        }
+        let host = HomeRowsFocusHost(rootView: AnyView(VStack {
+            Button("Outside") {}.frame(height: 80)
+            FeaturedMediaRow(
+                title: Text("Featured"), items: items, scope: ObjectIdentifier(controller),
+                coordinator: coordinator, controller: controller, settings: .default,
+                resolver: { item in
+                    HeroTrailerSource(ownerItemID: item.id, trailerItemID: "clip", url: video, duration: 30)
+                }, isActive: true, onSelect: { _ in }
+            )
+        }
+        .environment(\.scenePhase, .active)
+        .environment(\.plozzCardFocusStyle, .system)))
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            coordinator.stop()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        func players(in layer: CALayer) -> [AVPlayerLayer] {
+            if let player = layer as? AVPlayerLayer { return [player] }
+            return (layer.sublayers ?? []).flatMap { players(in: $0) }
+        }
+        try await waitUntil { self.focusTargets(in: window).filter { $0.frame.height > 300 }.count == 2 }
+        let cards = focusTargets(in: window).filter { $0.frame.height > 300 }.sorted { $0.frame.minX < $1.frame.minX }
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        for (index, card) in cards.enumerated() {
+            host.target = card
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            try await waitUntil {
+                system.focusedItem === card && coordinator.activeItemID == items[index].stablePresentationID
+                    && controller.isPlaying && players(in: window.layer).contains { $0.isReadyForDisplay }
+            }
+            XCTAssertTrue(system.focusedItem === card, "The requested Featured control must own native focus.")
+            XCTAssertEqual(coordinator.activeItemID, items[index].stablePresentationID)
+            let layers = players(in: window.layer)
+            XCTAssertEqual(layers.count, 1, "Only the focused card may host the shared trailer player.")
+            let layer = try XCTUnwrap(layers.first)
+            XCTAssertTrue(layer.player === controller.player)
+            XCTAssertFalse(layer.isHidden)
+            XCTAssertGreaterThan(layer.bounds.width, 300)
+            XCTAssertGreaterThan(layer.bounds.height, 300)
+        }
+        let outside = try XCTUnwrap(focusTargets(in: window).first { $0.frame.height < 150 })
+        host.target = outside
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { system.focusedItem === outside && coordinator.activeItemID == nil }
+        XCTAssertEqual(controller.player.rate, 0)
+    }
+
     func testProductionDetailStopsTrailerAfterReturningToNonHeroRoot() async throws {
         try await withTrailerFixture { model, video in
             model.path.append(1)

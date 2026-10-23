@@ -369,6 +369,14 @@ public struct HomeView: View {
     }
 
     public var body: some View {
+        GeometryReader { geometry in
+            screen
+                .environment(\.mediaRowHeaderTrailingInset,
+                             navigationStyle == .rail ? geometry.safeAreaInsets.trailing : 0)
+        }
+    }
+
+    private var screen: some View {
         let _ = PlozzBodyRate.tick("HomeView")
         return ContentStateView(
             state: HomePresentationRow.displayState(

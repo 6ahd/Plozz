@@ -144,7 +144,7 @@ public struct FeaturedMediaRow: View {
         #if os(tvOS)
         PinnedSidebarLeadingFade(
             isActive: pinnedSidebarActive, inset: navigationContentInset,
-            verticalOverhang: 24, cardPitch: size.width + cardSpacing
+            verticalOverhang: metrics.railShadowClearance, cardPitch: size.width + cardSpacing
         ) {
             scroll
         }
@@ -184,13 +184,16 @@ public struct FeaturedMediaRow: View {
             #if os(tvOS)
             .padding(.horizontal, inset)
             #endif
-            .padding(.vertical, television ? 24 : 4)
+            .padding(.vertical, television ? metrics.railShadowClearance : 4)
         }
         #if os(iOS)
         .contentMargins(.horizontal, inset, for: .scrollContent)
         #endif
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
+        #if os(tvOS)
+        .padding(.vertical, metrics.railClearanceOffset(for: 24))
+        #endif
         #if os(iOS)
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $selectedID, anchor: .leading)
@@ -207,7 +210,8 @@ private struct FeaturedMediaCard: View {
     let showsVideo: Bool
     let onFocus: (Bool) -> Void
     let onSelect: () -> Void
-    @PlozzCardFocus private var focused
+    @FocusState private var focused: Bool
+    @Environment(\.plozzCardFocusStyle) private var focusStyle
 
     private var artwork: some View {
         FeaturedCardArtwork(item: item, size: size, spoilerSettings: spoilers) {
@@ -219,13 +223,7 @@ private struct FeaturedMediaCard: View {
 
     var body: some View {
         #if os(tvOS)
-        artwork
-            .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
-            .focusableCard(
-                isFocused: $focused, cornerRadius: 20,
-                accessibilityLabel: item.title, action: onSelect
-            )
-            .plozzCardFocusTransition(isFocused: focused)
+        televisionControl
             .mediaItemContextMenu(for: item)
             .onChange(of: focused) { _, value in onFocus(value) }
         #else
@@ -234,5 +232,24 @@ private struct FeaturedMediaCard: View {
             .mediaItemContextMenu(for: item)
         #endif
     }
+
+    #if os(tvOS)
+    @ViewBuilder
+    private var televisionControl: some View {
+        if focusStyle.usesSystemEffect {
+            Button(action: onSelect) { artwork }
+                .buttonStyle(.card)
+                .buttonBorderShape(.roundedRectangle(radius: 20))
+                .focused($focused)
+                .frame(width: size.width, height: size.height)
+        } else {
+            artwork
+                .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
+                .focusableCard(isFocused: $focused, cornerRadius: 20, action: onSelect)
+                .accessibilityLabel(Text(verbatim: item.title))
+                .plozzCardFocusTransition(isFocused: focused)
+        }
+    }
+    #endif
 }
 #endif

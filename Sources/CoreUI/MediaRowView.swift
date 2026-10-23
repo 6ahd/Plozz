@@ -25,6 +25,18 @@ public enum PlozzRailTitle {
     }
 }
 
+private struct MediaRowHeaderTrailingInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+public extension EnvironmentValues {
+    /// Title-safe space restored by a page whose artwork ignores the trailing safe area.
+    var mediaRowHeaderTrailingInset: CGFloat {
+        get { self[MediaRowHeaderTrailingInsetKey.self] }
+        set { self[MediaRowHeaderTrailingInsetKey.self] = newValue }
+    }
+}
+
 public struct MediaRowHeader: View {
     private let title: Text
     private let leadingInset: CGFloat
@@ -35,6 +47,7 @@ public struct MediaRowHeader: View {
     @Environment(\.redactionReasons) private var redactionReasons
     @Environment(\.themePalette) private var palette
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
+    @Environment(\.mediaRowHeaderTrailingInset) private var trailingInset
 
     public init(
         title: Text, leadingInset: CGFloat = PlozzTheme.Metrics.screenPadding,
@@ -60,7 +73,7 @@ public struct MediaRowHeader: View {
                             if focused { onFocusEntered?() }
                         }
                 }
-                .padding(.trailing, leadingInset)
+                .padding(.trailing, leadingInset + trailingInset)
             } else {
                 heading
             }
