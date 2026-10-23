@@ -58,6 +58,7 @@ public struct LiveTVPrototypeChannel: Codable, Identifiable, Equatable, Sendable
     public let language: String?
     public let country: String?
     public let groups: [String]?
+    public let plozzChannelMood: LibraryChannelArtworkMood?
     public var languages: [String] { Self.metadataValues(language) }
     public var countries: [String] { Self.metadataValues(country) }
     public var categories: [String] { groups?.isEmpty == false ? (groups ?? []) : [category] }
@@ -86,7 +87,8 @@ public struct LiveTVPrototypeChannel: Codable, Identifiable, Equatable, Sendable
         configuredSourceID: String? = nil,
         language: String? = nil,
         country: String? = nil,
-        groups: [String]? = nil
+        groups: [String]? = nil,
+        plozzChannelMood: LibraryChannelArtworkMood? = nil
     ) {
         precondition((0...5).contains(accent), "Live TV fixture accent must be between 0 and 5.")
         self.id = id
@@ -107,6 +109,7 @@ public struct LiveTVPrototypeChannel: Codable, Identifiable, Equatable, Sendable
         self.language = language
         self.country = country
         self.groups = groups
+        self.plozzChannelMood = plozzChannelMood
     }
 
     fileprivate static func metadataValues(_ value: String?) -> [String] {
@@ -157,7 +160,8 @@ extension LiveTVPrototypeChannel {
     public func playerItem(program: LiveChannelProgramInfo?) -> LiveChannelOnNowItem {
         LiveChannelOnNowItem(
             channelID: id, channelName: name, number: number, logoURL: logoURL,
-            plozzChannelID: source == .plozz ? id : nil, program: program
+            plozzChannelID: source == .plozz ? id : nil,
+            plozzChannelMood: source == .plozz ? plozzChannelMood : nil, program: program
         )
     }
 }
@@ -1101,7 +1105,7 @@ public final class LiveTVPrototypeModel {
                         guideID: channel.guideID, guideName: channel.guideName,
                         httpHeaders: channel.httpHeaders,
                         playlistSourceID: channel.playlistSourceID, language: channel.language, country: channel.country,
-                        groups: channel.groups
+                        groups: channel.groups, plozzChannelMood: channel.plozzChannelMood
                     )
                 }
             } else {
@@ -1125,7 +1129,8 @@ public final class LiveTVPrototypeModel {
                     streamURL: channel.streamURL, logoNeedsDarkBackground: channel.logoNeedsDarkBackground,
                     guideID: channel.guideID, guideName: channel.guideName, httpHeaders: channel.httpHeaders,
                     playlistSourceID: channel.playlistSourceID, language: value.language ?? channel.language,
-                    country: value.country ?? channel.country, groups: value.category.map { [$0] } ?? channel.groups
+                    country: value.country ?? channel.country, groups: value.category.map { [$0] } ?? channel.groups,
+                    plozzChannelMood: channel.plozzChannelMood
                 )
             }
         }

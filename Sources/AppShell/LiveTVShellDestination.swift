@@ -148,6 +148,7 @@ struct LiveTVShellDestination: View {
                 title: playback.channel.name,
                 input: playback.input,
                 logoURL: playback.channel.logoURL,
+                plozzChannelMood: playback.channel.plozzChannelMood,
                 makeEngine: {
                     library.makeEngine(
                         engine: try PlozzigenVideoEngine(

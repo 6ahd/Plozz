@@ -39,6 +39,22 @@ final class LibraryChannelAutomaticTests: XCTestCase {
         return try XCTUnwrap(state.snapshots.first { $0.id == snapshotID }).items
     }
 
+    func testGeneratedGuideCarriesCategoryMoodIntoPlayback() async throws {
+        let items = (0..<5).map { index in
+            var item = movie("m\(index)")
+            item.genres = index < 4 ? ["Documentary"] : ["Comedy"]
+            return item
+        }
+        let (service, _, _) = try await service(items: items)
+        _ = try await service.refreshAutomaticChannels(at: now)
+        let definition = try XCTUnwrap(service.definitions.first { $0.automaticKey == "v1/genre/documentary" })
+        let channel = try XCTUnwrap(service.channels.first { $0.id == definition.catalogID })
+        XCTAssertEqual(channel.plozzChannelMood, .calm)
+        XCTAssertEqual(channel.playerItem(program: nil).plozzChannelMood, .calm)
+        let movies = try XCTUnwrap(service.definitions.first { $0.automaticKey == "v1/movies" })
+        XCTAssertEqual(service.channels.first { $0.id == movies.catalogID }?.plozzChannelMood, .cinematic)
+    }
+
     func testCatchallsCoverAllEligibleConcreteContentWithOnePaginationPass() async throws {
         var items = (0..<501).map { movie("m\($0)") }
         for index in 0..<251 {

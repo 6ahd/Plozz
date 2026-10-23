@@ -859,12 +859,21 @@ is no prior in-memory history to migrate on the first updated launch.
   logo and its backing together, so a warmed guide logo appears immediately in
   the player with the same appearance. Hero/search/player sizes remain
   independent of the full-row guide treatment.
-  Plozz library channels without supplied artwork use a locally rendered wordmark:
-  heavy compressed channel lettering, a small rounded Plozz signature and a
-  solid broadcast-style color field. FNV-1a over the stable channel identity picks
-  from a fixed palette, so names, schedules, view size and app restarts do not
-  randomly change the branding. Guide and player pass the same channel identity
-  to the shared renderer. Real source logos still take precedence; missing
+  Plozz library channels without supplied artwork use the locally rendered Byline:
+  a prominent, original-case channel name above a small pixel-mascot and Plozz
+  signature. Both share an inset leading edge; the signature is lifted away
+  from the bottom corner. Category moods tint the active theme's opaque surface:
+  cinematic blue, playful amber, calm green, warm rose, intense terracotta,
+  mysterious plum, and imaginative indigo. Light, Dark, and Black keep their
+  own surface and text contrast, including increased-contrast borders.
+  Automatic group keys and custom recipe genres determine the mood, never
+  translated or renamed display titles, current programmes, or provider order.
+  Unrecognized categories and mixed custom moods use a neutral field; unfiltered
+  movie-only channels use cinematic blue. Studio/director channels use cinematic
+  blue without guessing their content, and decade channels use warm rose.
+  The guide and player carry the same mood to the shared renderer. No saved
+  channel identity, schedule, recipe, or sync format is changed by this styling.
+  Real source logos still take precedence; missing
   external-channel logos keep their ordinary name fallback. No network service,
   generated image asset or per-channel manual design is needed.
   Station tiles show only the logo, or a name fallback when artwork is missing,

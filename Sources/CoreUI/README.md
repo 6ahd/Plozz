@@ -6,6 +6,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`ChannelLogoArtwork` renders generated Plozz channels with the shared Byline
+layout: a name-first title and inset pixel-mascot signature. Its optional
+`LibraryChannelArtworkMood` comes from channel rules, not display-name guessing.
+Category tint blends over `themePalette.cardOpaqueSurface`, so Light, Dark,
+and Black keep their own brightness and foreground contrast. Supplied logos
+always retain precedence; external channels keep the ordinary name fallback.
+
 `PlozzStartupLogo` starts from a smile and rotates through wink, delight, and
 surprise on successive cold launches. The device-local choice is saved once per
 process when animation first becomes active; view remounts and foreground

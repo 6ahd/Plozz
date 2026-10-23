@@ -1,3 +1,4 @@
+import CoreModels
 import CoreUI
 import FeatureLiveTVCore
 import SwiftUI
@@ -5,6 +6,14 @@ import SwiftUI
 
 struct PlozzChannelIdentityFixture: View {
     private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+    private let theme = ProcessInfo.processInfo.environment["PLOZZ_CHANNEL_IDENTITY_THEME"] ?? "dark"
+    private var palette: ThemePalette {
+        switch theme {
+        case "light": .light
+        case "black": .pureBlack
+        default: .dark
+        }
+    }
     @State private var model = makeModel()
     @State private var imports = LiveTVPrototypeImportModel()
     @State private var selectedID: String? = "identity-0"
@@ -23,7 +32,7 @@ struct PlozzChannelIdentityFixture: View {
                 size: geometry.size, safeAreaInsets: geometry.safeAreaInsets
             )
             ZStack(alignment: .topLeading) {
-                AppBackground(palette: .dark).ignoresSafeArea()
+                AppBackground(palette: palette).ignoresSafeArea()
                 PrototypeGuidePlacement(frame: layout.contentFrame, canvasWidth: geometry.size.width) {
                     PrototypeBrowseLayout(layout: layout) {
                         PrototypePreviewHero(
@@ -43,8 +52,8 @@ struct PlozzChannelIdentityFixture: View {
                 }
             }
         }
-        .environment(\.themePalette, .dark)
-        .environment(\.colorScheme, .dark)
+        .environment(\.themePalette, palette)
+        .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .environment(\.locale, Locale(identifier: "en_US"))
     }
 
@@ -65,6 +74,7 @@ struct PlozzChannelIdentityFixture: View {
 
     private static func makeModel() -> LiveTVPrototypeModel {
         let names = ["Movies", "TV Shows", "Animation", "Documentary & Nature", "Studio Ghibli", "North News"]
+        let moods: [LibraryChannelArtworkMood?] = [.cinematic, .neutral, .playful, .calm, .cinematic, nil]
         let titles = [
             ["The Evening Feature", "Midnight Express"],
             ["A Place Called Home", "The Next Chapter"],
@@ -78,7 +88,7 @@ struct PlozzChannelIdentityFixture: View {
                 id: "identity-\(index)", number: index + 1, name: name,
                 category: index == 5 ? "News" : "Plozz channels",
                 symbol: "tv", accent: index, source: index == 5 ? .iptv : .plozz,
-                tagline: "A selection from your library."
+                tagline: "A selection from your library.", plozzChannelMood: moods[index]
             )
         }
         let model = LiveTVPrototypeModel(now: now, channels: channels)

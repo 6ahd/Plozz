@@ -2,14 +2,14 @@ import XCTest
 
 @MainActor
 final class PlozzChannelIdentityCaptureTests: XCTestCase {
-    func testNativeGuideIdentityComparison() throws {
+    func testNativeBylineThemes() throws {
         #if targetEnvironment(simulator)
         continueAfterFailure = false
         var referenceFrame: CGRect?
-        for style in ["quiet-signature", "mascot-first"] {
+        for theme in ["dark", "light", "black"] {
             let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
             app.launchArguments = ["--channel-identity-fixture"]
-            app.launchEnvironment["PLOZZ_CHANNEL_BADGE_PREVIEW"] = style
+            app.launchEnvironment["PLOZZ_CHANNEL_IDENTITY_THEME"] = theme
             app.launch()
             defer { app.terminate() }
             let program = app.buttons.matching(
@@ -29,7 +29,7 @@ final class PlozzChannelIdentityCaptureTests: XCTestCase {
             XCTAssertEqual(image.width, 3840)
             XCTAssertEqual(image.height, 2160)
             let attachment = XCTAttachment(screenshot: screenshot)
-            attachment.name = "\(style)-native-guide"
+            attachment.name = "byline-\(theme)-native-guide"
             attachment.lifetime = .keepAlways
             add(attachment)
         }

@@ -23,6 +23,7 @@ public struct LiveChannelPlayerView: View {
     private let title: String // l10n:content — provider-supplied channel name
     private let input: LiveChannelInput
     private let logoURL: URL?
+    private let plozzChannelMood: LibraryChannelArtworkMood?
     private let makeEngine: @MainActor () throws -> any LiveChannelEngine
     private let onPreviousChannel: () -> Void
     private let onNextChannel: () -> Void
@@ -113,6 +114,7 @@ public struct LiveChannelPlayerView: View {
         title: String, // l10n:content — provider-supplied channel name
         input: LiveChannelInput,
         logoURL: URL?,
+        plozzChannelMood: LibraryChannelArtworkMood? = nil,
         makeEngine: @escaping @MainActor () throws -> any LiveChannelEngine,
         onPreviousChannel: @escaping () -> Void,
         onNextChannel: @escaping () -> Void,
@@ -158,6 +160,7 @@ public struct LiveChannelPlayerView: View {
         self.title = title
         self.input = input
         self.logoURL = logoURL
+        self.plozzChannelMood = plozzChannelMood
         self.makeEngine = makeEngine
         self.onPreviousChannel = onPreviousChannel
         self.onNextChannel = onNextChannel
@@ -337,6 +340,7 @@ public struct LiveChannelPlayerView: View {
                             title: title,
                             logoURL: logoURL,
                             plozzChannelID: plozzChannelID,
+                            plozzChannelMood: plozzChannelMood,
                             channelID: channelID,
                             input: input,
                             program: program,

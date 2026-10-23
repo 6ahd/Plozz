@@ -697,7 +697,8 @@ public final class LibraryChannelService {
             return LiveTVPrototypeChannel(
                 id: definition.catalogID, number: index + 1, name: recipe.name,
                 category: "Plozz", symbol: recipe.symbol, accent: index % 6, source: .plozz,
-                tagline: "", configuredSourceID: definition.sourceID.uuidString
+                tagline: "", configuredSourceID: definition.sourceID.uuidString,
+                plozzChannelMood: LibraryChannelArtworkMood(automaticKey: definition.automaticKey, recipe: recipe)
             )
         }
     }
