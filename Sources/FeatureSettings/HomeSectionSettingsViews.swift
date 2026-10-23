@@ -327,6 +327,7 @@ struct HomeAddSectionView: View {
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
     var spoilerSettings: SpoilerSettings = .default
+    @Environment(CardStyleSettingsModel.self) private var cards
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
@@ -337,6 +338,7 @@ struct HomeAddSectionView: View {
                     inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts,
                     spoilerSettings: spoilerSettings
                 )
+                .environment(cards)
             } label: {
                 HomeEditorRowLabel(title: Text("Create section"), subtitle: Text("Start with a library collection"))
             }

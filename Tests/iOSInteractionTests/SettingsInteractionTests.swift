@@ -1505,6 +1505,49 @@ final class SettingsInteractionTests: XCTestCase {
         }
     }
 
+    func testCollectionSelectionOpensEditorAndKeepsSettingsAcrossNestedNavigation() {
+        app.launchArguments = [
+            "--collection-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+        ]
+        app.launch()
+        let add = app.buttons["home-section-add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10), app.debugDescription)
+        add.tap()
+        app.buttons["home-add-collection"].tap()
+        let weekend = button("Weekend picks")
+        XCTAssertTrue(weekend.waitForExistence(timeout: 5), app.debugDescription)
+        weekend.tap()
+        XCTAssertTrue(app.navigationBars["Create section"].waitForExistence(timeout: 5), app.debugDescription)
+        let landscape = app.segmentedControls.buttons["Landscape"]
+        XCTAssertTrue(landscape.exists, app.debugDescription)
+        landscape.tap()
+        XCTAssertTrue(app.staticTexts["Orbit"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("collection-section-created-from-picker")
+
+        let source = app.buttons["collection-section-source"]
+        reveal(source)
+        source.tap()
+        let favorites = button("Favorites")
+        XCTAssertTrue(favorites.waitForExistence(timeout: 5), app.debugDescription)
+        favorites.tap()
+        XCTAssertTrue(app.navigationBars["Create section"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Favorites"].exists, app.debugDescription)
+        XCTAssertTrue(landscape.isSelected)
+        let save = app.buttons["collection-section-save"]
+        reveal(save)
+        save.tap()
+        XCTAssertTrue(app.navigationBars["Add section"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Customize Home"].waitForExistence(timeout: 5))
+        let section = button("Favorites")
+        reveal(section)
+        section.tap()
+        XCTAssertTrue(app.navigationBars["Edit section"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(landscape.isSelected)
+        XCTAssertTrue(app.staticTexts["Orbit"].waitForExistence(timeout: 5))
+        capture("collection-section-reopened-after-saving")
+    }
+
     private func openSettingsPage(
         _ title: String, verifyTitleLayout: Bool = true, arguments: [String] = []
     ) {
