@@ -559,7 +559,8 @@ channel creation/editing and save dismissal use the same page navigation.
 The guide's separate Sources presentation also opens channel checks directly,
 without requiring Plozz channels to be available or open first.
 On tvOS, Generated channels is a bounded scrolling group with focusable,
-read-only rows; Up/Down browses the lineup and leaves it at either end.
+read-only rows. It shows four full rows and half of the next row to hint at more
+content; Up/Down browses the lineup and leaves it at either end.
 Custom-channel actions and menus use the shared form sizing, and Source
 libraries uses the same multi-select check rows as other Settings pages.
 Genre and ordering rules are explicit controls, without a one-off Comedy preset.

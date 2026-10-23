@@ -415,7 +415,14 @@ private struct LibraryChannelAutomaticLineupView: View {
         if !channels.isEmpty {
             SettingsSectionGroup("Generated channels") {
                 #if os(tvOS)
-                FadingScrollView(maxHeight: 320) {
+                let inset: CGFloat = 8
+                let rowHeight = SettingsRowMetrics.minHeight(.primary)
+                    + 2 * SettingsRowMetrics.verticalPadding(.primary)
+                FadingScrollView(
+                    maxHeight: inset + 4.5 * rowHeight + 4 * SettingsRowMetrics.formRowSpacing,
+                    fadeLength: 12,
+                    verticalContentInset: inset
+                ) {
                     VStack(spacing: SettingsRowMetrics.formRowSpacing) {
                         channelRows
                     }

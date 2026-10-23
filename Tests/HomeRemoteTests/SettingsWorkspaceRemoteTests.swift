@@ -1388,8 +1388,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let first = try XCTUnwrap(rows.first)
         let lineup = app.descendants(matching: .any)["live-tv-generated-lineup"].firstMatch
         try focus(first, in: app)
-        XCTAssertLessThanOrEqual(lineup.frame.height, 320)
         capture("generated-lineup-entry", in: app)
+        let viewport = lineup.frame.intersection(app.frame)
+        for row in rows.prefix(4) {
+            XCTAssertGreaterThanOrEqual(row.frame.minY, viewport.minY)
+            XCTAssertLessThanOrEqual(row.frame.maxY, viewport.maxY)
+        }
+        let fifth = rows[4].frame
+        let visibleFraction = viewport.intersection(fifth).height / fifth.height
+        XCTAssertEqual(visibleFraction, 0.5, accuracy: 0.05,
+                       "Show half of the fifth row before scrolling to advertise the remaining lineup.")
         for (index, row) in rows.enumerated() {
             if index > 0 { XCUIRemote.shared.press(.down) }
             XCTAssertTrue(hasFocus(row), "Down must browse every generated channel. \(app.debugDescription)")
