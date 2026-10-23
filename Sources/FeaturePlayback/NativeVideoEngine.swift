@@ -1269,17 +1269,13 @@ public final class NativeVideoEngine: VideoEngine {
             if let track { option = await Self.legibleOption(for: track, in: group) }
             else { option = nil }
             guard !Task.isCancelled, self.player?.currentItem === item else { return }
-            if option != nil, self.isPaused {
-                self.nativeSubtitleOutput?.select(enabled: false)
-                item.select(nil, in: group)
-                // Let the old paused rendition detach before registering the replacement.
-                await Task.yield()
-                guard !Task.isCancelled, self.player?.currentItem === item else { return }
-            }
-            // Register the replacement output against the requested rendition,
-            // not an intermediate Off or the previous paused track.
-            item.select(option, in: group)
+            item.select(nil, in: group)
+            // Retire the rendition before replacing its extraction output. An
+            // active tx3g decoder can otherwise keep the removed output on tvOS 27.
+            await Task.yield()
+            guard !Task.isCancelled, self.player?.currentItem === item else { return }
             self.nativeSubtitleOutput?.select(enabled: option != nil)
+            item.select(option, in: group)
             if track != nil, option == nil {
                 PlozzLog.playback.error("The selected native subtitle track is unavailable in the current stream.")
             }

@@ -962,11 +962,12 @@ old callbacks; seeks flush its state; teardown detaches it. Replacement removes
 the previous registration before adding the next: even a transient overlap can
 prevent paused track switches from delivering cues on tvOS 26.2. The registration
 order is covered independently of the runtime, alongside real paused HLS switching.
-Track changes select the requested rendition before registering its replacement
-output rather than registering against the previous track or an intermediate Off.
-Paused native switches first clear the old selection and yield its teardown,
-then select and register the requested rendition without seeking or resuming playback.
-Renderer handoffs likewise restore the rendition before adding the new output.
+Native track changes clear the old selection and yield its teardown, replace the
+output, and then select the requested rendition, without seeking or resuming
+playback. Replacing an output while its tx3g rendition is selected can leave
+tvOS 27's decoder delivering no captions. Renderer handoffs use the same
+deselect/register/reselect order. Real embedded MP4 and paused HLS switches
+cover both tvOS 26.2 and 27, including repeated Off/reselection at a paused time.
 Explicit Off still clears the selection and cue timeline.
 In-app drawing is suppressed at the native output, with an explicit selected-rendition handoff
 for external presentation. The handoff restores the current item's last selected
