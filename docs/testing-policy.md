@@ -261,6 +261,8 @@ Set `PLOZZ_VERDICT_GRACE=0` to check results as soon as the bundles report.
 last bundle reports, allowing Xcode's 600-second simulator diagnostic collection
 to finish. This is a ceiling, not a fixed wait. A readable result bundle is
 always required; reaching the grace period alone never interrupts its writer.
+If finalization or the no-progress watchdog times out, the run fails even if a
+later summary becomes readable after termination.
 
 Large scale fixtures emit unbuffered checkpoints from completed work. The
 million-programme XMLTV test reports preparation phases and every 10,000 indexed
@@ -1327,15 +1329,22 @@ Failed, cancelled, skipped, missing, or unexpected dependencies fail closed.
 Push-to-main, pull-request, manual triggers, and per-ref cancellation remain
 unchanged.
 
-Each test runner selects its own tvOS simulator matching Xcode 26.2's SDK; no
+Each test runner selects its own tvOS simulator matching Xcode 27's SDK; no
 simulator or mutable build directory crosses runners. A missing runtime fails
 instead of choosing an older installed runtime. The full matrix retains its
 40-minute wall-clock deadline. Hosted integration builds once with
-`build-for-testing`, then runs `test-without-building`, with separate 40-minute
-deadlines and retained build/test logs and result bundles. Cold compilation must
+`build-for-testing`, then runs `test-without-building`, with separate build/test
+deadlines and retained build/test logs and result bundles. It uses optimized
+Debug (`-O`) so the large-catalog main-thread budget measures optimized code
+without losing `DEBUG` test seams or relaxing its one-second threshold. Package
+logic tests retain their ordinary Debug configuration. Cold compilation must
 not consume the test execution budget: run `38059892922` spent about 19 minutes
 building before the former combined 40-minute limit killed still-progressing
-tests. The hosted job has a 90-minute outer limit for both phases and setup;
+tests. Run `39857697957` also exhausted a full 40-minute execution window while
+still progressing through the expanded hosted suite. CI now allows 40 minutes
+for compilation and 90 minutes for hosted execution, within a 140-minute job
+limit including setup and evidence retention. The local execution default
+remains 40 minutes unless `PLOZZ_FOCUS_TEST_TIMEOUT` is set;
 test failures, timeouts, and unreadable `xcresult` summaries still fail closed.
 Each lane uploads
 uniquely named diagnostics on success or failure, retained for seven days.

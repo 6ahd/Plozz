@@ -78,7 +78,7 @@ class WorkflowTests(unittest.TestCase):
                 self.assertIn("    needs: guards\n", block)
                 self.assertEqual(block.count("needs:"), 1)
                 self.assertIn("    runs-on: xcode-27\n", block)
-                timeout = 90 if lane == "hosted-focus" else 60
+                timeout = 140 if lane == "hosted-focus" else 60
                 self.assertIn(f"    timeout-minutes: {timeout}\n", block)
                 self.assertIn(f"          lane: {lane}\n", block)
                 self.assertIn("uses: ./.github/actions/ci-prepare", block)
@@ -114,12 +114,17 @@ class WorkflowTests(unittest.TestCase):
             JOBS["package-tests"],
         )
         self.assertIn("run: tools/run-focus-tests.sh\n", JOBS["hosted-focus"])
+        self.assertIn('PLOZZ_FOCUS_TEST_TIMEOUT: "5400"', JOBS["hosted-focus"])
+        self.assertEqual(
+            re.findall(r"PLOZZ_FOCUS_TEST_TIMEOUT:\s*([^\n]+)", WORKFLOW + PREPARE),
+            ['"5400"'],
+        )
         for lane in ("package-tests", "hosted-focus"):
             before_save = JOBS[lane].split("- name: Save successful trusted caches")[0]
             self.assertNotIn("if:", before_save)
         for unsafe in (
             "-only-testing", "-skip-testing", "test-fast.sh",
-            "PLOZZ_SKIP_", "PLOZZ_HANG_SECS:", "PLOZZ_FOCUS_TEST_TIMEOUT:",
+            "PLOZZ_SKIP_", "PLOZZ_HANG_SECS:",
             "PLOZZ_RESULT_TIMEOUT:", "PLOZZ_PARALLEL: YES",
         ):
             self.assertNotIn(unsafe, WORKFLOW + PREPARE)
@@ -316,6 +321,7 @@ class HostedRunnerTests(unittest.TestCase):
             self.assertEqual(calls[0][calls[0].index(flag) + 1], calls[1][calls[1].index(flag) + 1])
         for call in calls:
             self.assertIn("-only-testing:PlozzFocusTests/Fixture", call)
+            self.assertIn("SWIFT_OPTIMIZATION_LEVEL=-O", call)
             self.assertIn("CODE_SIGNING_ALLOWED=NO", call)
             self.assertEqual(call[call.index("-parallel-testing-enabled") + 1], "NO")
         runner = (ROOT / "tools/run-focus-tests.sh").read_text()
