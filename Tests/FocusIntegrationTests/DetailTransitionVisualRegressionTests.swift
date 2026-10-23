@@ -304,10 +304,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             }
         }
 
-        // Inspect the actual live configuration without the native outer mask,
-        // which can conceal oversized fill until its projection settles.
+        // The live scrim must cover exposed white pixels beyond the layout
+        // bounds before the native surface applies its final silhouette.
         let matte = UIView(frame: window.bounds)
-        matte.backgroundColor = .black
+        matte.backgroundColor = .white
         window.addSubview(matte)
         defer { matte.removeFromSuperview() }
         for poster in posters {
@@ -336,15 +336,25 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             let shaded = try brightness(at: CGPoint(x: bounds.midX, y: bounds.minY + bounds.height * 0.8))
             XCTAssertGreaterThan(shaded, 40, "The probe must render real artwork, not an empty hosting view.")
             XCTAssertLessThan(shaded, 150, "The live scrim must retain its intended darkening.")
-            let samples = [
-                CGPoint(x: bounds.minX - 2, y: bounds.minY + bounds.height * 0.8),
-                CGPoint(x: bounds.maxX + 2, y: bounds.minY + bounds.height * 0.8),
-                CGPoint(x: bounds.midX, y: bounds.minY - 2),
-                CGPoint(x: bounds.midX, y: bounds.maxY + 2)
-            ]
-            for point in samples {
-                XCTAssertLessThanOrEqual(try brightness(at: point), 2,
-                    "Aspect-fill artwork must not extend beyond its scrim's rectangular viewport: \(point).")
+            let bottom = try brightness(at: CGPoint(x: bounds.midX, y: bounds.maxY - 1))
+            // Stay inside the overscan's antialiased final pixels.
+            for outset: CGFloat in [2, 36] {
+                for x in [bounds.minX - outset, bounds.maxX + outset] {
+                    let point = CGPoint(x: x, y: bounds.minY + bounds.height * 0.8)
+                    XCTAssertLessThanOrEqual(abs(Int(try brightness(at: point)) - Int(shaded)), 4,
+                        "The scrim must shade white pixels throughout its 40pt side overscan: \(point).")
+                }
+                XCTAssertLessThanOrEqual(
+                    abs(Int(try brightness(at: CGPoint(x: bounds.midX, y: bounds.maxY + outset))) - Int(bottom)), 4,
+                    "The bottom edge color must continue through the 40pt overscan.")
+            }
+            for point in [
+                CGPoint(x: bounds.minX - 41, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.maxX + 41, y: bounds.minY + bounds.height * 0.8),
+                CGPoint(x: bounds.midX, y: bounds.maxY + 41)
+            ] {
+                XCTAssertGreaterThan(try brightness(at: point), 245,
+                    "Overscan must stop at 40pt without enlarging the card layout.")
             }
         }
     }

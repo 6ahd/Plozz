@@ -740,9 +740,11 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   that surface without rasterization or a second overlay corner clip. Native
   artwork clipping owns their complete outer edge; clipping the overlay again
   exposes bright backing pixels at the antialiased corners, including after
-  defocus. The live composition still needs a rectangular viewport clip:
-  aspect-fill artwork must not paint beyond its scrim while the native
-  projection settles. This is not another rounded silhouette.
+  defocus. The Featured scrim extends 40pt beyond each layout edge to keep
+  aspect-fill pixels shaded while the native projection settles. Its stops
+  remain anchored to the original artwork height, and artwork, video and
+  metadata keep their original layout. Do not clip this overscan back to the
+  overlay bounds; the native image surface supplies the final silhouette.
   See [Featured sections](../FeatureHome/README.md).
   Continue Watching
   keeps its established size, reflection, logo position and resume chrome without

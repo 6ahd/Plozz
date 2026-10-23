@@ -117,13 +117,13 @@ public struct FeaturedCardArtwork<Video: View>: View {
                 title: spoilerSettings.shouldHideText(for: item)
                     ? .localized(spoilerSettings.maskedTitle(for: item)) : .content(item.title),
                 subtitle: metadata,
-                overlay: layers {
+                overlay: layers(scrimOutset: 40) {
                     if let image {
                         Image(uiImage: image).resizable().scaledToFill()
                     } else {
                         placeholder
                     }
-                }.clipped(),
+                },
                 rasterizesOverlay: false,
                 clipsOverlayToArtwork: false,
                 focus: control.focus, action: control.action
@@ -134,19 +134,16 @@ public struct FeaturedCardArtwork<Video: View>: View {
     }
     #endif
 
-    private func layers<Artwork: View>(@ViewBuilder artwork: () -> Artwork) -> some View {
+    private func layers<Artwork: View>(
+        scrimOutset: CGFloat = 0, @ViewBuilder artwork: () -> Artwork
+    ) -> some View {
         ZStack(alignment: .bottomLeading) {
             artwork()
                 .frame(width: size.width, height: size.height)
             video
                 .frame(width: size.width, height: size.height)
                 .accessibilityHidden(true)
-            LinearGradient(
-                stops: [.init(color: .clear, location: 0.35),
-                        .init(color: .black.opacity(0.42), location: 0.65),
-                        .init(color: .black.opacity(0.88), location: 1)],
-                startPoint: .top, endPoint: .bottom
-            )
+            scrim(outset: scrimOutset)
             VStack(alignment: .leading, spacing: 12) {
                 HeroLogoArtwork(
                     references: item.artworkReferences(for: .logo),
@@ -171,6 +168,21 @@ public struct FeaturedCardArtwork<Video: View>: View {
         }
         .frame(width: size.width, height: size.height)
         .background(.black)
+    }
+
+    private func scrim(outset: CGFloat) -> some View {
+        let height = size.height + 2 * outset
+        let stops: [Gradient.Stop] = [
+            .init(color: .clear, location: 0.35),
+            .init(color: .black.opacity(0.42), location: 0.65),
+            .init(color: .black.opacity(0.88), location: 1)
+        ]
+        // Extend the edge colors without moving the fade inside the artwork.
+        return LinearGradient(stops: stops.map {
+            .init(color: $0.color, location: ($0.location * size.height + outset) / height)
+        }, startPoint: .top, endPoint: .bottom)
+            .frame(width: size.width + 2 * outset, height: height)
+            .frame(width: size.width, height: size.height)
     }
 }
 
