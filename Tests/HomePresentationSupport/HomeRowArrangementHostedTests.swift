@@ -18,6 +18,57 @@ import XCTest
 #if os(tvOS)
 @MainActor
 extension HomeRowArrangementHostedTests {
+    func testFeaturedTVLayoutCoversWholePhysicalPixels() {
+        for width: CGFloat in [390, 1024, 1696, 1760.25, 1920] {
+            for scale: CGFloat in [1, 2] {
+                let size = FeaturedCardLayout.size(viewportWidth: width, television: true, displayScale: scale)
+                let unalignedWidth = min(560, max(280, (width - 96) / 3.15))
+                for (aligned, original) in [(size.width, unalignedWidth), (size.height, unalignedWidth * 1.25)] {
+                    XCTAssertEqual(aligned * scale, (aligned * scale).rounded(), accuracy: 0.00001)
+                    XCTAssertGreaterThanOrEqual(aligned, original)
+                    XCTAssertLessThan(aligned - original, 1 / scale)
+                }
+            }
+        }
+        XCTAssertEqual(
+            FeaturedCardLayout.size(viewportWidth: 393, television: false, displayScale: 2),
+            CGSize(width: 345, height: 388.125),
+            "TV pixel alignment must not change the mobile layout."
+        )
+    }
+
+    func testFeaturedLabelDefersItsOnlyClipToTheNativeCard() async throws {
+        for nativeClipping in [false, true] {
+            var frame = CGRect.zero
+            try await withWindow {
+                FeaturedCardArtwork(
+                    item: MediaItem(id: "clip-owner", title: "Clip owner", kind: .movie),
+                    size: CGSize(width: 520.25, height: 650.3125),
+                    usesNativeClipping: nativeClipping
+                ) {
+                    Color.white
+                }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+            } inspect: { window in
+                let image = try await self.snapshot(window, name: "Featured clip ownership native \(nativeClipping)")
+                let bitmap = try XCTUnwrap(image.cgImage)
+                let pixels = try self.rgba(bitmap)
+                XCTAssertGreaterThan(frame.width, 500)
+                let corners = frame.insetBy(dx: 2, dy: 2)
+                for x in [corners.minX, corners.maxX] {
+                    for y in [corners.minY, corners.maxY] {
+                        let value = pixels[(Int(y) * bitmap.width + Int(x)) * 4]
+                        if nativeClipping {
+                            XCTAssertGreaterThan(value, 20, "The native card must receive opaque, untrimmed content.")
+                        } else {
+                            XCTAssertLessThan(value, 12, "Standalone previews must retain their own rounded clip.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     func testFeaturedFocusedShadowClearsTheFollowingRow() async throws {
         let controller = HeroTrailerController()
         let coordinator = FeaturedTrailerCoordinator()
@@ -669,7 +720,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             Button {} label: {
                 FeaturedCardArtwork(
                     item: MediaItem(id: "corners", title: "Dark artwork", kind: .movie),
-                    size: CGSize(width: 520.25, height: 650.3125)
+                    size: CGSize(width: 520.25, height: 650.3125), usesNativeClipping: true
                 ) {
                     Color.black
                 }

@@ -4,11 +4,16 @@ import MetadataKit
 import SwiftUI
 
 public enum FeaturedCardLayout {
-    public static func size(viewportWidth: CGFloat, television: Bool) -> CGSize {
+    public static func size(viewportWidth: CGFloat, television: Bool, displayScale: CGFloat = 1) -> CGSize {
         let width = television
             ? min(560, max(280, (viewportWidth - 96) / 3.15))
             : min(440, max(220, viewportWidth - 48))
-        return CGSize(width: width, height: width * (television ? 1.25 : 1.125))
+        let size = CGSize(width: width, height: width * (television ? 1.25 : 1.125))
+        guard television else { return size }
+        return CGSize(
+            width: (size.width * displayScale).rounded(.up) / displayScale,
+            height: (size.height * displayScale).rounded(.up) / displayScale
+        )
     }
 }
 
@@ -17,17 +22,20 @@ public struct FeaturedCardArtwork<Video: View>: View {
     private let item: MediaItem
     private let size: CGSize
     private let spoilerSettings: SpoilerSettings
+    private let usesNativeClipping: Bool
     private let video: Video
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.plozzNativeFocusSurface) private var nativeFocusSurface
 
     public init(
         item: MediaItem, size: CGSize, spoilerSettings: SpoilerSettings = .default,
+        usesNativeClipping: Bool = false,
         @ViewBuilder video: () -> Video
     ) {
         self.item = item
         self.size = size
         self.spoilerSettings = spoilerSettings
+        self.usesNativeClipping = usesNativeClipping
         self.video = video()
     }
 
@@ -42,6 +50,19 @@ public struct FeaturedCardArtwork<Video: View>: View {
     }
 
     public var body: some View {
+        Group {
+            if usesNativeClipping || nativeFocusSurface {
+                layers
+            } else {
+                layers.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(Text(verbatim: metadata))
+    }
+
+    private var layers: some View {
         ZStack(alignment: .bottomLeading) {
             FallbackAsyncImage(
                 references: spoilerSettings.shouldHideThumbnail(for: item)
@@ -60,10 +81,8 @@ public struct FeaturedCardArtwork<Video: View>: View {
                 MediaArtworkPlaceholder(tint: .white, glyphSize: size.width * 0.12)
             }
             .frame(width: size.width, height: size.height)
-            .clipped()
             video
                 .frame(width: size.width, height: size.height)
-                .clipped()
                 .accessibilityHidden(true)
             LinearGradient(
                 stops: [.init(color: .clear, location: 0.35),
@@ -95,17 +114,17 @@ public struct FeaturedCardArtwork<Video: View>: View {
         }
         .frame(width: size.width, height: size.height)
         .background(.black)
-        // TVCardView owns the outer rounding; a second curve exposes its backing.
-        .clipShape(RoundedRectangle(cornerRadius: nativeFocusSurface ? 0 : 20, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
-        .accessibilityValue(Text(verbatim: metadata))
     }
 }
 
 public extension FeaturedCardArtwork where Video == EmptyView {
-    init(item: MediaItem, size: CGSize, spoilerSettings: SpoilerSettings = .default) {
-        self.init(item: item, size: size, spoilerSettings: spoilerSettings) { EmptyView() }
+    init(
+        item: MediaItem, size: CGSize, spoilerSettings: SpoilerSettings = .default,
+        usesNativeClipping: Bool = false
+    ) {
+        self.init(
+            item: item, size: size, spoilerSettings: spoilerSettings, usesNativeClipping: usesNativeClipping
+        ) { EmptyView() }
     }
 }
 #endif

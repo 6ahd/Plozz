@@ -28,6 +28,7 @@ public struct FeaturedMediaRow: View {
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
     @Environment(\.plozzPinnedSidebarActive) private var pinnedSidebarActive
     @Environment(\.plozzMetrics) private var metrics
+    @Environment(\.displayScale) private var displayScale
     @Environment(\.plozzRowTitleTightening) private var titleTightening
 
     public init(
@@ -64,7 +65,7 @@ public struct FeaturedMediaRow: View {
     private var size: CGSize {
         FeaturedCardLayout.size(
             viewportWidth: viewportWidth - (television ? navigationContentInset : 0),
-            television: television
+            television: television, displayScale: displayScale
         )
     }
     private var candidate: MediaItem? {
@@ -213,8 +214,10 @@ private struct FeaturedMediaCard: View {
     @FocusState private var focused: Bool
     @Environment(\.plozzCardFocusStyle) private var focusStyle
 
-    private var artwork: some View {
-        FeaturedCardArtwork(item: item, size: size, spoilerSettings: spoilers) {
+    private func artwork(usesNativeClipping: Bool = false) -> some View {
+        FeaturedCardArtwork(
+            item: item, size: size, spoilerSettings: spoilers, usesNativeClipping: usesNativeClipping
+        ) {
             if showsVideo {
                 HeroTrailerVideoLayer(controller: controller, role: .featured)
             }
@@ -227,7 +230,7 @@ private struct FeaturedMediaCard: View {
             .mediaItemContextMenu(for: item)
             .onChange(of: focused) { _, value in onFocus(value) }
         #else
-        Button(action: onSelect) { artwork }
+        Button(action: onSelect) { artwork() }
             .buttonStyle(.plain)
             .mediaItemContextMenu(for: item)
         #endif
@@ -237,13 +240,13 @@ private struct FeaturedMediaCard: View {
     @ViewBuilder
     private var televisionControl: some View {
         if focusStyle.usesSystemEffect {
-            Button(action: onSelect) { artwork }
+            Button(action: onSelect) { artwork(usesNativeClipping: true) }
                 .buttonStyle(.card)
                 .buttonBorderShape(.roundedRectangle(radius: 20))
                 .focused($focused)
                 .frame(width: size.width, height: size.height)
         } else {
-            artwork
+            artwork()
                 .plozzFocusHalo(cornerRadius: 20, focusScale: 1.04, isFocused: focused)
                 .focusableCard(isFocused: $focused, cornerRadius: 20, action: onSelect)
                 .accessibilityLabel(Text(verbatim: item.title))

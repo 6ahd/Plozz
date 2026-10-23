@@ -177,7 +177,12 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   System-focus Featured cards use native SwiftUI card buttons rather than the
   generic hosted `TVCardView` bridge, which can retain enlarged artwork after
   held directional navigation. Artwork, overlays and live video stay in the
-  button label; non-system styles retain the shared focus fallback.
+  button label; non-system styles retain the shared focus fallback. Native
+  Featured labels remain untrimmed until the control applies its outer clip:
+  do not add separate rectangular image/video clips or a second rounded label
+  mask. TV label and control dimensions round outward to physical pixels so
+  fractional layout does not leave an uncovered raster edge. Standalone
+  previews and mobile cards keep their own outer rounded clip.
   Rails reserve the shared shadow clearance without increasing row spacing.
   Full-bleed Home artwork preserves the measured trailing title-safe inset for
   row actions. Remote-driven coverage checks resting painted sizes after rapid
