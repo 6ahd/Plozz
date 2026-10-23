@@ -321,12 +321,22 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Immediately or a duration; do not resolve localized copy into `verbatimTitle`.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
+  `inlineRange` uses a short, vertically centered track beside the label with a larger middle tick;
+  long labels retain the row's wrapping fallback instead of shrinking text.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
   bounded layout sizing for TV heroes, Showcase, and mobile heroes, from half to
   1.5 times the unchanged default with finer adjustment stops near default.
   Width/height ceilings preserve aspect ratio and available screen space. The
   local `HeroLogoSizePreview` uses the same sizing math and shared illustrated
   scenery; adjustments do not change logo cache keys or prepare another bitmap.
+- **Hero text size** — Home, Detail Page, and TV Showcase/Recommended scale text independently
+  of artwork. `metadataTextScale` scales badge fonts, icons, borders, and spacing
+  together without changing `mediaBadgeScale`'s existing compact-format styling.
+  Scope it to the metadata subtree, not buttons, cards, or whole pages.
+  The default is 1; mobile preserves Dynamic Type in addition to the chosen size.
+- **Hero scrim coverage** — `heroScrimHeightScale` extends both the analytic gradient
+  and cached texture upward from their bottom anchor, within the existing bounds
+  and before the backdrop's dissolve mask. Default coverage remains unchanged.
 - **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
   between tvOS rows sharing a container, never after the last visible row. Keep
   a control and its helper in one child view; the divider belongs after both.

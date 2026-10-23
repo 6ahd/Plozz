@@ -413,11 +413,14 @@ struct HomeHeroSettingsView: View {
             #if os(tvOS)
             HomeLayoutPicker(
                 layout: $hero.settings.style,
-                homeLogoSize: hero.settings.logoSize, showcaseLogoSize: hero.settings.showcaseLogoSize
+                homeLogoSize: hero.settings.logoSize, showcaseLogoSize: hero.settings.showcaseLogoSize,
+                homeTextSize: hero.settings.textSize, showcaseTextSize: hero.settings.showcaseTextSize
             )
             if hero.settings.style == .followsFocus {
                 SettingsControlGroup {
-                    HeroLogoSizeControl(size: $hero.settings.showcaseLogoSize, surface: .showcase)
+                    HeroLogoSizeControl(
+                        size: $hero.settings.showcaseLogoSize, textSize: $hero.settings.showcaseTextSize, surface: .showcase
+                    )
                 }
                 Toggle("Show ratings", isOn: $hero.settings.showsRatings)
                 if hero.settings.showsRatings {

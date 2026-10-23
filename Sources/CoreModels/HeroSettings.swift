@@ -83,6 +83,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
     public var style: HeroStyle
     public var logoSize: HeroLogoSize
     public var showcaseLogoSize: HeroLogoSize
+    public var textSize: HeroTextSize
+    public var showcaseTextSize: HeroTextSize
 
     /// Legacy migration input. CardCaptionSettings now owns visual card labels.
     public var showsCardCaptions: Bool
@@ -128,6 +130,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         style: HeroStyle = .carousel,
         logoSize: HeroLogoSize = .default,
         showcaseLogoSize: HeroLogoSize = .default,
+        textSize: HeroTextSize = .default,
+        showcaseTextSize: HeroTextSize = .default,
         showsCardCaptions: Bool = false,
         showsDiscoverRow: Bool = false,
         collections: [HeroCollectionSelection] = [],
@@ -154,6 +158,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         self.style = style
         self.logoSize = logoSize
         self.showcaseLogoSize = showcaseLogoSize
+        self.textSize = textSize
+        self.showcaseTextSize = showcaseTextSize
         self.showsCardCaptions = showsCardCaptions
         self.showsDiscoverRow = showsDiscoverRow
     }
@@ -167,6 +173,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         case randomLibraryKeys, autoAdvance, autoAdvanceSeconds
         case style, showsCardCaptions, showsDiscoverRow
         case logoSize, showcaseLogoSize
+        case textSize, showcaseTextSize
         case offeredSourcesVersion
         case collections, collection
     }
@@ -207,6 +214,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
             style: value(HeroStyle.self, .style, d.style),
             logoSize: value(HeroLogoSize.self, .logoSize, d.logoSize),
             showcaseLogoSize: value(HeroLogoSize.self, .showcaseLogoSize, d.showcaseLogoSize),
+            textSize: value(HeroTextSize.self, .textSize, d.textSize),
+            showcaseTextSize: value(HeroTextSize.self, .showcaseTextSize, d.showcaseTextSize),
             showsCardCaptions: value(Bool.self, .showsCardCaptions, d.showsCardCaptions),
             showsDiscoverRow: value(Bool.self, .showsDiscoverRow, d.showsDiscoverRow),
             collections: c.contains(.collections)
@@ -276,6 +285,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         try c.encode(style, forKey: .style)
         try c.encode(logoSize, forKey: .logoSize)
         try c.encode(showcaseLogoSize, forKey: .showcaseLogoSize)
+        try c.encode(textSize, forKey: .textSize)
+        try c.encode(showcaseTextSize, forKey: .showcaseTextSize)
         try c.encode(showsCardCaptions, forKey: .showsCardCaptions)
         try c.encode(showsDiscoverRow, forKey: .showsDiscoverRow)
         try c.encode(Self.currentOfferedSourcesVersion, forKey: .offeredSourcesVersion)

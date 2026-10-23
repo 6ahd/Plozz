@@ -878,6 +878,7 @@ struct HomeHeroView: View {
                 alignsArtworkToLeadingEdge: navigationStyle == .rail,
                 scrimOpacity: isFrontmost ? 1 : 0
             )
+            .environment(\.heroScrimHeightScale, settings.textSize.scrimHeightScale(logoSize: settings.logoSize))
             .heroArtworkSource(
                 id: item.id,
                 isActive: isFrontmost
@@ -1039,7 +1040,7 @@ struct HomeHeroView: View {
                     presentationPolicy: .onArrival(maximumWait: 0.2)
                 ) {
                     heroTitleText(for: item, hideText: hideText)
-                        .font(.system(size: 64, weight: .bold))
+                        .font(.system(size: 64 * settings.textSize.scale, weight: .bold))
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
                         .multilineTextAlignment(.leading)
@@ -1062,10 +1063,10 @@ struct HomeHeroView: View {
                     // or a URL into the hero. (iPadOS renders tappable links; this
                     // hero is tvOS-only.)
                     Text(heroText.overviewPlainText)
-                        .font(.system(size: 22))
+                        .font(.system(size: 22 * settings.textSize.scale))
                         .foregroundStyle(.primary)
-                        .lineSpacing(2)
-                        .lineLimit(3, reservesSpace: true)
+                        .lineSpacing(2 * settings.textSize.scale)
+                        .lineLimit(settings.textSize.descriptionLineLimit(base: 3), reservesSpace: true)
                         // Cap the tagline to the action-button row width (measured
                         // below) so it never runs wider than the buttons beneath it.
                         // Falls back to the previous fixed cap until first measured.
@@ -1090,6 +1091,7 @@ struct HomeHeroView: View {
                         .contentTransition(.opacity)
                 }
             }
+            .environment(\.metadataTextScale, settings.textSize.scale)
             .opacity(metadataVisible ? 1 : 0)
             // Snap the metadata *hide* instantly (so the outgoing text vanishes as
             // the wipe starts instead of fading out over the incoming art) while
@@ -1183,6 +1185,7 @@ struct HomeHeroView: View {
                 backgroundSample: displayedArtwork?.sample(for: item.id),
                 metadataVisible: metadataVisible,
                 logoSize: settings.logoSize,
+                textSize: settings.textSize,
                 width: HomeHeroLayout.screenWidth,
                 height: HomeHeroLayout.screenHeight - Self.contentBottomInset
             )
@@ -2534,6 +2537,7 @@ struct HomeHeroView: View {
 /// hero that follows focus.
 struct HeroMetadataLine: View {
     let item: MediaItem
+    @Environment(\.metadataTextScale) private var textScale
 
     var body: some View {
         let metadata = GenreDisplayFormatter.displayNames(for: item.genres)
@@ -2541,13 +2545,13 @@ struct HeroMetadataLine: View {
             MediaBadge($0, style: .rating)
         }
         if badge != nil || !metadata.isEmpty {
-            HStack(alignment: .center, spacing: 16) {
+            HStack(alignment: .center, spacing: 16 * textScale) {
                 if let badge {
                     MediaBadgeChip(badge: badge)
                 }
                 if !metadata.isEmpty {
                     Text(metadata.joined(separator: "  ·  "))
-                        .font(.system(size: 23, weight: .medium))
+                        .font(.system(size: 23 * textScale, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .contentTransition(.opacity)
@@ -2560,14 +2564,15 @@ struct HeroMetadataLine: View {
 /// The air-schedule badge above a hero's logo ("New episode every Wednesday").
 struct HeroScheduleBadge: View {
     let text: LocalizedStringResource
+    @Environment(\.metadataTextScale) private var textScale
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 14 * textScale, style: .continuous)
         Text(text)
-            .font(.system(size: 24, weight: .semibold))
+            .font(.system(size: 24 * textScale, weight: .semibold))
             .foregroundStyle(Color.primary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 18 * textScale)
+            .padding(.vertical, 10 * textScale)
             .background {
                 if #available(tvOS 26.0, *) {
                     shape.fill(.regularMaterial)
@@ -2575,7 +2580,7 @@ struct HeroScheduleBadge: View {
                     shape.fill(.ultraThinMaterial)
                 }
             }
-            .overlay { shape.stroke(Color.primary.opacity(0.16), lineWidth: 1) }
+            .overlay { shape.stroke(Color.primary.opacity(0.16), lineWidth: textScale) }
             .contentTransition(.opacity)
             .accessibilityLabel(text)
     }

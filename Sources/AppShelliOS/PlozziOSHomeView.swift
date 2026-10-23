@@ -1363,7 +1363,11 @@ struct PlozziOSHomeHeroCarousel: View {
                         model: pullModel,
                         style: style,
                         heroHeight: heroHeight,
-                        extendsArtwork: extendsArtwork
+                        extendsArtwork: extendsArtwork,
+                        scrimHeightScale: appModel.settings.hero.settings.textSize.scrimHeightScale(
+                            logoSize: appModel.settings.hero.settings.logoSize,
+                            descriptionLines: 2
+                        )
                     ) { pullScale in
                         ZStack {
                             if let dragTargetItem {
@@ -2088,6 +2092,7 @@ private struct PlozziOSPullResponsiveHomeBackdrop<Backdrop: View>: View {
     let style: HeroArtworkStyle
     let heroHeight: CGFloat
     var extendsArtwork: Bool = false
+    var scrimHeightScale: CGFloat = 1
     @ViewBuilder let backdrop: (CGFloat) -> Backdrop
 
     var body: some View {
@@ -2120,6 +2125,7 @@ private struct PlozziOSPullResponsiveHomeBackdrop<Backdrop: View>: View {
                 height: heroHeight,
                 extendsArtwork: extendsArtwork
             )
+            .environment(\.heroScrimHeightScale, scrimHeightScale)
         }
         // Masked BEFORE the pull offset, exactly as tvOS masks before its recede
         // lift. Applied after, the mask sits in the fixed parent space: the hero

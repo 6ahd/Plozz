@@ -8,6 +8,7 @@ import CoreUI
 @MainActor
 @Observable
 final class HeroForegroundRatingsState {
+    var textScale: CGFloat = 1
     private(set) var ratings: [ExternalRating] = []
     private(set) var familyGuidanceAge: Double?
 
@@ -22,6 +23,7 @@ private struct HeroForegroundRatingsView: View {
 
     var body: some View {
         RatingsBadgeRow(ratings: state.ratings, familyGuidanceAge: state.familyGuidanceAge)
+            .environment(\.metadataTextScale, state.textScale)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -54,6 +56,13 @@ final class HeroForegroundUIView: UIView {
     var logoSize: HeroLogoSize = .default {
         didSet {
             if oldValue != logoSize { setNeedsLayout() }
+        }
+    }
+    var textSize: HeroTextSize = .default {
+        didSet {
+            guard oldValue != textSize else { return }
+            applyTextSizing()
+            setNeedsLayout()
         }
     }
     /// Effect-less host: dots/pill render directly over the hero with no capsule.
@@ -154,39 +163,25 @@ final class HeroForegroundUIView: UIView {
         // from the image's alpha, so it must not be clipped.
         logoImageView.layer.masksToBounds = false
 
-        titleLabel.font = .systemFont(ofSize: 64, weight: .bold)
         titleLabel.numberOfLines = 2
 
-        ratingLabel.font = UIFont(name: "Bungee-Regular", size: 18)
-            ?? .systemFont(ofSize: 18, weight: .semibold)
-        ratingLabel.layer.borderWidth = 3
-        ratingLabel.layer.cornerRadius = 6
-        ratingLabel.insets = UIEdgeInsets(top: 0, left: 11, bottom: 0, right: 11)
-        ratingLabel.fixedHeight = 36
         ratingLabel.textAlignment = .center
         ratingLabel.isHidden = true
 
-        metadataLabel.font = .systemFont(ofSize: 23, weight: .medium)
         metadataLabel.numberOfLines = 1
 
         // Chrome matched to the flat idle pill rather than the detail hero's
         // material: this renderer exists because live blur re-samples the moving
         // backdrop every transition frame, and a badge that sampled would give back
         // exactly the hitch the flat styles were introduced to remove.
-        scheduleLabel.font = .systemFont(ofSize: 24, weight: .semibold)
-        scheduleLabel.insets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
-        scheduleLabel.fixedHeight = 52
         scheduleLabel.textAlignment = .center
-        scheduleLabel.layer.cornerRadius = 14
         scheduleLabel.layer.cornerCurve = .continuous
         // Without this the fill keeps its square corners and only the border is
         // rounded, so the backdrop shows through each corner.
         scheduleLabel.clipsToBounds = true
-        scheduleLabel.layer.borderWidth = HeroForegroundGlass.borderWidth
         scheduleLabel.isHidden = true
 
-        overviewLabel.font = .systemFont(ofSize: 22)
-        overviewLabel.numberOfLines = 3
+        applyTextSizing()
         ratingsHost.view!.backgroundColor = .clear
         ratingsHost.view!.isUserInteractionEnabled = false
 
@@ -210,6 +205,27 @@ final class HeroForegroundUIView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    private func applyTextSizing() {
+        let scale = CGFloat(textSize.scale)
+        overviewLabel.numberOfLines = textSize.descriptionLineLimit(base: 3)
+        titleLabel.font = .systemFont(ofSize: 64 * scale, weight: .bold)
+        metadataLabel.font = .systemFont(ofSize: 23 * scale, weight: .medium)
+        overviewLabel.font = .systemFont(ofSize: 22 * scale)
+        ratingLabel.font = UIFont(name: "Bungee-Regular", size: 18 * scale)
+            ?? .systemFont(ofSize: 18 * scale, weight: .semibold)
+        ratingLabel.layer.borderWidth = 3 * scale
+        ratingLabel.layer.cornerRadius = 6 * scale
+        ratingLabel.insets = UIEdgeInsets(top: 0, left: 11 * scale, bottom: 0, right: 11 * scale)
+        ratingLabel.fixedHeight = 36 * scale
+        ratingLabel.invalidateIntrinsicContentSize()
+        scheduleLabel.font = .systemFont(ofSize: 24 * scale, weight: .semibold)
+        scheduleLabel.insets = UIEdgeInsets(top: 0, left: 18 * scale, bottom: 0, right: 18 * scale)
+        scheduleLabel.fixedHeight = 52 * scale
+        scheduleLabel.layer.cornerRadius = 14 * scale
+        scheduleLabel.layer.borderWidth = HeroForegroundGlass.borderWidth * scale
+        scheduleLabel.invalidateIntrinsicContentSize()
+        ratingsState.textScale = scale
+    }
 
     override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
@@ -608,9 +624,9 @@ final class HeroForegroundUIView: UIView {
 
         if !ratingsHost.view!.isHidden {
             let size = ratingsHost.sizeThatFits(
-                in: CGSize(width: maxWidth, height: 52)
+                in: CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
             )
-            let h = min(max(size.height, 36), 52)
+            let h = max(size.height, 36 * textSize.scale)
             ratingsHost.view!.frame = CGRect(
                 x: leading,
                 y: y - h,
@@ -623,19 +639,19 @@ final class HeroForegroundUIView: UIView {
         // Overview above the pills (bottom-anchored: its bottom sits at y).
         if !overviewLabel.isHidden {
             let size = overviewLabel.sizeThatFits(CGSize(width: maxWidth, height: .greatestFiniteMagnitude))
-            let h = min(size.height, ceil(overviewLabel.font.lineHeight * 3))
+            let h = min(size.height, ceil(overviewLabel.font.lineHeight * CGFloat(overviewLabel.numberOfLines)))
             overviewLabel.frame = CGRect(x: leading, y: y - h, width: maxWidth, height: h)
             y -= h + columnSpacing
         }
 
         // Metadata line.
         if !metadataLabel.isHidden || !ratingLabel.isHidden {
-            let h: CGFloat = 36
+            let h: CGFloat = 36 * textSize.scale
             var x = leading
             if !ratingLabel.isHidden {
                 let rSize = ratingLabel.intrinsicContentSize
                 ratingLabel.frame = CGRect(x: x, y: y - h + (h - rSize.height) / 2, width: rSize.width, height: rSize.height)
-                x += rSize.width + 16
+                x += rSize.width + 16 * textSize.scale
             }
             if !metadataLabel.isHidden {
                 metadataLabel.frame = CGRect(x: x, y: y - h, width: maxWidth - (x - leading), height: h)

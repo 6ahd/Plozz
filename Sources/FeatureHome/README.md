@@ -5,6 +5,18 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+Home text sizing applies to both SwiftUI and persistent UIKit foregrounds.
+Detail Page, Showcase, and library Recommended have independent profile-scoped sizes.
+Title fallbacks, descriptions, metadata, and badge details scale together;
+artwork sizing, action controls, and row/card labels remain independent.
+Home and Detail descriptions may gain one line when text grows. Their scrims
+extend upward by the larger of the requested logo growth and description-height
+growth, without weakening default coverage or resizing the artwork.
+Showcase and Recommended keep their row positions and description budgets.
+Custom sizes fit the complete logo/metadata block down by one shared factor only
+when it exceeds the space above the row; the requested proportions stay intact.
+Default Recommended sizing retains its existing constrained layout.
+
 Home Continue Watching failures use the existing Details / Try Again actions on
 TV (including focus-following layouts), iPhone and iPad. The report follows the
 same failed source as the visible error and retains bounded, task-scoped HTTP,
@@ -517,9 +529,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Library Showcase measures its navigation clearance and reserves one native
   badge's height for schedule/availability-capable items before the line loads.
   The visible badge hugs the fitted logo, not unused space in its sizing slot;
-  late schedule arrival cannot resize it. Description lines give way before logo
-  space; exceptionally constrained layouts cap the logo rather than overlap
-  navigation. Pinned rows and Home's separate details footprint are unchanged.
+  late schedule arrival cannot resize it. Default sizing trims description lines
+  before constraining the logo. Custom sizing fits the logo and text together
+  within the fixed details footprint, retaining their proportions. Row motion
+  translates that block without resizing it or borrowing navigation space.
   A cold logo is adopted
   when it finishes for the still-current title, without requiring a focus round trip.
   Its title slot stays visually empty while the logo resolves; text appears only
@@ -527,7 +540,8 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Home hero and Showcase use independent `HeroSettings` logo sizes; full detail
   heroes use `DetailPageSettings.logoSize`. Both Home foreground renderers apply
   the same sizing math without reloading artwork. Defaults preserve existing sizes,
-  and text fallback fonts and the compact series-browser logo remain unchanged.
+  while text fallback fonts follow the separate text preference. The compact
+  series-browser logo remains unchanged.
   Dark coloured Showcase logos can select CoreUI's cached contrast lift against
   the leading page colour, preserving hue, saturation, white highlights, and
   the logo's geometry rather than whitening the lettering.

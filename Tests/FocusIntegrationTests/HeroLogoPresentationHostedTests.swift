@@ -13,6 +13,183 @@ import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testCombinedMaximumSizesFitTogetherWithoutCrossingNavigationOrRows() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let url = try seedLogo(size: CGSize(width: 240, height: 200))
+        defer { removeSeededLogo(url) }
+        let item = MediaItem(
+            id: "combined-sizing", title: "SIGNAL", kind: .movie,
+            overview: "Across the stars. A brave explorer follows a mysterious signal across the galaxy, "
+                + "discovering new worlds and unexpected friends along the way.",
+            officialRating: "PG", genres: ["Documentary"], logoURL: url,
+            allowsTitleBasedMetadataMatching: false
+        )
+        let row = FocusHeroRow(id: "combined-row", itemIDs: [item.stablePresentationID], leadItem: item, items: [item])
+        var settings = HeroSettings.default
+        settings.showcaseLogoSize = HeroLogoSize(rawValue: 10)
+        settings.showcaseTextSize = HeroTextSize(rawValue: 5)
+        fixture.window.rootViewController = UIHostingController(rootView:
+            Color.black.overlay {
+                Text("Documentary").font(.system(size: 23 * settings.showcaseTextSize.scale, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 900, alignment: .leading)
+            }.ignoresSafeArea()
+        )
+        try await Task.sleep(for: .milliseconds(200))
+        let referenceImage = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+            fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+        }
+        let requestedTextHeight = try XCTUnwrap(textInkFrames(in: referenceImage, terms: ["Documentary"])["Documentary"]).height
+        let requestedLogoHeight = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize).height
+        for minimumTop: CGFloat? in [nil, 120] {
+            var referenceLogo: CGRect?
+            var referenceText: CGRect?
+            for rowHeight: CGFloat in [420, 608] {
+                let model = FocusHeroModel()
+                model.record(height: rowHeight, for: row.id)
+                model.motion.height = rowHeight
+                model.seed(from: [row])
+                fixture.window.rootViewController = UIHostingController(rootView:
+                    Color.black.overlay(alignment: .topLeading) {
+                        FocusHeroColumn(
+                            model: model, metadata: FocusHeroMetadata(), enrich: nil, settings: settings,
+                            spoilerSettings: .default, navigationStyle: .rail, rows: [row], minimumDetailsTop: minimumTop
+                        )
+                    }
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.themePalette, .dark)
+                    .ignoresSafeArea()
+                )
+                try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+                try await Task.sleep(for: .milliseconds(300))
+                attachPreview(in: fixture.window, name: "combined-maximum-\(String(describing: minimumTop))-\(rowHeight)")
+                let logo = try XCTUnwrap(redBounds(in: fixture.window))
+                let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                    fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+                }
+                let frames = try textInkFrames(in: image, terms: ["Documentary", "Across the stars"])
+                let text = try XCTUnwrap(frames["Documentary"])
+                let description = try XCTUnwrap(frames["Across the stars"])
+                let commonFit = logo.height / requestedLogoHeight
+                XCTAssertLessThan(commonFit, 0.95, "The combined maximum must exercise joint fitting.")
+                XCTAssertEqual(text.height, requestedTextHeight * commonFit, accuracy: 2)
+                XCTAssertGreaterThanOrEqual(logo.minY, minimumTop ?? FocusHeroLayout.columnTop(for: .rail))
+                XCTAssertLessThan(logo.maxY, text.minY)
+                XCTAssertLessThan(text.maxY, description.minY)
+                XCTAssertLessThan(description.maxY, FocusHeroLayout.rowsBottom(rowSpacing: FocusHeroLayout.rowSpacing) - rowHeight)
+                if let referenceLogo, let referenceText {
+                    let fit = logo.height / referenceLogo.height
+                    XCTAssertEqual(fit, 1, accuracy: 0.02, "Row motion must not resize the fixed details footprint.")
+                    XCTAssertEqual(text.height, referenceText.height * fit, accuracy: 2)
+                    XCTAssertEqual(logo.width, referenceLogo.width * fit, accuracy: 2)
+                } else {
+                    referenceLogo = logo
+                    referenceText = text
+                }
+            }
+        }
+    }
+
+    func testDetailTextSizeScalesItsMetadataWithoutResizingPlay() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let suite = "DetailTextSize.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = DetailPageSettingsModel(store: DetailPageSettingsStore(defaults: defaults))
+        let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore(
+            HeroBackgroundSettings(homeTrailerEnabled: false, detailMode: .off)
+        ))
+        let item = MediaItem(
+            id: "detail-text-sizing", title: "SIGNAL", kind: .movie, overview: "Across the stars.",
+            officialRating: "PG", genres: ["Documentary"], allowsTitleBasedMetadataMatching: false
+        )
+        fixture.window.rootViewController = UIHostingController(rootView:
+            DetailHeroView(item: item, spoilerSettings: .default, playTitle: "Play", onPlay: {})
+                .environment(\.detailHeaderSettings, settings)
+                .environment(background)
+                .environment(HeroTrailerController())
+                .environment(\.colorScheme, .dark)
+                .environment(\.themePalette, .dark)
+                .background(Color.black)
+        )
+        var baseline: [String: CGFloat] = [:]
+        for step in [0, -5, 5] {
+            settings.settings.textSize = HeroTextSize(rawValue: step)
+            try await Task.sleep(for: .milliseconds(450))
+            fixture.window.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+            }
+            attachPreview(in: fixture.window, name: "detail-text-\(step)")
+            let frames = try textInkFrames(in: image, terms: ["SIGNAL", "Documentary", "Across the stars", "Play"])
+            for text in ["SIGNAL", "Documentary", "Across the stars", "Play"] {
+                let height = try XCTUnwrap(frames[text]).height
+                if step == 0 { baseline[text] = height }
+                let scale = text == "Play" ? 1 : settings.settings.textSize.scale
+                XCTAssertEqual(height, try XCTUnwrap(baseline[text]) * scale, accuracy: 3, "\(text), \(step)")
+            }
+        }
+    }
+
+    func testShowcaseAndRecommendedTextScaleInsideTheRealHostedColumn() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let item = MediaItem(
+            id: "text-sizing-fixture", title: "SIGNAL", kind: .movie,
+            overview: "Across the stars.", officialRating: "PG", genres: ["Documentary"],
+            allowsTitleBasedMetadataMatching: false
+        )
+        let row = FocusHeroRow(id: "sizing-row", itemIDs: [item.stablePresentationID], leadItem: item, items: [item])
+        let model = FocusHeroModel()
+        model.record(height: 420, for: row.id)
+        model.motion.height = 420
+        model.seed(from: [row])
+        for minimumTop: CGFloat? in [nil, 120] {
+            var baseline: [String: CGRect] = [:]
+            for step in [0, -5, 5] {
+                var settings = HeroSettings.default
+                settings.showcaseTextSize = HeroTextSize(rawValue: step)
+                fixture.window.rootViewController = UIHostingController(rootView:
+                    Color.black.overlay(alignment: .topLeading) {
+                        FocusHeroColumn(
+                            model: model, metadata: FocusHeroMetadata(), enrich: nil, settings: settings,
+                            spoilerSettings: .default, navigationStyle: .rail, rows: [row], minimumDetailsTop: minimumTop
+                        )
+                    }
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.themePalette, .dark)
+                    .ignoresSafeArea()
+                )
+                try await Task.sleep(for: .milliseconds(250))
+                fixture.window.layoutIfNeeded()
+                let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                    fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+                }
+                attachPreview(in: fixture.window, name: "hero-text-\(minimumTop == nil ? "home" : "library")-\(step)")
+                let frames = try textInkFrames(in: image, terms: ["SIGNAL", "Documentary", "Across the stars"])
+                if step == 0 { baseline = frames }
+                let effectiveScale = step > 0
+                    ? try XCTUnwrap(frames["SIGNAL"]).height / XCTUnwrap(baseline["SIGNAL"]).height
+                    : settings.showcaseTextSize.scale
+                if step > 0 {
+                    XCTAssertGreaterThan(effectiveScale, 1)
+                    XCTAssertLessThanOrEqual(effectiveScale, settings.showcaseTextSize.scale + 0.04)
+                }
+                for text in ["SIGNAL", "Documentary", "Across the stars"] {
+                    let frame = try XCTUnwrap(frames[text])
+                    XCTAssertEqual(
+                        frame.height, try XCTUnwrap(baseline[text]).height * effectiveScale,
+                        accuracy: 3, "\(text), step \(step)"
+                    )
+                    XCTAssertLessThan(frame.maxY, FocusHeroLayout.rowsBottom(rowSpacing: FocusHeroLayout.rowSpacing) - 420)
+                    if let minimumTop { XCTAssertGreaterThanOrEqual(frame.minY, minimumTop) }
+                }
+            }
+        }
+    }
+
     func testLateScheduleKeepsLogoGeometryAndHugsTrimmedArtwork() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -80,17 +257,13 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                     XCTAssertTrue(fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true))
                 }
                 attachPreview(in: fixture.window, name: "late-badge-\(minimumTop == nil ? "home" : "library")-\(shape.width)")
-                let request = VNRecognizeTextRequest()
-                request.recognitionLevel = .accurate
-                request.recognitionLanguages = ["en-US"]
-                try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-                let badge = try XCTUnwrap(request.results?.first {
-                    $0.topCandidates(1).first?.string.localizedCaseInsensitiveContains("New season") == true
-                })
-                let textBottom = (1 - badge.boundingBox.minY) * fixture.window.bounds.height
-                let gap = after.minY - textBottom
-                XCTAssertGreaterThan(gap, 16, context)
-                XCTAssertLessThan(gap, 42, "The badge must hug visible ink, not the nominal logo slot: \(context)")
+                let badge = try XCTUnwrap(textInkFrames(in: image, terms: ["New season"])["New season"])
+                let gap = after.minY - badge.maxY
+                let box = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize)
+                let unfittedWidth = shape.width * min(box.width / shape.width, box.height / shape.height)
+                let fit = after.width / unfittedWidth
+                XCTAssertGreaterThan(gap, 16 * fit - 1, context)
+                XCTAssertLessThan(gap, 42 * fit + 1, "The badge must hug visible ink, not the nominal logo slot: \(context)")
             }
         }
     }
@@ -319,21 +492,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         let focusFrame = try focusFrame(focused, in: fixture.window)
         XCTAssertEqual(focusFrame.minY - cardFrame.minY, SettingsFormMetrics.groupInset, accuracy: 1)
         XCTAssertEqual(cardFrame.maxX - focusFrame.maxX, SettingsFormMetrics.groupInset, accuracy: 1)
-        let trackStrip = CGRect(
-            x: focusFrame.minX + 14, y: focusFrame.minY + 64, width: focusFrame.width - 28, height: 24
-        ).integral
-        let pixels = try rgbaPixels(in: fixture.window, rect: trackStrip)
-        let columns = (0..<Int(trackStrip.width)).filter { x in
-            (0..<Int(trackStrip.height)).contains { y in
-                let offset = (y * Int(trackStrip.width) + x) * 4
-                return pixels[offset] < 210 && pixels[offset + 1] < 210 && pixels[offset + 2] < 210
-            }
-        }
-        XCTAssertLessThan(try XCTUnwrap(columns.first), 24)
-        XCTAssertGreaterThan(
-            try XCTUnwrap(columns.last), Int(trackStrip.width) - 24,
-            "The adjustment segments and end glyphs must fill the focused control."
-        )
+        XCTAssertLessThanOrEqual(focusFrame.height, 100, "The shorter track stays beside its label.")
         let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
             fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
         }
@@ -401,6 +560,10 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    private func textInkFrames(in image: UIImage, terms: [String]) throws -> [String: CGRect] {
+        try HeroTextInk.frames(in: image, terms: terms)
     }
 
     private func layoutWordmarkBounds(style: HeroStyle, pickerFrame: CGRect, in window: UIWindow) throws -> CGRect {
@@ -480,7 +643,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         func updateUIView(_ uiView: UIView, context: Context) {}
     }
 
-    func testShowcaseEnlargementKeepsTheLogoBaselineAndRowsFixed() async throws {
+    func testShowcaseEnlargementFitsTheExistingFootprintAndKeepsRowsFixed() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
         let url = try seedLogo(size: CGSize(width: 600, height: 100))
@@ -493,6 +656,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         )
         for navigation in [NavigationStyle.rail, .tabBar] {
             var baseline: CGRect?
+            var previousLogo: CGRect?
             var rowFrame: CGRect?
             for step in [-10, 0, 10] {
                 var settings = HeroSettings.default
@@ -514,9 +678,15 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 let row = try XCTUnwrap(colorBounds(in: fixture.window, channel: 2))
                 XCTAssertGreaterThanOrEqual(logo.minY, 0)
                 XCTAssertLessThan(logo.maxY + 100, row.minY, "Keep room for metadata above the pinned row.")
+                XCTAssertEqual(logo.width / logo.height, 6, accuracy: 0.1)
+                if let previousLogo {
+                    XCTAssertGreaterThan(logo.width, previousLogo.width, "Increasing Logo size must not shrink its artwork.")
+                }
+                previousLogo = logo
                 if let baseline, let rowFrame {
-                    XCTAssertEqual(logo.width / baseline.width, HeroLogoSize(rawValue: step).scale / 0.5, accuracy: 0.04)
-                    XCTAssertEqual(logo.maxY, baseline.maxY, accuracy: 2)
+                    XCTAssertLessThanOrEqual(
+                        logo.width / baseline.width, HeroLogoSize(rawValue: step).scale / 0.5 + 0.04
+                    )
                     XCTAssertEqual(row, rowFrame)
                 } else {
                     baseline = logo

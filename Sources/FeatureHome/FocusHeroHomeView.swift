@@ -478,16 +478,17 @@ private struct FocusHeroArtworkPrefetch: View {
 /// pinned row.
 private struct FocusHeroDetailsFootprint: View {
     let logoHeight: CGFloat
+    let textScale: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Color.clear
                 .frame(height: logoHeight)
                 .padding(.bottom, 6)
-            Text(verbatim: " ").font(.system(size: 23, weight: .medium))
+            Text(verbatim: " ").font(.system(size: 23 * textScale, weight: .medium))
             Text(verbatim: " \n \n ")
-                .font(.system(size: 22))
-                .lineSpacing(2)
+                .font(.system(size: 22 * textScale))
+                .lineSpacing(2 * textScale)
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(width: FocusHeroLayout.columnWidth, alignment: .leading)
@@ -1145,9 +1146,13 @@ struct FocusHeroColumn: View {
     @State var schedules = HeroScheduleLines()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
+    private var textScale: CGFloat { settings.showcaseTextSize.scale }
+    private var hasCustomSizing: Bool {
+        settings.showcaseLogoSize != .default || settings.showcaseTextSize != .default
+    }
 
     var body: some View {
-        FocusHeroColumnMotion(content: column, model: model)
+        FocusHeroColumnMotion(content: column.environment(\.metadataTextScale, textScale), model: model)
             .task(id: model.subject?.item.map(FocusHeroMetadata.Key.init)) {
                 guard let enrich, let item = model.subject?.item else { return }
                 await metadata.load(item, using: enrich)
@@ -1173,13 +1178,16 @@ struct FocusHeroColumn: View {
     private var standardColumn: some View {
         let top = FocusHeroLayout.columnTop(for: navigationStyle)
         let reference = FocusHeroLayout.lowestSlotTop
+        let badgeHeadroom: CGFloat = model.details?.item.map(HeroScheduleLines.canShowLine(for:)) == true
+            ? 36 * textScale + 16 : 0
         // A block of fixed height just above the pinned row, its content pinned
         // to the block's top: the logo holds one place from title to title, and a
         // longer description only reaches further down.
         // The footprint alone sets the block's size; the details are laid over
         // it, so no title can move where the logo sits.
         return FocusHeroDetailsFootprint(
-            logoHeight: HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize).height
+            logoHeight: HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize).height,
+            textScale: textScale
         )
             .hidden()
             .overlay(alignment: .topLeading) {
@@ -1193,6 +1201,11 @@ struct FocusHeroColumn: View {
                 if model.detailsSwapWithRow { transaction.animation = nil }
             }
         .frame(width: FocusHeroLayout.columnWidth, alignment: .topLeading)
+        .padding(.top, badgeHeadroom)
+        .modifier(FocusHeroContentFit(
+            availableHeight: hasCustomSizing ? FocusHeroLayout.detailsFootprintHeight : .infinity
+        ))
+        .padding(.top, -badgeHeadroom)
         // Keep Home's proposal around the complete block; framing the footprint
         // before its overlay would move the details into its unused space.
         .frame(height: FocusHeroLayout.detailsFootprintHeight, alignment: .bottomLeading)
@@ -1215,27 +1228,24 @@ struct FocusHeroColumn: View {
             if let item = model.details?.item {
                 let item = metadata.item(for: item)
                 let box = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize)
-                FocusHeroConstrainedDetailsLayout(logoHeight: box.height) {
-                    if HeroScheduleLines.canShowLine(for: item) {
-                        // Reserve the native badge height before its data arrives.
-                        HeroScheduleBadge(text: "Upcoming")
-                            .lineLimit(1)
-                            .hidden()
-                            .accessibilityHidden(true)
+                Group {
+                    if hasCustomSizing {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if HeroScheduleLines.canShowLine(for: item) {
+                                HeroScheduleBadge(text: "Upcoming")
+                                    .lineLimit(1)
+                                    .hidden()
+                                    .accessibilityHidden(true)
+                                    .padding(.bottom, 16)
+                            }
+                            itemColumn(item)
+                        }
+                        .frame(width: FocusHeroLayout.columnWidth, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .modifier(FocusHeroContentFit(availableHeight: max(0, bottom - minimumTop)))
+                        .frame(height: max(0, bottom - top), alignment: .bottomLeading)
                     } else {
-                        Color.clear.frame(height: 0)
-                    }
-                    GeometryReader { geometry in
-                        let scale = min(1, geometry.size.height / box.height)
-                        itemLogo(item, box: CGSize(width: box.width * scale, height: box.height * scale))
-                    }
-                    ViewThatFits(in: .vertical) {
-                        itemDetails(item, descriptionLines: 3)
-                            .fixedSize(horizontal: false, vertical: true)
-                        itemDetails(item, descriptionLines: 1)
-                            .fixedSize(horizontal: false, vertical: true)
-                        itemDetails(item, descriptionLines: 0)
-                            .fixedSize(horizontal: false, vertical: true)
+                        defaultConstrainedColumn(item: item, box: box)
                     }
                 }
                 .frame(width: FocusHeroLayout.columnWidth, height: max(0, bottom - top))
@@ -1251,6 +1261,32 @@ struct FocusHeroColumn: View {
         .allowsHitTesting(false)
     }
 
+    private func defaultConstrainedColumn(item: MediaItem, box: CGSize) -> some View {
+        FocusHeroConstrainedDetailsLayout(logoHeight: box.height) {
+            if HeroScheduleLines.canShowLine(for: item) {
+                // Reserve the native badge height before its data arrives.
+                HeroScheduleBadge(text: "Upcoming")
+                    .lineLimit(1)
+                    .hidden()
+                    .accessibilityHidden(true)
+            } else {
+                Color.clear.frame(height: 0)
+            }
+            GeometryReader { geometry in
+                let scale = min(1, geometry.size.height / box.height)
+                itemLogo(item, box: CGSize(width: box.width * scale, height: box.height * scale))
+            }
+            ViewThatFits(in: .vertical) {
+                itemDetails(item, descriptionLines: 3)
+                    .fixedSize(horizontal: false, vertical: true)
+                itemDetails(item, descriptionLines: 1)
+                    .fixedSize(horizontal: false, vertical: true)
+                itemDetails(item, descriptionLines: 0)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     @ViewBuilder
     private func content(for subject: FocusHeroSubject) -> some View {
         switch subject {
@@ -1259,25 +1295,25 @@ struct FocusHeroColumn: View {
         case .liveChannel(let channel):
             VStack(alignment: .leading, spacing: 12) {
                 Label("Live TV", systemImage: "antenna.radiowaves.left.and.right")
-                    .font(.system(size: 23, weight: .semibold))
+                    .font(.system(size: 23 * textScale, weight: .semibold))
                 Text(verbatim: channel.name)
-                    .font(.system(size: 64, weight: .bold))
+                    .font(.system(size: 64 * textScale, weight: .bold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                 Text(verbatim: channel.sourceName)
-                    .font(.system(size: 23, weight: .medium))
+                    .font(.system(size: 23 * textScale, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
         case .library(let library):
             VStack(alignment: .leading, spacing: 12) {
                 library.library.displayName
-                    .font(.system(size: 64, weight: .bold))
+                    .font(.system(size: 64 * textScale, weight: .bold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                 if !library.serverName.isEmpty {
                     Text(verbatim: library.serverName)
-                        .font(.system(size: 23, weight: .medium))
+                        .font(.system(size: 23 * textScale, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1306,7 +1342,7 @@ struct FocusHeroColumn: View {
             haloStyle: .showcase
         ) {
             title(for: item, hideText: spoilerSettings.shouldHideText(for: item))
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64 * textScale, weight: .bold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.leading)
@@ -1343,9 +1379,9 @@ struct FocusHeroColumn: View {
                     // The ratings row takes the room of two description lines.
                     Text(description.overviewPlainText)
                         .accessibilityIdentifier("showcase-description")
-                        .font(.system(size: 22))
+                        .font(.system(size: 22 * textScale))
                         .foregroundStyle(.primary)
-                        .lineSpacing(2)
+                        .lineSpacing(2 * textScale)
                         .lineLimit(showsRatings ? 1 : descriptionLines)
                         .frame(maxWidth: 820, alignment: .topLeading)
                         .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
@@ -1383,6 +1419,17 @@ struct FocusHeroColumn: View {
             return Text(spoilerSettings.maskedTitle(for: item))
         }
         return Text(verbatim: item.title)
+    }
+}
+
+struct FocusHeroContentFit: ViewModifier {
+    let availableHeight: CGFloat
+
+    func body(content: Content) -> some View {
+        content.visualEffect { effect, geometry in
+            let scale = min(1, max(0, availableHeight) / max(1, geometry.size.height))
+            return effect.scaleEffect(scale, anchor: .bottomLeading)
+        }
     }
 }
 

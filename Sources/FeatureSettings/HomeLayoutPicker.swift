@@ -9,6 +9,8 @@ struct HomeLayoutPicker: View {
     @Binding var layout: HeroStyle
     var homeLogoSize: HeroLogoSize = .default
     var showcaseLogoSize: HeroLogoSize = .default
+    var homeTextSize: HeroTextSize = .default
+    var showcaseTextSize: HeroTextSize = .default
     @State private var width: CGFloat = 0
 
     private static let spacing: CGFloat = 16
@@ -29,6 +31,7 @@ struct HomeLayoutPicker: View {
                     isSelected: layout == option,
                     swatchHeight: swatchHeight,
                     logoSize: option == .carousel ? homeLogoSize : showcaseLogoSize,
+                    textSize: option == .carousel ? homeTextSize : showcaseTextSize,
                     action: { layout = option }
                 )
             }

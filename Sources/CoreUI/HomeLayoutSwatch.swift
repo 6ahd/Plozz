@@ -32,12 +32,16 @@ public struct HomeLayoutSwatch: View {
     private let style: HeroStyle
     private let cornerRadius: CGFloat
     private let logoSize: HeroLogoSize?
+    private let textSize: HeroTextSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(style: HeroStyle, cornerRadius: CGFloat = 16, logoSize: HeroLogoSize? = nil) {
+    public init(
+        style: HeroStyle, cornerRadius: CGFloat = 16, logoSize: HeroLogoSize? = nil, textSize: HeroTextSize = .default
+    ) {
         self.style = style
         self.cornerRadius = cornerRadius
         self.logoSize = logoSize
+        self.textSize = textSize
     }
 
     private static let screen = CGSize(width: 1920, height: 1080)
@@ -62,21 +66,23 @@ public struct HomeLayoutSwatch: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: logoSize)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: textSize)
         .accessibilityHidden(true)
     }
 
     // MARK: Fullscreen Hero
 
     private var spotlight: some View {
-        ZStack(alignment: .topLeading) {
+        let scale = CGFloat(textSize.scale)
+        return ZStack(alignment: .topLeading) {
             HomePreviewBackdrop(style: .carousel, size: Self.screen)
             if let logoSize {
                 wordmark(size: logoSize, baseline: 656)
             } else {
                 block(144, 608, 500, 48, wordmark: true)
             }
-            block(144, 686, 360, 22)
-            block(144, 732, 280, 18)
+            block(144, 686, 360 * scale, 22 * scale)
+            block(144, 686 + 22 * scale + 24, 280 * scale, 18 * scale)
             // Play, then the round Watchlist, More Info and Next actions.
             Capsule().fill(Color.white).frame(width: 168, height: 74).offset(x: 140, y: 782)
             ForEach(0..<3, id: \.self) { index in
@@ -101,16 +107,17 @@ public struct HomeLayoutSwatch: View {
     // MARK: Showcase
 
     private var immersive: some View {
-        ZStack(alignment: .topLeading) {
+        let scale = CGFloat(textSize.scale)
+        return ZStack(alignment: .topLeading) {
             HomePreviewBackdrop(style: .followsFocus, size: Self.screen)
             if let logoSize {
                 wordmark(size: logoSize, baseline: 256)
             } else {
                 block(144, 160, 420, 96, wordmark: true)
             }
-            block(144, 282, 300, 22)
-            block(144, 326, 640, 18)
-            block(144, 358, 480, 18)
+            block(144, 282, 300 * scale, 22 * scale)
+            block(144, 282 + 22 * scale + 22, 640 * scale, 18 * scale)
+            block(144, 282 + 40 * scale + 36, 480 * scale, 18 * scale)
             block(144, 560, 280, 30)
             cards(y: 640, height: 270, focusedFirst: true)
             block(144, 976, 200, 30)

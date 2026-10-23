@@ -343,7 +343,7 @@ struct DetailPageDetailView: View {
         if let detailHeaderSettings {
             rows.insert(SettingsSplitRow(
                 id: "detail-page-logo-size",
-                title: "Logo size"
+                title: "Logo & text size"
             ) {
                 DetailLogoSizeSettingsForm(model: detailHeaderSettings)
             }, at: 0)
@@ -368,7 +368,7 @@ private struct DetailLogoSizeSettingsForm: View {
     @Bindable var model: DetailPageSettingsModel
 
     var body: some View {
-        HeroLogoSizeControl(size: $model.settings.logoSize, surface: .detail)
+        HeroLogoSizeControl(size: $model.settings.logoSize, textSize: $model.settings.textSize, surface: .detail)
     }
 }
 

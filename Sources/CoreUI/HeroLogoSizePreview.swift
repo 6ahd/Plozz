@@ -6,15 +6,18 @@ public struct HeroLogoSizePreview: View {
     let size: HeroLogoSize
     let surface: HeroLogoSizing.Surface
     let layout: HeroLogoSizing.Layout
+    let textSize: HeroTextSize
     let cornerRadius: CGFloat
 
     public init(
         size: HeroLogoSize, surface: HeroLogoSizing.Surface, layout: HeroLogoSizing.Layout,
+        textSize: HeroTextSize = .default,
         cornerRadius: CGFloat = PlozzTheme.Metrics.Radius.content
     ) {
         self.size = size
         self.surface = surface
         self.layout = layout
+        self.textSize = textSize
         self.cornerRadius = cornerRadius
     }
 
@@ -40,6 +43,7 @@ public struct HeroLogoSizePreview: View {
     }
 
     private var scene: some View {
+        let textScale = CGFloat(textSize.scale)
         let leading: CGFloat = mobile ? 22 : 144
         let wordmark = HeroLogoPreviewWordmark(
             size: size, layout: layout, availableWidth: mobile ? screen.width - leading * 2 : .infinity
@@ -66,13 +70,13 @@ public struct HeroLogoSizePreview: View {
             }
             wordmark
                 .offset(x: x, y: baseline - fitted.height)
-            VStack(alignment: .leading, spacing: mobile ? 10 : 22) {
+            VStack(alignment: .leading, spacing: (mobile ? 10 : 22) * textScale) {
                 Capsule().fill(.white.opacity(0.5))
-                    .frame(width: mobile ? 160 : 300, height: mobile ? 5 : 18)
+                    .frame(width: (mobile ? 160 : 300) * textScale, height: (mobile ? 5 : 18) * textScale)
                 Capsule().fill(.white.opacity(0.3))
-                    .frame(width: mobile ? 250 : 480, height: mobile ? 5 : 18)
+                    .frame(width: (mobile ? 250 : 480) * textScale, height: (mobile ? 5 : 18) * textScale)
                 Capsule().fill(.white.opacity(0.3))
-                    .frame(width: mobile ? 210 : 400, height: mobile ? 5 : 18)
+                    .frame(width: (mobile ? 210 : 400) * textScale, height: (mobile ? 5 : 18) * textScale)
                 if surface != .showcase {
                     HStack(spacing: mobile ? 12 : 24) {
                         Capsule().fill(.white.opacity(0.85))
@@ -83,7 +87,7 @@ public struct HeroLogoSizePreview: View {
                     .padding(.top, mobile ? 4 : 12)
                 }
             }
-            .offset(x: layout == .compact ? (screen.width - 250) / 2 : leading, y: baseline + (mobile ? 16 : 28))
+            .offset(x: layout == .compact ? (screen.width - 250 * textScale) / 2 : leading, y: baseline + (mobile ? 16 : 28))
             if !mobile {
                 HStack(spacing: 32) {
                     ForEach(0..<5) { _ in

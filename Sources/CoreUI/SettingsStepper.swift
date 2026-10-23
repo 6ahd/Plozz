@@ -25,6 +25,7 @@ public struct SettingsStepper<Value: Hashable>: View {
     private let labelWidth: CGFloat
     private let rangeLabels: (LocalizedStringResource, LocalizedStringResource)?
     private let rangeMidpointLabel: LocalizedStringResource?
+    private let inlineRange: Bool
 
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedButton: StepperButton?
@@ -48,11 +49,13 @@ public struct SettingsStepper<Value: Hashable>: View {
         labelWidth: CGFloat = 240,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
         rangeMidpointLabel: LocalizedStringResource? = nil,
+        inlineRange: Bool = false,
         title: @escaping (Value) -> LocalizedStringResource
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
                   labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  inlineRange: inlineRange,
                   textTitle: { Text(title($0)) })
     }
 
@@ -70,11 +73,13 @@ public struct SettingsStepper<Value: Hashable>: View {
         labelWidth: CGFloat = 240,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
         rangeMidpointLabel: LocalizedStringResource? = nil,
+        inlineRange: Bool = false,
         verbatimTitle: @escaping (Value) -> String
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
                   labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  inlineRange: inlineRange,
                   textTitle: { Text(verbatim: verbatimTitle($0)) })
     }
 
@@ -89,6 +94,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         labelWidth: CGFloat = 240,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
         rangeMidpointLabel: LocalizedStringResource? = nil,
+        inlineRange: Bool = false,
         textTitle: @escaping (Value) -> Text
     ) {
         self.options = options
@@ -101,6 +107,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.labelWidth = labelWidth
         self.rangeLabels = rangeLabels
         self.rangeMidpointLabel = rangeMidpointLabel
+        self.inlineRange = inlineRange
         self.title = textTitle
     }
 
@@ -207,7 +214,7 @@ public struct SettingsStepper<Value: Hashable>: View {
     private var televisionButton: some View {
         Button { step(by: 1) } label: {
             if let label {
-                if compact && rangeLabels != nil {
+                if compact && rangeLabels != nil && !inlineRange {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(label).font(SettingsRowMetrics.titleFont)
                         if let subtitle {
@@ -243,7 +250,22 @@ public struct SettingsStepper<Value: Hashable>: View {
     }
 
     @ViewBuilder private var adjustmentValue: some View {
-        if let rangeLabels {
+        if rangeLabels != nil, inlineRange {
+            HStack(spacing: 12) {
+                adjustmentGlyph("minus", enabled: canDecrement)
+                HStack(spacing: 4) {
+                    ForEach(options.indices, id: \.self) { position in
+                        Capsule()
+                            .fill(.primary.opacity(position <= index ? 1 : 0.2))
+                            .frame(height: position == options.count / 2 ? 10 : 6)
+                    }
+                }
+                .frame(width: 180)
+                adjustmentGlyph("plus", enabled: canIncrement)
+            }
+            .environment(\.layoutDirection, .leftToRight)
+            .accessibilityHidden(true)
+        } else if let rangeLabels {
             HStack(alignment: .top, spacing: 12) {
                 adjustmentGlyph("minus", enabled: canDecrement)
                 VStack(spacing: 0) {

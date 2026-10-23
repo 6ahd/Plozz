@@ -402,6 +402,8 @@ struct DetailHeroView: View, Equatable {
         HeroLogoLayout.box(size: detailHeaderSettings?.settings.logoSize ?? .default)
     }
 
+    private var textScale: CGFloat { headerRatingPreferences.textSize.scale }
+
     // MARK: - Visible item actions (discoverability)
 
     /// The subject of watched-state actions: the play target when it differs from
@@ -506,12 +508,12 @@ struct DetailHeroView: View, Equatable {
     /// button: there is nothing to press.
     @ViewBuilder
     private func scheduleBadge(_ text: LocalizedStringResource) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 14 * textScale, style: .continuous)
         Text(text)
-            .font(.system(size: 24, weight: .semibold))
+            .font(.system(size: 24 * textScale, weight: .semibold))
             .foregroundStyle(Color.primary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 18 * textScale)
+            .padding(.vertical, 10 * textScale)
             .background {
                 if #available(tvOS 26.0, *) {
                     shape.fill(.regularMaterial)
@@ -520,7 +522,7 @@ struct DetailHeroView: View, Equatable {
                 }
             }
             .overlay {
-                shape.stroke(Color.primary.opacity(0.16), lineWidth: 1)
+                shape.stroke(Color.primary.opacity(0.16), lineWidth: textScale)
             }
             .padding(.bottom, 6)
             .contentTransition(.opacity)
@@ -864,7 +866,7 @@ struct DetailHeroView: View, Equatable {
                !isYearOnlySubtitle(subtitle),
                item.kind != .episode {
                 Text(subtitle)
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 26 * textScale, weight: .medium))
                     .plozzForeground(.secondary)
                     .lineLimit(1)
                     .contentTransition(.opacity)
@@ -887,18 +889,19 @@ struct DetailHeroView: View, Equatable {
             // subtitle above — an always-present container costs a spacing gap even
             // with nothing in it.
             if heroRatingBadge != nil || !genreParts.isEmpty {
-                HStack(alignment: .center, spacing: 16) {
+                HStack(alignment: .center, spacing: 16 * textScale) {
                     if let badge = heroRatingBadge {
                         MediaBadgeChip(badge: badge)
                     }
                     if !genreParts.isEmpty {
                         Text(genreParts.joined(separator: "  ·  "))
-                            .font(.system(size: 23, weight: .medium))
+                            .font(.system(size: 23 * textScale, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                             .contentTransition(.opacity)
                     }
                 }
+                .environment(\.metadataTextScale, textScale)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .detailEntranceStage(.metadata)
             }
@@ -910,7 +913,9 @@ struct DetailHeroView: View, Equatable {
                 ),
                 hidesSpoilers: hideText,
                 mode: spoilerSettings.mode,
-                lineCount: 3,
+                lineCount: headerRatingPreferences.textSize.descriptionLineLimit(base: 3),
+                fontSize: 22 * textScale,
+                lineSpacing: 2 * textScale,
                 maxWidth: 800,
                 reservesSpace: false
             )
@@ -937,6 +942,7 @@ struct DetailHeroView: View, Equatable {
                         familyGuidanceAge: heroFamilyGuidanceAge,
                         featureBadges: featureBadges
                     )
+                    .environment(\.metadataTextScale, textScale)
                 }
             }
             .detailEntranceStage(.metadata)
@@ -1078,7 +1084,7 @@ struct DetailHeroView: View, Equatable {
                !starringCastValues.isEmpty
                 || !directorValues.isEmpty
                 || !animeStudioValues.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8 * textScale) {
                     if !animeStudioValues.isEmpty {
                         DetailHeroCreditLine(
                             label: "Studio",
@@ -1103,7 +1109,7 @@ struct DetailHeroView: View, Equatable {
                         )
                     }
                 }
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 24 * textScale, weight: .semibold))
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: 440, alignment: .trailing)
                 .shadow(color: .black.opacity(colorScheme == .light ? 0.22 : 0.55), radius: 5, y: 1)
@@ -1231,6 +1237,10 @@ struct DetailHeroView: View, Equatable {
             showsTrailer: heroBackground.settings.detailMode == .trailer
                 && heroTrailerController.isShowing((backdropItem ?? item).id)
                 && heroTrailerController.isPlaying
+        )
+        .environment(
+            \.heroScrimHeightScale,
+            headerRatingPreferences.textSize.scrimHeightScale(logoSize: headerRatingPreferences.logoSize)
         )
     }
 
@@ -1727,13 +1737,13 @@ struct DetailHeroView: View, Equatable {
                     seriesBreadcrumb(show, action: action)
                 } else {
                     Text(show)
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.system(size: 30 * textScale, weight: .semibold))
                         .plozzForeground(.secondary)
                         .lineLimit(1)
                 }
             }
             title
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64 * textScale, weight: .bold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.leading)
@@ -1890,19 +1900,20 @@ private struct DetailHeroFactsRow: View {
     let ratings: [ExternalRating]
     let familyGuidanceAge: Double?
     let featureBadges: [MediaBadge]
+    @Environment(\.metadataTextScale) private var textScale
 
     var body: some View {
         WrappingHStackLayout(
             alignment: .leading,
-            spacing: 16,
-            lineSpacing: 8
+            spacing: 16 * textScale,
+            lineSpacing: 8 * textScale
         ) {
             if !facts.isEmpty {
                 // Year and runtime sit with the ratings and capability badges,
                 // which are all full-strength, so holding these at `.secondary`
                 // made the one text item in the row look faded next to them.
                 Text(facts.joined(separator: "  ·  "))
-                    .font(.system(size: 23, weight: .medium))
+                    .font(.system(size: 23 * textScale, weight: .medium))
                     .plozzForeground(.primary)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
