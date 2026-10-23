@@ -41,9 +41,11 @@ public final class AccountReauthenticationModel {
             try store.replaceAuthenticatedSession(session, expected: account)
         } catch {
             PlozzLog.auth.error("Unable to persist recovered server account")
-            errorMessage = error as? AppError == .conflict
-                ? "This connection changed. Close sign-in and try again."
-                : "Couldn’t save the sign-in. Your existing connection has not been removed. Try again."
+            if error as? AppError == .conflict {
+                errorMessage = "This connection changed. Close sign-in and try again."
+            } else {
+                errorMessage = "Couldn’t save the sign-in. Your existing connection has not been removed. Try again."
+            }
             throw error
         }
         isActive = false

@@ -70,7 +70,10 @@ private struct AccountRecoveryHeading: View {
                 ProviderBrandMark(provider: provider, size: min(logoSize, 88))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Reconnect to \(provider.displayName)")
+                    Text(
+                        "Reconnect to \(provider.displayName)",
+                        comment: "Account-recovery heading. The placeholder is a provider name, such as Plex or Jellyfin."
+                    )
                         .font(.title2.bold())
                         .plozzForeground(.primary)
                         .accessibilityAddTraits(.isHeader)
