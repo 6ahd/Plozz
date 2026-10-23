@@ -107,7 +107,7 @@ struct LiveTVAutomaticChannelsSection: View {
     var body: some View {
         SettingsSectionGroup("Automatic lineup") {
             LiveTVAutomaticChannelsToggle(
-                state: state, canManage: canManage, title: "Enable Plozz channels", action: action
+                state: state, canManage: canManage, action: action
             )
             LiveTVAutomaticChannelsStatusView(state: state)
             if (state.enabled || state.issue != nil), !state.isWorking {
@@ -138,13 +138,13 @@ struct LiveTVAutomaticChannelsOverview: View {
     var body: some View {
         SettingsSectionGroup("Plozz channels") {
             LiveTVAutomaticChannelsToggle(
-                state: state, canManage: canManage, title: "Automatic channels", action: action
+                state: state, canManage: canManage, action: action
             )
             if state.isWorking || state.issue != nil || !state.unavailableSources.isEmpty {
                 LiveTVAutomaticChannelsStatusView(state: state)
             }
             Button(action: manage) {
-                SettingsRowLabel(icon: "sparkles.tv", title: "Manage Plozz channels", secondary: {
+                SettingsRowLabel(icon: "sparkles.tv", title: "Manage channels", secondary: {
                     if state.enabled {
                         Text("\(state.channelCount) automatic channels")
                             .settingsRowSecondary()
@@ -161,8 +161,6 @@ struct LiveTVAutomaticChannelsOverview: View {
             }
             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
             .accessibilityIdentifier("live-tv-manage-library-channels")
-        } footer: {
-            Text("Channels made from your movies and shows.")
         }
     }
 }
@@ -170,7 +168,6 @@ struct LiveTVAutomaticChannelsOverview: View {
 private struct LiveTVAutomaticChannelsToggle: View {
     let state: LiveTVAutomaticChannelsState
     let canManage: @MainActor () -> Bool
-    let title: LocalizedStringResource
     let action: LiveTVAutomaticChannelsAction
     @State private var update: Task<Void, Never>?
 
@@ -183,7 +180,7 @@ private struct LiveTVAutomaticChannelsToggle: View {
                 }
             }
         )) {
-            Text(title)
+            Text("Auto-create channels from your libraries")
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
         }

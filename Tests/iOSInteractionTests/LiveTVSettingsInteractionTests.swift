@@ -120,12 +120,14 @@ final class LiveTVSettingsInteractionTests: XCTestCase {
         XCTAssertTrue(add.waitForExistence(timeout: 5))
         let automatic = app.switches["live-tv-automatic-enabled"]
         tapVisible(automatic, in: app)
+        XCTAssertTrue(automatic.label.contains("Auto-create channels from your libraries"))
+        XCTAssertFalse(app.staticTexts["Channels made from your movies and shows."].exists)
         XCTAssertEqual(automatic.value as? String, "1")
         XCTAssertEqual(app.staticTexts["fixture-automatic-metrics"].label, "Enabled true changes 1 retries 0")
         automatic.tap()
         XCTAssertEqual(automatic.value as? String, "0")
         XCTAssertEqual(app.staticTexts["fixture-automatic-metrics"].label, "Enabled false changes 2 retries 0")
-        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].exists)
+        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].label.contains("Manage channels"))
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "live-tv-overview"
         attachment.lifetime = .keepAlways

@@ -567,9 +567,10 @@ Their identity comes from the active profile's account metadata, not their
 user-entered name or a credential lookup while rendering. Unavailable account
 metadata retains the generic server icon.
 Each source opens its controls and diagnostics on a child page with Back.
-**Plozz channels** follows the sources, with the guarded **Automatic channels**
-switch and a separate **Manage Plozz channels** action. Turning automatic channels
-off leaves custom channels available. **Guide & browsing** labels its root picker
+**Plozz channels** follows the sources, with the guarded **Auto-create channels from
+your libraries** switch and a separate **Manage channels** action. The toggle label
+explains the action directly, without a detached section footer. Turning automatic
+channels off leaves custom channels available. **Guide & browsing** labels its root picker
 **Live TV opens to**, with Categories or Guide as its value. It keeps the start view
 on the root and groups channel order, guide preferences, and channel visibility
 on child pages. Mobile retains its network playback preference. **Tools** contains

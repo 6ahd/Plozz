@@ -1655,8 +1655,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                        "The retained root must not accept input behind Add source.\n\(app.debugDescription)")
         capture("live-tv-add-source-page", in: app)
         XCUIRemote.shared.press(.menu)
-        try focus(app.switches["live-tv-automatic-enabled"], in: app)
-        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].exists)
+        let automatic = app.switches["live-tv-automatic-enabled"]
+        try focus(automatic, in: app)
+        XCTAssertTrue(automatic.label.contains("Auto-create channels from your libraries"))
+        let automaticTitle = automatic.staticTexts["Auto-create channels from your libraries"].firstMatch
+        XCTAssertTrue(automaticTitle.exists)
+        XCTAssertLessThanOrEqual(automaticTitle.frame.height, 40,
+                                "The TV label should fit on one line without shrinking.")
+        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].label.contains("Manage channels"))
+        XCTAssertFalse(app.staticTexts["Channels made from your movies and shows."].exists)
+        capture("live-tv-automatic-action-label", in: app)
         for identifier in ["live-tv-channel-order", "live-tv-guide-preferences", "live-tv-channel-visibility"] {
             let row = app.buttons[identifier]
             try focus(row, in: app)
