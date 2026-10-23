@@ -1098,6 +1098,17 @@ to temporarily unavailable servers are retained, but cannot play without
 current library authority. Media-share libraries are not yet supported by
 the automatic channel generator.
 
+Automatic scans skip individual items with invalid scheduling metadata as well
+as missing or invalid durations, and show the skipped-item count in management.
+Only validated native identities and metadata enter saved schedules; rejected
+values are never repaired by guessing or logged. Page diagnostics contain only
+item type, offset and counts. Source identities are checked before paging.
+Malformed responses and unstable pagination discard that server's incomplete
+scan, report it as unavailable and allow healthy servers to finish. An entirely
+malformed scan retains the server's saved groups instead of treating it as an
+empty library. Access changes, cancellation, catalogue limits and publication
+failures still stop publication. Custom-channel previews remain strict.
+
 Preparation reports the current server/library, actual page counts and total
 library items checked, followed by building-channel and saving-guide stages.
 The progress bar belongs to the current library/item type, not an invented
