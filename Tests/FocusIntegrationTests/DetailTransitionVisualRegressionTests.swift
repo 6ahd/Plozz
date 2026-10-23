@@ -1118,6 +1118,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let scene = try await activeScene()
         let fixture = FocusReturnFixture(scene: scene)
         defer { fixture.close() }
+        try await waitUntil { fixture.controller.hasAppeared }
         fixture.source.prepare(for: fixture.item)
         let session = TVDetailEntranceSession()
         session.attach(to: fixture.window, enabled: true)
@@ -1127,7 +1128,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             references: [], height: 1080, scrimTone: .black, ignoresOverscan: false
         ).environment(\.detailEntranceSession, session))
         host.view.backgroundColor = .black
-        fixture.window.rootViewController = host
+        fixture.controller.addChild(host)
+        host.view.frame = fixture.controller.view.bounds
+        fixture.controller.view.addSubview(host.view)
+        host.didMove(toParent: fixture.controller)
         host.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(300))
         let screenshot = DetailTransitionSnapshot.image(of: fixture.window)
@@ -1545,6 +1549,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let card = FocusScaledArtworkButton(type: .custom)
         let other = UIButton(type: .system)
         var prefersCard = true
+        private(set) var hasAppeared = false
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            hasAppeared = true
+        }
 
         override var preferredFocusEnvironments: [any UIFocusEnvironment] {
             [prefersCard ? card : other]

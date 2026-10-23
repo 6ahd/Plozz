@@ -340,6 +340,16 @@ Profile alignment uses OCR to locate each title, then measures its rendered ink:
 character boxes can interpolate across an adjacent icon misrecognized as text.
 Copy, minimum glyph sizes, and alignment tolerances remain asserted.
 
+Hero return-focus checks wait for the native handoff before synchronous OCR,
+then still require the focused frame to contain the originating link. Backdrop
+fixtures mount their overlay with normal child-controller containment after the
+source controller has appeared; replacing a root during its appearance can leave
+UIKit focus postponed in subsequent tests. Episode fixtures declare Browse as
+their native default entry and wait for its actual focus, not just its SwiftUI
+binding while a row still owns focus. Their
+window-handoff coverage also returns to Browse and waits for native focus
+animations to finish, ensuring an earlier entry request cannot steal focus back.
+
 `PlayerSkipMarkerHostedTests` compares one live scrub track before and after
 adding skip boundaries, at the same screen coordinates. Separate native-glass
 instances at different positions are not pixel-identical reference materials.
