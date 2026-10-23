@@ -1184,7 +1184,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         if let sources {
             switch destination {
             case .addPlaylist:
-                LiveTVSourceAccessGate(model: sources) {
+                LiveTVSourceAccessGate(model: sources) { _ in
                     LiveTVPlaylistEditor { input in
                         let previous = Set(sources.configuration.playlists.map(\.id))
                         try sources.savePlaylist(input: input)
@@ -1195,7 +1195,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     }
                 }
             case .serverSetup:
-                LiveTVSourceAccessGate(model: sources) {
+                LiveTVSourceAccessGate(model: sources) { _ in
                     LiveTVServerSetupView(
                         sources: sources, choices: serverChoices,
                         resolver: serverProviderResolver,
@@ -1230,7 +1230,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     }
                 }
                 .navigationDestination(isPresented: $showsScanSources) {
-                    LiveTVSourceAccessGate(model: sources) {
+                    LiveTVSourceAccessGate(model: sources) { _ in
                         if scanBinding.issue != nil {
                             LiveTVSettingsPage(title: "Check channels") {
                                 SettingsSectionGroup {

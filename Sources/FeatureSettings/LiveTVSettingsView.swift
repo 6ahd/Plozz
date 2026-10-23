@@ -7,17 +7,14 @@ import SwiftUI
 /// Profile-scoped channel browsing preferences for Live TV.
 public struct LiveTVSettingsView: View {
     private let store: any LiveTVViewSettingsStoring
-    private let sourceManagement: (() -> AnyView)?
+    private let sourceManagement: ((AnyView) -> AnyView)?
     @State private var settings: LiveTVViewSettings
     @State private var hiddenChannelsModel: LiveTVHiddenChannelsSettingsModel
-    #if os(tvOS)
-    @Environment(\.settingsInWorkspace) private var inWorkspace
-    #endif
 
     public init(
         store: any LiveTVViewSettingsStoring = LiveTVViewSettingsStore(),
         preferencesStore: any LiveTVPreferencesStoring = LiveTVPreferencesStore(),
-        sourceManagement: (() -> AnyView)? = nil
+        sourceManagement: ((AnyView) -> AnyView)? = nil
     ) {
         self.store = store
         self.sourceManagement = sourceManagement
@@ -28,198 +25,173 @@ public struct LiveTVSettingsView: View {
     }
 
     public var body: some View {
-        #if os(tvOS)
-        SettingsSplitLayout(title: "Live TV", rows: rows)
-            .onAppear {
-                hiddenChannelsModel.reload()
-            }
-            .onChange(of: settings) { _, settings in
-                store.save(settings)
-            }
-        #elseif os(iOS)
-        SettingsPageList {
-            if sourceManagement != nil {
-                SettingsSectionGroup {
-                    NavigationLink {
-                        sourceDestination
-                    } label: {
-                        Label("Sources", systemImage: "antenna.radiowaves.left.and.right")
-                    }
-                }
-            }
-            SettingsSectionGroup("Browsing") {
-                Picker("Live TV opens to", selection: $settings.startsWithCategories) {
-                    Text("Categories").tag(true)
-                    Text("Guide").tag(false)
-                }
-                .accessibilityIdentifier("live-tv-start-view")
-            }
-            SettingsSectionGroup("Channel order") {
-                Picker("Sort", selection: $settings.sortByName) {
-                    Text("Channel number").tag(false)
-                    Text("Name").tag(true)
-                }
-                .pickerStyle(.segmented)
-            }
-
-            SettingsSectionGroup("Guide") {
-                Toggle("Preview after watching", isOn: $settings.previewAfterWatching)
-                Toggle("Recently watched", isOn: $settings.showsRecentChannels)
-            } footer: {
-                Text("Preview after watching keeps the channel playing behind the guide when you leave full screen. Recently watched shows the channels you watched last at the top of the guide.")
-            }
-
-            SettingsSectionGroup("Filters") {
-                Toggle("Favorites only", isOn: $settings.favoritesOnly)
-                Toggle("With guide listings", isOn: $settings.guideOnly)
-            }
-
-            SettingsSectionGroup("Playback") {
-                Toggle("Stop without Wi-Fi or Ethernet", isOn: $settings.wifiOnly)
-                Text("Stops Live TV after detecting a change away from Wi-Fi or Ethernet. Brief cellular data use may occur during the change. Cellular playback is allowed when this setting is off.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            SettingsSectionGroup("Channels") {
-                NavigationLink {
-                    LiveTVHiddenChannelsView(model: hiddenChannelsModel)
-                } label: {
-                    HiddenChannelsNavigationLabel(count: hiddenChannelsModel.hiddenChannels.count)
-                }
+        LiveTVPreferencesPage(title: "Live TV") {
+            let preferences = AnyView(LiveTVBrowsingSettingsSections(
+                settings: $settings, hiddenChannels: hiddenChannelsModel
+            ))
+            if let sourceManagement {
+                sourceManagement(preferences)
+            } else {
+                preferences
             }
         }
-        .navigationTitle("Live TV")
         .onAppear {
             hiddenChannelsModel.reload()
         }
         .onChange(of: settings) { _, settings in
             store.save(settings)
         }
-        #endif
     }
+}
 
-    @ViewBuilder
-    private var sourceDestination: some View {
-        if let sourceManagement {
-            sourceManagement()
-        }
-    }
+private struct LiveTVBrowsingSettingsSections: View {
+    @Binding var settings: LiveTVViewSettings
+    let hiddenChannels: LiveTVHiddenChannelsSettingsModel
 
-    #if os(tvOS)
-    private var rows: [SettingsSplitRow] {
-        let browsingRows = [
-            SettingsSplitRow(id: "start-view", title: "Live TV opens to") {
-                SettingsSegmentedPicker(
-                    options: [true, false], selection: $settings.startsWithCategories,
-                    title: { $0 ? "Categories" : "Guide" }
-                )
-                .accessibilityIdentifier("live-tv-start-view")
-            },
-            SettingsSplitRow(
-                id: "sort",
-                title: "Sort"
+    var body: some View {
+        SettingsSectionGroup("Guide & browsing") {
+            SettingsMenuRow(
+                title: "Live TV opens to",
+                value: Text(settings.startsWithCategories ? LocalizedStringResource("Categories") : "Guide")
             ) {
-                SettingsSegmentedPicker(
-                    options: [false, true],
-                    selection: $settings.sortByName,
-                    title: { $0 ? "Name" : "Channel number" }
-                )
-            },
-            SettingsSplitRow(
-                id: "auto-preview",
-                title: "Auto preview",
-                description: "Preview the focused channel as you browse."
-            ) {
-                Toggle("Auto preview", isOn: Binding(
-                    get: { settings.allowsAutomaticPreview },
-                    set: { settings.chooseAutoPreview($0) }
-                ))
-                    .toggleStyle(SettingsSwitchToggleStyle())
-            },
-            SettingsSplitRow(
-                id: "keep-watching-while-browsing",
-                title: "Keep watching while browsing",
-                description: "Keep the watched channel playing instead of previewing other channels."
-            ) {
-                Toggle("Keep watching while browsing", isOn: $settings.keepWatchingWhileBrowsing)
-                    .toggleStyle(SettingsSwitchToggleStyle())
-                    .disabled(!settings.autoPreview)
-            },
-            SettingsSplitRow(
-                id: "preview-after-watching",
-                title: "Preview after watching",
-                description: "Keep the channel playing behind the guide when you leave full screen."
-            ) {
-                Toggle("Preview after watching", isOn: $settings.previewAfterWatching)
-                    .toggleStyle(SettingsSwitchToggleStyle())
-            },
-            SettingsSplitRow(
-                id: "recently-watched",
-                title: "Recently watched",
-                description: "Show the channels you watched last at the top of the guide."
-            ) {
-                Toggle("Recently watched", isOn: $settings.showsRecentChannels)
-                    .toggleStyle(SettingsSwitchToggleStyle())
-            },
-            SettingsSplitRow(
-                id: "favorites-only",
-                title: "Favorites only"
-            ) {
-                Toggle("Favorites only", isOn: $settings.favoritesOnly)
-                    .toggleStyle(SettingsSwitchToggleStyle())
-            },
-            SettingsSplitRow(
-                id: "with-guide-listings",
-                title: "With guide listings"
-            ) {
-                Toggle("With guide listings", isOn: $settings.guideOnly)
-                    .toggleStyle(SettingsSwitchToggleStyle())
-            },
-            SettingsSplitRow(
-                id: "hidden-channels",
-                title: "Hidden channels"
-            ) {
-                VStack(alignment: .leading, spacing: 24) {
-                    LiveTVHiddenChannelsListContent(model: hiddenChannelsModel)
+                Picker("Live TV opens to", selection: $settings.startsWithCategories) {
+                    Text("Categories").tag(true)
+                    Text("Guide").tag(false)
                 }
-            },
-        ]
-        let sources: [SettingsSplitRow] = sourceManagement == nil ? [] : [
-            SettingsSplitRow(
-                id: "sources",
-                title: "Sources"
-            ) {
-                sourceDestination
             }
-        ]
-        guard inWorkspace else { return sources + browsingRows }
-        return sources.map { $0.page() } + browsingRows.filter { $0.id == "start-view" } + [
-            SettingsSplitRow(id: "channel-order", title: "Channel order") {
-                SettingsSegmentedPicker(
-                    options: [false, true], selection: $settings.sortByName,
-                    title: { $0 ? "Name" : "Channel number" }
-                )
-            },
-            SettingsSplitRow(id: "guide", title: "Guide") {
-                SettingsControlRows {
-                    ForEach(browsingRows.filter { ["auto-preview", "keep-watching-while-browsing", "preview-after-watching", "recently-watched"].contains($0.id) }) { row in
-                        VStack(alignment: .leading, spacing: 4) {
-                            row.detail()
-                            if let description = row.description {
-                                description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
-                            }
+            .accessibilityIdentifier("live-tv-start-view")
+            SettingsPageLink {
+                LiveTVPreferencesPage(title: "Channel order") {
+                    SettingsSectionGroup {
+                        Picker("Sort", selection: $settings.sortByName) {
+                            Text("Channel number").tag(false)
+                            Text("Name").tag(true)
                         }
+                        .pickerStyle(.segmented)
                     }
                 }
-            },
-            SettingsSplitRow(id: "filters", title: "Filters") {
-                Toggle("Favorites only", isOn: $settings.favoritesOnly)
-                Toggle("With guide listings", isOn: $settings.guideOnly)
+            } label: {
+                SettingsDisclosureLabel {
+                    Label("Channel order", systemImage: "list.bullet")
+                } value: {
+                    Text(settings.sortByName ? LocalizedStringResource("Name") : "Channel number")
+                }
             }
-        ] + browsingRows.filter { $0.id == "hidden-channels" }.map { $0.page() }
+            .buttonStyle(SettingsFormButtonStyle())
+            .accessibilityIdentifier("live-tv-channel-order")
+            SettingsPageLink {
+                LiveTVPreferencesPage(title: "Guide preferences") {
+                    LiveTVGuidePreferences(settings: $settings)
+                }
+            } label: {
+                SettingsDisclosureLabel { Label("Guide preferences", systemImage: "calendar") }
+            }
+            .buttonStyle(SettingsFormButtonStyle())
+            .accessibilityIdentifier("live-tv-guide-preferences")
+            SettingsPageLink {
+                LiveTVPreferencesPage(title: "Channel visibility") {
+                    LiveTVChannelVisibilitySettings(settings: $settings, hiddenChannels: hiddenChannels)
+                }
+            } label: {
+                SettingsDisclosureLabel { Label("Channel visibility", systemImage: "eye") }
+            }
+            .buttonStyle(SettingsFormButtonStyle())
+            .accessibilityIdentifier("live-tv-channel-visibility")
+        }
+        #if os(iOS)
+        SettingsSectionGroup("Playback") {
+            Toggle("Stop without Wi-Fi or Ethernet", isOn: $settings.wifiOnly)
+        } footer: {
+            Text("Stops Live TV after detecting a change away from Wi-Fi or Ethernet. Brief cellular data use may occur during the change. Cellular playback is allowed when this setting is off.")
+        }
+        #endif
     }
+}
+
+private struct LiveTVGuidePreferences: View {
+    @Binding var settings: LiveTVViewSettings
+
+    var body: some View {
+        #if os(tvOS)
+        SettingsSectionGroup {
+            Toggle("Auto preview", isOn: Binding(
+                get: { settings.allowsAutomaticPreview },
+                set: { settings.chooseAutoPreview($0) }
+            ))
+        } footer: {
+            Text("Preview the focused channel as you browse.")
+        }
+        SettingsSectionGroup {
+            Toggle("Keep watching while browsing", isOn: $settings.keepWatchingWhileBrowsing)
+                .disabled(!settings.autoPreview)
+        } footer: {
+            Text("Keep the watched channel playing instead of previewing other channels.")
+        }
+        #endif
+        SettingsSectionGroup {
+            Toggle("Preview after watching", isOn: $settings.previewAfterWatching)
+            Toggle("Recently watched", isOn: $settings.showsRecentChannels)
+        } footer: {
+            Text("Preview after watching keeps the channel playing behind the guide when you leave full screen. Recently watched shows the channels you watched last at the top of the guide.")
+        }
+    }
+}
+
+private struct LiveTVChannelVisibilitySettings: View {
+    @Binding var settings: LiveTVViewSettings
+    let hiddenChannels: LiveTVHiddenChannelsSettingsModel
+
+    var body: some View {
+        SettingsSectionGroup("Filters") {
+            Toggle("Favorites only", isOn: $settings.favoritesOnly)
+            Toggle("With guide listings", isOn: $settings.guideOnly)
+        }
+        SettingsSectionGroup {
+            SettingsPageLink {
+                LiveTVPreferencesPage(title: "Hidden channels") {
+                    LiveTVHiddenChannelsListContent(model: hiddenChannels)
+                }
+                .onAppear { hiddenChannels.reload() }
+            } label: {
+                HiddenChannelsNavigationLabel(count: hiddenChannels.hiddenChannels.count)
+            }
+            .buttonStyle(SettingsFormButtonStyle())
+            .accessibilityIdentifier("live-tv-hidden-channels")
+        }
+    }
+}
+
+private struct LiveTVPreferencesPage<Content: View>: View {
+    let title: LocalizedStringResource
+    @ViewBuilder let content: () -> Content
+    #if os(tvOS)
+    @SettingsPageDismiss private var dismiss
+    @Environment(\.settingsInWorkspace) private var inWorkspace
     #endif
+
+    var body: some View {
+        #if os(tvOS)
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
+                SettingsPageHeader(title)
+                    .environment(\.settingsPageBackButton, inWorkspace ? AnyView(
+                        SettingsBackButton { dismiss() }
+                            .settingsPageEntryFocus()
+                            .accessibilityIdentifier("live-tv-settings-back")
+                    ) : nil)
+                content()
+            }
+            .padding(.horizontal, SettingsFormMetrics.pageInset)
+            .padding(.top, SettingsFormMetrics.pageTopInset)
+            .padding(.bottom, SettingsFormMetrics.pageBottomInset)
+        }
+        .scrollClipDisabled()
+        .background { SettingsPageBackground() }
+        #else
+        SettingsPageScroll(content: content)
+            .navigationTitle(Text(title))
+        #endif
+    }
 }
 
 private struct HiddenChannelsNavigationLabel: View {
@@ -231,30 +203,14 @@ private struct HiddenChannelsNavigationLabel: View {
             Spacer()
             if count > 0 {
                 Text(count, format: .number)
-                    .foregroundStyle(.secondary)
+                    .settingsRowSecondary()
             }
             Image(systemName: "chevron.forward")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .settingsRowSecondary()
         }
     }
 }
-
-#if os(iOS)
-private struct LiveTVHiddenChannelsView: View {
-    let model: LiveTVHiddenChannelsSettingsModel
-
-    var body: some View {
-        SettingsPageList {
-            LiveTVHiddenChannelsListContent(model: model)
-        }
-        .navigationTitle("Hidden channels")
-        .onAppear {
-            model.reload()
-        }
-    }
-}
-#endif
 
 private struct LiveTVHiddenChannelsListContent: View {
     let model: LiveTVHiddenChannelsSettingsModel
@@ -274,7 +230,7 @@ private struct LiveTVHiddenChannelsListContent: View {
                     Button("Retry") {
                         model.retry()
                     }
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .plozzActionButton(role: .secondary)
                 }
             }
         } else {
@@ -284,7 +240,7 @@ private struct LiveTVHiddenChannelsListContent: View {
                     Button("Reset category and region visibility") {
                         model.resetVisibility()
                     }
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .buttonStyle(SettingsFormButtonStyle())
                     .disabled(model.hasPendingChanges)
                 }
             }
@@ -311,7 +267,7 @@ private struct LiveTVHiddenChannelsListContent: View {
                             Button("Restore") {
                                 model.restoreChannel(id: channel.id)
                             }
-                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            .plozzActionButton(role: .secondary)
                             .accessibilityLabel("Restore \(channel.name)")
                             .disabled(model.hasPendingChanges)
                         }
@@ -323,7 +279,7 @@ private struct LiveTVHiddenChannelsListContent: View {
                         Button("Restore all") {
                             model.restoreAllChannels()
                         }
-                        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                        .buttonStyle(SettingsFormButtonStyle())
                         .disabled(model.hasPendingChanges)
                     }
                 }
@@ -341,7 +297,7 @@ private struct LiveTVHiddenChannelsFailureSection: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                 Button("Retry", action: retry)
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .plozzActionButton(role: .secondary)
             }
         }
     }
