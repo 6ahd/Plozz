@@ -229,7 +229,10 @@ private struct FeaturedMediaCard: View {
             .mediaItemContextMenu(for: item)
             .onChange(of: focused) { _, value in onFocus(value) }
         #else
-        Button(action: onSelect) { artwork() }
+        Button(action: onSelect) {
+            artwork()
+                .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
             .buttonStyle(.plain)
             .mediaItemContextMenu(for: item)
         #endif

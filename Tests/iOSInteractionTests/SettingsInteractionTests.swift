@@ -1505,6 +1505,78 @@ final class SettingsInteractionTests: XCTestCase {
         }
     }
 
+    func testFeaturedCardIncludingMetadataAndBottomPaddingSelectsExactlyOnce() {
+        app.launchArguments = ["--featured-card-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let card = app.buttons["Featured title"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(card.frame.width, min(440, max(220, app.windows.firstMatch.frame.width - 48)), accuracy: 1)
+        XCTAssertEqual(card.frame.height, card.frame.width * 1.125, accuracy: 1,
+                       "The touch target must cover the artwork's full height, not just its upper image.")
+        capture("featured-card-touch-target")
+        let count = app.staticTexts["featured-selection-count"]
+        for (index, point) in [
+            CGVector(dx: 0.5, dy: 0.15),
+            CGVector(dx: 0.5, dy: 0.75),
+            CGVector(dx: 0.5, dy: 0.90),
+            CGVector(dx: 0.85, dy: 0.96)
+        ].enumerated() {
+            card.coordinate(withNormalizedOffset: point).tap()
+            XCTAssertTrue(count.wait(for: \.label, toEqual: "\(index + 1)", timeout: 3),
+                          "The entire card must select exactly once at \(point): \(app.debugDescription)")
+        }
+        let following = app.staticTexts["featured-following-row"]
+        let initialY = following.frame.minY
+        card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+            .press(forDuration: 0.05, thenDragTo:
+                card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)))
+        XCTAssertLessThan(following.frame.minY, initialY - 80)
+        XCTAssertEqual(count.label, "4", "Scrolling must not activate the card.")
+    }
+
+    func testCollectionSelectionOpensEditorAndKeepsSettingsAcrossNestedNavigation() {
+        app.launchArguments = [
+            "--collection-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+        ]
+        app.launch()
+        let add = app.buttons["home-section-add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10), app.debugDescription)
+        add.tap()
+        app.buttons["home-add-collection"].tap()
+        let weekend = button("Weekend picks")
+        XCTAssertTrue(weekend.waitForExistence(timeout: 5), app.debugDescription)
+        weekend.tap()
+        XCTAssertTrue(app.navigationBars["Create section"].waitForExistence(timeout: 5), app.debugDescription)
+        let landscape = app.segmentedControls.buttons["Landscape"]
+        XCTAssertTrue(landscape.exists, app.debugDescription)
+        landscape.tap()
+        XCTAssertTrue(app.staticTexts["Orbit"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("collection-section-created-from-picker")
+
+        let source = app.buttons["collection-section-source"]
+        reveal(source)
+        source.tap()
+        let favorites = button("Favorites")
+        XCTAssertTrue(favorites.waitForExistence(timeout: 5), app.debugDescription)
+        favorites.tap()
+        XCTAssertTrue(app.navigationBars["Create section"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Favorites"].exists, app.debugDescription)
+        XCTAssertTrue(landscape.isSelected)
+        let save = app.buttons["collection-section-save"]
+        reveal(save)
+        save.tap()
+        XCTAssertTrue(app.navigationBars["Add section"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Customize Home"].waitForExistence(timeout: 5))
+        let section = button("Favorites")
+        reveal(section)
+        section.tap()
+        XCTAssertTrue(app.navigationBars["Edit section"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(landscape.isSelected)
+        XCTAssertTrue(app.staticTexts["Orbit"].waitForExistence(timeout: 5))
+        capture("collection-section-reopened-after-saving")
+    }
+
     private func openSettingsPage(
         _ title: String, verifyTitleLayout: Bool = true, arguments: [String] = []
     ) {

@@ -900,6 +900,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Text appears only after resolution finds no usable logo (or there are no logo
   sources); cached logos still paint immediately. Completion is request-scoped,
   so a cancelled or missing logo for one title cannot reveal text for the next.
+- **Featured collection cards** — the whole mobile card is one native button,
+  including its logo, metadata and bottom padding. Decorative layers do not
+  intercept taps or scrolling. Logos use Continue Watching's on-dark treatment,
+  gentle halo and bounded colour-preserving tone lift in both page themes.
+  Contrast sampling follows the resolved artwork, accounts for its aspect-fill
+  crop and the existing bottom scrim, and reuses the decoded card image and
+  bounded sampler cache; trailer frames are not analysed.
 - **Showcase logo contrast** — tvOS Showcase can lift dark coloured lettering
   while preserving hue, saturation, white highlights, and transparency. Brightening
   stops at the available colour headroom; it never mixes in white to force a

@@ -220,6 +220,9 @@ watch history and planning-list behavior are documented in
   (see [Home terminology](../../CONTEXT.md)). Choose a source collection first,
   then edit its name and Posters, Landscape or Featured presentation with the layout control immediately above a real-title
   preview. The preview uses the existing artwork preferences and spoiler protection.
+  Each navigation destination explicitly forwards the active profile's card settings,
+  including Add section's nested creation destination; iOS navigation does not
+  inherit dependencies injected only into the preceding page.
   Save places a new independently configured row before Libraries; the ordinary
   arranger can move it anywhere among the movable rows. Editing never changes
   the collection on the server. Preview loading is bounded and retains server order;
