@@ -271,6 +271,7 @@ public struct RootView: View {
         if showSyncReceive || showSyncReceiveFromSettings { requests.append(.receiveSetup) }
         if showSyncErasure { requests.append(.syncErasure) }
         if providerSetupRouter.addressAccount != nil { requests.append(.serverAddresses) }
+        if providerSetupRouter.reauthenticationAccount != nil { requests.append(.accountRecovery) }
         if startupPresentationReady && nextFeatureIntroduction == nil && startupNotesPrepared,
            appState.cloudSyncUI.pendingServerPrompt != nil {
             requests.append(.newServer)
@@ -316,6 +317,8 @@ public struct RootView: View {
             showSyncErasure = false
         case .serverAddresses:
             providerSetupRouter.addressAccount = nil
+        case .accountRecovery:
+            providerSetupRouter.reauthenticationAccount = nil
         case .newServer:
             if rootPresentation.wasDismissedByUser { appState.clearPendingServerPrompt() }
         case nil:
@@ -414,6 +417,32 @@ public struct RootView: View {
                     onChanged: { appState.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
                 )
                 .plozzDialogSurface()
+            }
+        case .accountRecovery:
+            if let account = providerSetupRouter.reauthenticationAccount {
+                AccountReauthenticationView(
+                    model: appState.accountsProviders.makeAccountReauthentication(
+                        account: account,
+                        isAuthorized: {
+                            appState.isLiveTVProfileAuthorized
+                                && !appState.profileFlow.managementRequiresParentalPIN
+                        },
+                        onComplete: {
+                            providerSetupRouter.reauthenticationAccount = nil
+                            appState.plexHomeUsers.ensurePlexIdentityForActiveProfile()
+                        }
+                    ),
+                    onCancel: { providerSetupRouter.reauthenticationAccount = nil }
+                ) { model in
+                    AuthView(
+                        server: account.server, deviceID: model.deviceID, verificationOnly: true,
+                        onAuthenticated: model.complete,
+                        onCancel: {
+                            model.cancel()
+                            providerSetupRouter.reauthenticationAccount = nil
+                        }
+                    )
+                }
             }
         case .newServer:
             if let descriptor = appState.cloudSyncUI.pendingServerPrompt {
@@ -787,6 +816,7 @@ public struct RootView: View {
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
         .onChange(of: appState.profilesModel.activeProfileID) { _, _ in
             providerSetupRouter.addressAccount = nil
+            providerSetupRouter.reauthenticationAccount = nil
         }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
@@ -1651,46 +1681,64 @@ private struct PlexPINEntryView: View {
 
     var body: some View {
         let pendingRequest = appState.plexHomeUsers.pendingPlexPINRequest
-        return PINEntryScaffold(
-            title: "Enter your Plex PIN",
-            name: Text(verbatim: userName),
-            showsLock: true,
-            errorMessage: appState.plexHomeUsers.plexPINError,
-            isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
-            availability: pendingRequest == nil ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,
-            onRetry: {
-                guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
-                appState.plexHomeUsers.retryPlexPINRequirement()
-            },
-            sequenceStep: sequenceStep,
-            onSubmit: { pin in
-                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest,
-                      appState.plexHomeUsers.plexPINEntryAvailability == .available else { return }
-                PlozzLog.auth.debug("PIN auto-submit at 4 digits")
-                onSubmit(pin)
-            },
-            onCancel: {
-                guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
-                onCancel()
-            }
-        ) {
-            PINBadge {
-                if let url = avatarURLString.flatMap(URL.init(string:)) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case let .success(image):
-                            image.resizable().scaledToFill()
-                        default:
+        ZStack {
+            if appState.plexHomeUsers.plexPINEntryAvailability == .unavailable {
+                PlexAccountRecoveryView(
+                    name: userName,
+                    message: appState.plexHomeUsers.plexPINError ?? ProfileLockCopy.plexSwitchFailed,
+                    signIn: appState.plexHomeUsers.plexReauthentication,
+                    onSignIn: { appState.plexHomeUsers.beginPlexReauthentication() },
+                    onRetry: { appState.plexHomeUsers.retryPlexPINRequirement() },
+                    onCancel: onCancel,
+                    onCancelSignIn: { appState.plexHomeUsers.cancelPlexReauthentication() }
+                )
+            } else {
+                PINEntryScaffold(
+                    title: "Enter your Plex PIN",
+                    name: Text(verbatim: userName),
+                    showsLock: true,
+                    errorMessage: appState.plexHomeUsers.plexPINError,
+                    isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
+                    availability: pendingRequest == nil
+                        ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,
+                    onRetry: {
+                        guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest
+                        else { return }
+                        appState.plexHomeUsers.retryPlexPINRequirement()
+                    },
+                    sequenceStep: sequenceStep,
+                    onSubmit: { pin in
+                        guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest,
+                            appState.plexHomeUsers.plexPINEntryAvailability == .available
+                        else { return }
+                        PlozzLog.auth.debug("PIN auto-submit at 4 digits")
+                        onSubmit(pin)
+                    },
+                    onCancel: {
+                        guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest
+                        else { return }
+                        onCancel()
+                    }
+                ) {
+                    PINBadge {
+                        if let url = avatarURLString.flatMap(URL.init(string:)) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case let .success(image):
+                                    image.resizable().scaledToFill()
+                                default:
+                                    PlexPINFallbackGlyph()
+                                }
+                            }
+                        } else {
                             PlexPINFallbackGlyph()
                         }
                     }
-                } else {
-                    PlexPINFallbackGlyph()
+                    .frame(width: PINLayout.badgeSize, height: PINLayout.badgeSize)
                 }
+                .id([pendingRequest?.id, pendingRequest?.accountID, pendingRequest?.homeUserID])
             }
-            .frame(width: PINLayout.badgeSize, height: PINLayout.badgeSize)
         }
-        .id([pendingRequest?.id, pendingRequest?.accountID, pendingRequest?.homeUserID])
         .onChange(of: pendingRequest?.id) { _, newValue in
             // Both a successful switch and a cancelled proposal dismiss the cover.
             if newValue == nil, dismissOnSuccess {

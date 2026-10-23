@@ -77,8 +77,13 @@ struct PlozziOSSettingsView: View {
             )
             .presentationSizing(.page)
         }
+        .plozzSheet(item: $providerSetupRouter.reauthenticationAccount) { account in
+            PlozziOSAccountReauthenticationView(appModel: appModel, account: account)
+                .presentationSizing(.page)
+        }
         .onChange(of: appModel.profiles.activeProfileID) { _, _ in
             providerSetupRouter.addressAccount = nil
+            providerSetupRouter.reauthenticationAccount = nil
         }
         .onChange(of: appModel.liveTVAdmissionDiagnostic, initial: true) { _, diagnostic in
             HandoffDiagnostics.emit("SOURCES event=appAdmission \(diagnostic)")
@@ -1446,6 +1451,7 @@ struct PlozziOSProfileSettingsRoute: Hashable {
 
 struct PlozziOSAccountDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedProviderSetupRouter) private var providerSetupRouter
 
     let appModel: PlozziOSAppModel
     let account: Account
@@ -1490,6 +1496,11 @@ struct PlozziOSAccountDetailView: View {
             }
 
             SettingsSectionGroup {
+                if account.server.provider.supportsAccountReauthentication, let providerSetupRouter {
+                    Button("Sign In Again", systemImage: "arrow.clockwise") {
+                        providerSetupRouter.reauthenticationAccount = account
+                    }
+                }
                 Button("Remove Server", role: .destructive) {
                     confirmRemoval = true
                 }

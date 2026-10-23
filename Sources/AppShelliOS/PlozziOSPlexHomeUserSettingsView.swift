@@ -22,7 +22,8 @@ struct PlozziOSPlexHomeUserSettingsView: View {
     var body: some View {
         ZStack {
             if let request = pendingSelection,
-               appModel.plexHomeUsers.plexPINEntryAvailability == .available {
+               appModel.plexHomeUsers.plexPINEntryAvailability == .available
+                || appModel.plexHomeUsers.plexReauthentication != nil {
                 PlozziOSPlexPINView(
                     model: appModel.plexHomeUsers, request: request, dismissOnSuccess: false
                 )
@@ -88,6 +89,7 @@ struct PlozziOSPlexHomeUserSettingsView: View {
                         if let error = appModel.plexHomeUsers.plexPINError {
                             Text(error).foregroundStyle(.red)
                         }
+                        Button("Sign In Again") { appModel.plexHomeUsers.beginPlexReauthentication() }
                         Button("Retry") { appModel.plexHomeUsers.retryPlexPINRequirement() }
                     }
                     Button("Cancel") { appModel.plexHomeUsers.cancelPlexPIN() }
