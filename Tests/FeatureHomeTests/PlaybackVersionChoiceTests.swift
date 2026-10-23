@@ -520,6 +520,41 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         XCTAssertNil(settings.settings.versionSelectionMode)
     }
 
+    func testDownloadedMultiVersionItemBypassesEveryVersionSelectionMode() async throws {
+        struct Local: OfflinePlaybackResolving {
+            func localPlaybackURL(for item: MediaItem, versionID: String?) async -> URL? {
+                URL(fileURLWithPath: "/fixture/download.mkv")
+            }
+        }
+        for mode: PlaybackVersionSelectionMode? in [nil, .askEveryTime, .automatic] {
+            settings.settings.versionSelectionMode = mode
+            var movie = item()
+            movie.selectedVersionID = movie.versions[1].id
+            let provider = FakeMediaProvider(allItems: [])
+            let finished = expectation(description: "Local playback bypasses \(String(describing: mode))")
+            let task = Task {
+                let selected = try await model.prepare(
+                    movie, provider: provider, settings: settings, preferences: preferences,
+                    offlineResolver: Local(),
+                    sourceResolver: { _ in
+                        XCTFail("Local playback must not discover server alternatives")
+                        return .init(sources: [])
+                    }
+                )
+                finished.fulfill()
+                return selected
+            }
+            await fulfillment(of: [finished], timeout: 2)
+            model.cancel()
+            task.cancel()
+            let selected = try await task.value
+            XCTAssertEqual(selected, movie)
+            XCTAssertNil(model.prompt)
+            XCTAssertEqual(provider.itemCallCount(for: movie.id), 0)
+            XCTAssertEqual(settings.settings.versionSelectionMode, mode)
+        }
+    }
+
     func testSeriesMemoryToggleAppliesImmediatelyToGateAndExistingRequestResolver() async throws {
         settings.settings.versionSelectionMode = .automatic
         let first = item("episode-1", series: "series")

@@ -119,22 +119,13 @@ final class OfflineRequestRewriteTests: XCTestCase {
         XCTAssertTrue(
             PlayerViewModel.shouldUseOfflineFastPath(
                 offlineItem: current,
-                requestedItemID: "episode-1",
-                forceTranscode: false
+                requestedItemID: "episode-1"
             )
         )
         XCTAssertFalse(
             PlayerViewModel.shouldUseOfflineFastPath(
                 offlineItem: current,
-                requestedItemID: "episode-2",
-                forceTranscode: false
-            )
-        )
-        XCTAssertFalse(
-            PlayerViewModel.shouldUseOfflineFastPath(
-                offlineItem: current,
-                requestedItemID: "episode-1",
-                forceTranscode: true
+                requestedItemID: "episode-2"
             )
         )
     }

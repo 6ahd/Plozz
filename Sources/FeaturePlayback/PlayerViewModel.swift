@@ -1101,6 +1101,15 @@ public final class PlayerViewModel {
         do {
             let resolved: PrefetchedPlayback
             if let adopted = adoptedResolved,
+               adopted.request.streamURL?.isFileURL != true,
+               let offlineItem,
+               await offlinePlaybackResolver?.localPlaybackURL(
+                   for: offlineItem, versionID: mediaSourceID
+               ) != nil {
+                adoptedResolved = nil
+                await nextEpisodeCoordinator.releaseSession(adopted.request)
+            }
+            if let adopted = adoptedResolved,
                !Self.streamingSelectionMatches(streamingOptions, adopted.request.streamingOptions) {
                 adoptedResolved = nil
                 await nextEpisodeCoordinator.releaseSession(adopted.request)
@@ -1229,31 +1238,26 @@ public final class PlayerViewModel {
         itemID: String,
         mediaSourceID: String?,
         forceTranscode: Bool,
-        startPosition: TimeInterval? = nil
+        startPosition: TimeInterval? = nil,
+        offlineCandidate: MediaItem? = nil
     ) async throws -> PrefetchedPlayback {
         let streamingGeneration = streamingLoadGeneration
-        if let offlineItem,
+        if let offlineItem = offlineCandidate ?? self.offlineItem,
            Self.shouldUseOfflineFastPath(
                offlineItem: offlineItem,
-               requestedItemID: itemID,
-               forceTranscode: forceTranscode
+               requestedItemID: itemID
            ),
-           // Ask for the VERSION being played, not just the title: with a 4K and
-           // a 1080p file behind one title, a title-only lookup returns whichever
-           // copy is on disk and silently plays it for every version the user
-           // picks.
-           let localURL = await offlinePlaybackResolver?
-               .localPlaybackURL(for: offlineItem, versionID: mediaSourceID) {
+           let local = await offlinePlaybackResolver?
+               .localPlaybackAsset(for: offlineItem, versionID: mediaSourceID) {
             var request = PlaybackRequest(
                 item: offlineItem,
-                streamURL: localURL,
+                streamURL: local.fileURL,
                 startPosition: offlineItem.resumePosition ?? 0,
                 sourceProvider: provider.kind,
-                sourceFileName: localURL.lastPathComponent
+                sourceFileName: local.fileURL.lastPathComponent
             )
-            request.subtitleTracks = await offlinePlaybackResolver?.localSubtitleTracks(
-                for: offlineItem, versionID: mediaSourceID) ?? []
-            if let metadata = await offlinePlaybackResolver?.localPlaybackMetadata(for: offlineItem, versionID: mediaSourceID) {
+            request.subtitleTracks = local.subtitleTracks
+            if let metadata = local.metadata {
                 request.sourceMetadata = metadata
                 request.item.mediaInfo = metadata
             }
@@ -1351,16 +1355,15 @@ public final class PlayerViewModel {
         // play it with zero engine changes. Strictly additive — a no-op when no
         // resolver is injected or no local copy exists (proven byte-identical by
         // `OfflineRequestRewriteTests`).
-        let localURL = await offlinePlaybackResolver?
-            .localPlaybackURL(for: request.item, versionID: mediaSourceID)
-        if localURL != nil {
+        let local = await offlinePlaybackResolver?
+            .localPlaybackAsset(for: request.item, versionID: mediaSourceID)
+        if local != nil {
             await releaseStreamingSession(request)
         }
-        request = Self.applyingOfflineRewrite(to: request, localURL: localURL)
-        if localURL != nil {
-            request.subtitleTracks = await offlinePlaybackResolver?.localSubtitleTracks(
-                for: request.item, versionID: mediaSourceID) ?? []
-            if let metadata = await offlinePlaybackResolver?.localPlaybackMetadata(for: request.item, versionID: mediaSourceID) {
+        request = Self.applyingOfflineRewrite(to: request, localURL: local?.fileURL)
+        if let local {
+            request.subtitleTracks = local.subtitleTracks
+            if let metadata = local.metadata {
                 request.sourceMetadata = metadata
                 request.item.mediaInfo = metadata
             }
@@ -1392,10 +1395,9 @@ public final class PlayerViewModel {
 
     static func shouldUseOfflineFastPath(
         offlineItem: MediaItem,
-        requestedItemID: String,
-        forceTranscode: Bool
+        requestedItemID: String
     ) -> Bool {
-        !forceTranscode && offlineItem.id == requestedItemID
+        offlineItem.id == requestedItemID
     }
 
     /// Rewrites a resolved request to play a local `file://` asset when a completed
@@ -2735,11 +2737,12 @@ extension PlayerViewModel: NextEpisodeCoordinatorHost {
     var upNextCurrentEngineKind: PlaybackEngineKind { currentEngineKind }
     var upNextBringUpStartedAt: Date? { bringUpStartedAt }
     func upNextResolveAndRoute(
-        itemID: String, mediaSourceID: String?, forceTranscode: Bool
+        item: MediaItem, forceTranscode: Bool
     ) async throws -> PrefetchedPlayback {
         guard !didStop else { throw CancellationError() }
         return try await resolveAndRoute(
-            itemID: itemID, mediaSourceID: mediaSourceID, forceTranscode: forceTranscode)
+            itemID: item.id, mediaSourceID: item.selectedVersionID,
+            forceTranscode: forceTranscode, offlineCandidate: item)
     }
 }
 
