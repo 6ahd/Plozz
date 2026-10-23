@@ -3437,9 +3437,7 @@ private struct PlozziOSSeasonDownloadPrompt: Identifiable {
     /// awareness. Returns `nil` when the capacity can't be read.
     private static func freeSpaceText() -> String? {
         let url = URL.documentsDirectory
-        guard let values = try? url.resourceValues(
-            forKeys: [.volumeAvailableCapacityForImportantUsageKey]
-        ), let capacity = values.volumeAvailableCapacityForImportantUsage
+        guard let capacity = try? DownloadStorageCapacity.device.availableBytes(at: url)
         else {
             return nil
         }
