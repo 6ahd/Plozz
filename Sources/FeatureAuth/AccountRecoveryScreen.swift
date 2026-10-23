@@ -16,10 +16,16 @@ struct AccountRecoveryScreen: View {
     var body: some View {
         RecoveryScreen {
             AccountRecoveryHeading(provider: provider, name: name, message: message)
-        } actions: {
+        } actions: { axis in
+            #if os(iOS)
+            let actionWidth: CGFloat? = axis == .vertical ? .infinity : nil
+            #else
+            let actionWidth: CGFloat? = nil
+            #endif
             if let onSignIn {
                 Button(action: onSignIn) {
                     Text("Sign In Again").fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: actionWidth)
                 }
                 .plozzActionButton()
                 .focused($focused, equals: .signIn)
@@ -27,12 +33,14 @@ struct AccountRecoveryScreen: View {
             }
             Button(action: onRetry) {
                 Text("Try Again").fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: actionWidth)
             }
             .plozzActionButton(role: onSignIn == nil ? .primary : .secondary)
             .focused($focused, equals: .retry)
             .accessibilityIdentifier("account-recovery-retry")
             Button(role: .cancel, action: onCancel) {
                 Text("Cancel").fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: actionWidth)
             }
             .plozzActionButton(role: .secondary)
             .focused($focused, equals: .cancel)

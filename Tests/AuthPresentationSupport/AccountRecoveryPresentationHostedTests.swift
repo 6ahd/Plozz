@@ -10,16 +10,23 @@ import XCTest
 @MainActor
 final class AccountRecoveryPresentationHostedTests: XCTestCase {
     func testPlexRecoveryKeepsExplanationAndAllActionsVisibleWithNativePrimaryFocus() async throws {
-        for (name, error) in [("expired", AppError.unauthorized), ("offline", .serverUnreachable)] {
-            try await verify(
-                PlexAccountRecoveryView(
-                    name: "Alex", message: error.userMessage, signIn: nil,
-                    onSignIn: {}, onRetry: {}, onCancel: {}, onCancelSignIn: {}
-                ),
-                name: "Plex recovery \(name)", palette: .dark,
-                expected: ["Reconnect to Plex", "Alex", "Sign In Again", "Try Again", "Cancel"],
-                focusedTitle: "Sign In Again"
-            )
+        #if os(iOS)
+        let widths: [CGFloat] = [320, 390, 430, 844]
+        #else
+        let widths: [CGFloat] = [1920]
+        #endif
+        for width in widths {
+            for (name, error) in [("expired", AppError.unauthorized), ("offline", .serverUnreachable)] {
+                try await verify(
+                    PlexAccountRecoveryView(
+                        name: "Alex", message: error.userMessage, signIn: nil,
+                        onSignIn: {}, onRetry: {}, onCancel: {}, onCancelSignIn: {}
+                    ),
+                    name: "Plex recovery \(name) \(Int(width))", palette: .dark,
+                    expected: ["Reconnect to Plex", "Alex", "Sign In Again", "Try Again", "Cancel"],
+                    focusedTitle: "Sign In Again", mobileWidth: width, checksPlexActionLayout: true
+                )
+            }
         }
     }
 
@@ -67,7 +74,8 @@ final class AccountRecoveryPresentationHostedTests: XCTestCase {
 
     private func verify<Content: View>(
         _ content: Content, name: String, palette: ThemePalette,
-        expected: [String], focusedTitle: String? = nil
+        expected: [String], focusedTitle: String? = nil,
+        mobileWidth: CGFloat = 390, checksPlexActionLayout: Bool = false
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -79,7 +87,7 @@ final class AccountRecoveryPresentationHostedTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
         #if os(iOS)
-        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.frame = CGRect(x: 0, y: 0, width: mobileWidth, height: mobileWidth > 500 ? 390 : 844)
         #endif
         let host = UIHostingController(rootView:
             ZStack {
@@ -127,6 +135,47 @@ final class AccountRecoveryPresentationHostedTests: XCTestCase {
         for value in expected {
             XCTAssertTrue(text.contains(value), "\(name) must show \(value): \(text)")
         }
+        #if os(iOS)
+        if checksPlexActionLayout {
+            let buttons = try ["Sign In Again", "Try Again", "Cancel"].map { title in
+                try XCTUnwrap(observations.first { $0.topCandidates(1).first?.string == title }).boundingBox
+            }
+            if mobileWidth < 500 {
+                for button in buttons {
+                    XCTAssertEqual(button.midX * mobileWidth, mobileWidth / 2, accuracy: 3)
+                }
+                let primary = buttons[0]
+                let cgImage = try XCTUnwrap(image.cgImage)
+                let scale = CGFloat(cgImage.width) / mobileWidth
+                let row = try XCTUnwrap(cgImage.cropping(to: CGRect(
+                    x: 0, y: (1 - primary.midY) * CGFloat(cgImage.height),
+                    width: CGFloat(cgImage.width), height: 1
+                )))
+                var pixels = [UInt8](repeating: 0, count: row.width * 4)
+                try pixels.withUnsafeMutableBytes { buffer in
+                    let context = try XCTUnwrap(CGContext(
+                        data: buffer.baseAddress, width: row.width, height: 1,
+                        bitsPerComponent: 8, bytesPerRow: row.width * 4,
+                        space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                    ))
+                    context.draw(row, in: CGRect(x: 0, y: 0, width: row.width, height: 1))
+                }
+                let fill = (0..<row.width).filter { x in
+                    (0..<3).allSatisfy { pixels[x * 4 + $0] > 180 }
+                }
+                let leading = CGFloat(try XCTUnwrap(fill.first)) / scale
+                let trailing = CGFloat(try XCTUnwrap(fill.last) + 1) / scale
+                XCTAssertEqual(leading, 44, accuracy: 2, "Native fill must start at the card's content inset.")
+                XCTAssertEqual(trailing, mobileWidth - 44, accuracy: 2, "Native fill must span the content width.")
+            } else {
+                for button in buttons.dropFirst() {
+                    XCTAssertEqual(button.midY, buttons[0].midY, accuracy: 0.01,
+                                   "Wide layouts must retain the horizontal action row.")
+                }
+            }
+        }
+        #endif
         let safeBounds = window.bounds.inset(by: window.safeAreaInsets)
         for observation in observations {
             let rect = observation.boundingBox

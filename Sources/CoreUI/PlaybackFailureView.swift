@@ -28,7 +28,7 @@ public struct PlaybackFailureView<Actions: View>: View {
     public var body: some View {
         RecoveryScreen {
             PlaybackFailureHeading(title: title, message: message, systemImage: systemImage)
-        } actions: {
+        } actions: { _ in
             PlaybackFailureDetailsButton(isAvailable: report != nil, showsDetails: $showsDetails)
             actions
         }

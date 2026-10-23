@@ -58,7 +58,8 @@ session persistence.
   with `ProviderBrandMark` and native `plozzActionButton` controls. The provider
   heading, affected name and error remain distinct. Account recovery inherits
   the browsing theme rather than playback's dark-only policy. Actions adapt to
-  width, all content scrolls at large text sizes, and TV entry focuses Sign In
+  width, stacked mobile actions fill the card's content width, all content
+  scrolls at large text sizes, and TV entry focuses Sign In
   Again (or Retry when a sign-in attempt failed).
 - **Plex account recovery stays inside the profile gate.** A rejected Home-user
   list request means the saved account needs sign-in, not that the server is

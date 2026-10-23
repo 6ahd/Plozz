@@ -3,14 +3,14 @@ import SwiftUI
 /// Shared recovery layout; hosts supply identity, explanation, actions and presentation policy.
 public struct RecoveryScreen<Heading: View, Actions: View>: View {
     private let heading: Heading
-    private let actions: Actions
+    private let actions: (Axis) -> Actions
 
     public init(
         @ViewBuilder heading: () -> Heading,
-        @ViewBuilder actions: () -> Actions
+        @ViewBuilder actions: @escaping (Axis) -> Actions
     ) {
         self.heading = heading()
-        self.actions = actions()
+        self.actions = actions
     }
 
     public var body: some View {
@@ -19,8 +19,8 @@ public struct RecoveryScreen<Heading: View, Actions: View>: View {
                 VStack(alignment: .leading, spacing: 28) {
                     heading
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 16) { actions }
-                        VStack(alignment: .leading, spacing: 16) { actions }
+                        HStack(spacing: 16) { actions(.horizontal) }
+                        VStack(alignment: .leading, spacing: 16) { actions(.vertical) }
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
