@@ -125,6 +125,7 @@ struct HomeHeroView: View {
     /// only when the item's provider supports it and its mutation fans out
     /// exactly like everywhere else.
     @Environment(\.mediaItemActionHandler) private var actionHandler
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     /// How far the navigation chrome has inset this page's content, so the hero's
     /// full-bleed artwork can cancel it. `0` under the native tab styles.
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
@@ -1275,6 +1276,7 @@ struct HomeHeroView: View {
             item: item,
             overviewVisible: !hideText,
             ratingsVisible: settings.shouldShowRatings(for: item, spoilerSettings: spoilerSettings),
+            showsContentRatings: showsContentRatings,
             ratingPreferences: settings.ratingPreferences,
             maskedTitle: masked,
             pillInputs: foregroundPillInputs(for: item),
@@ -2534,12 +2536,11 @@ struct HomeHeroView: View {
 /// hero that follows focus.
 struct HeroMetadataLine: View {
     let item: MediaItem
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
 
     var body: some View {
         let metadata = GenreDisplayFormatter.displayNames(for: item.genres)
-        let badge = HeroForegroundModelBuilder.ratingBadgeText(for: item).map {
-            MediaBadge($0, style: .rating)
-        }
+        let badge = showsContentRatings ? item.ratingBadge : nil
         if badge != nil || !metadata.isEmpty {
             HStack(alignment: .center, spacing: 16) {
                 if let badge {

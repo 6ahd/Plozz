@@ -275,6 +275,7 @@ enum HeroForegroundModelBuilder {
         item: MediaItem,
         overviewVisible: Bool,
         ratingsVisible: Bool = true,
+        showsContentRatings: Bool = true,
         ratingPreferences: DetailPageSettings = .default,
         maskedTitle: String?,
         pillInputs: [PillInput],
@@ -307,7 +308,7 @@ enum HeroForegroundModelBuilder {
             title: titleText(for: item, maskedTitle: maskedTitle),
             logoURL: item.logoURL,
             metadataText: metadataText(for: item),
-            ratingBadgeText: ratingBadgeText(for: item),
+            ratingBadgeText: showsContentRatings ? ratingBadgeText(for: item) : nil,
             scheduleLine: scheduleLine,
             overview: overviewVisible
                 ? HeroContentPolicy.homeDescription(for: presentation)?.overviewPlainText

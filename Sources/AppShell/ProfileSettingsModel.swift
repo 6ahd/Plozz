@@ -42,6 +42,7 @@ public final class ProfileSettingsModel {
     /// each household member reads Plozz in their own language.
     public private(set) var appLanguageModel: AppLanguageSettingsModel
     public private(set) var themeModel: ThemeSettingsModel
+    public private(set) var contentRatingModel: ContentRatingSettingsModel
     /// Opt-in background theme music for movie and series detail pages.
     public var themeMusicModel: ThemeMusicSettingsModel { heroModels.themeMusic }
     /// Mutually-exclusive hero background mode (off / trailer / theme music)
@@ -118,6 +119,7 @@ public final class ProfileSettingsModel {
         audioPolicyModel: AudioPolicyModel? = nil,
         appLanguageModel: AppLanguageSettingsModel? = nil,
         themeModel: ThemeSettingsModel? = nil,
+        contentRatingModel: ContentRatingSettingsModel? = nil,
         themeMusicModel: ThemeMusicSettingsModel? = nil,
         heroBackgroundModel: HeroBackgroundSettingsModel? = nil,
         detailPageModel: DetailPageSettingsModel? = nil,
@@ -140,7 +142,7 @@ public final class ProfileSettingsModel {
             || spoilerModel != nil || playbackModel != nil
             || subtitlePolicyModel != nil || audioPolicyModel != nil
             || appLanguageModel != nil
-            || themeModel != nil || themeMusicModel != nil || heroBackgroundModel != nil
+            || themeModel != nil || contentRatingModel != nil || themeMusicModel != nil || heroBackgroundModel != nil
             || detailPageModel != nil || libraryPresentationModel != nil
             || diagnosticsModel != nil
             || musicPlayerModel != nil || homeLibraryVisibilityModel != nil
@@ -165,6 +167,7 @@ public final class ProfileSettingsModel {
             subtitlePolicyModel: subtitlePolicyModel,
             audioPolicyModel: audioPolicyModel,
             themeModel: themeModel,
+            contentRatingModel: contentRatingModel,
             themeMusicModel: themeMusicModel,
             heroBackgroundModel: heroBackgroundModel,
             detailPageModel: detailPageModel,
@@ -188,6 +191,7 @@ public final class ProfileSettingsModel {
         self.audioPolicyModel = models.audioPolicyModel
         self.appLanguageModel = models.appLanguageModel
         self.themeModel = models.themeModel
+        self.contentRatingModel = models.contentRatingModel
         models.heroModels.home.setDiscoveryPolicy(allowsDiscovery)
         models.heroModels.home.setSeerrConnection(isSeerrConfigured)
         self.heroModels = models.heroModels
@@ -217,6 +221,7 @@ public final class ProfileSettingsModel {
         audioPolicyModel = models.audioPolicyModel
         appLanguageModel = models.appLanguageModel
         themeModel = models.themeModel
+        contentRatingModel = models.contentRatingModel
         heroModels = models.heroModels
         heroModels.home.setDiscoveryPolicy(allowsDiscovery)
         heroModels.home.setSeerrConnection(isSeerrConfigured)
@@ -242,6 +247,7 @@ public final class ProfileSettingsModel {
         var subtitlePolicyModel: SubtitlePolicyModel
         var audioPolicyModel: AudioPolicyModel
         var themeModel: ThemeSettingsModel
+        var contentRatingModel: ContentRatingSettingsModel
         var heroModels: HeroModels
         var diagnosticsModel: DiagnosticsSettingsModel
         var musicPlayerModel: MusicPlayerSettingsModel
@@ -275,6 +281,7 @@ public final class ProfileSettingsModel {
         subtitlePolicyModel: SubtitlePolicyModel? = nil,
         audioPolicyModel: AudioPolicyModel? = nil,
         themeModel: ThemeSettingsModel? = nil,
+        contentRatingModel: ContentRatingSettingsModel? = nil,
         themeMusicModel: ThemeMusicSettingsModel? = nil,
         heroBackgroundModel: HeroBackgroundSettingsModel? = nil,
         detailPageModel: DetailPageSettingsModel? = nil,
@@ -299,6 +306,9 @@ public final class ProfileSettingsModel {
             subtitlePolicyModel: subtitlePolicyModel ?? SubtitlePolicyModel(store: SubtitlePolicyStore(namespace: ns)),
             audioPolicyModel: audioPolicyModel ?? AudioPolicyModel(store: AudioPolicyStore(namespace: ns)),
             themeModel: themeModel ?? ThemeSettingsModel(store: ThemeSettingsStore(namespace: ns)),
+            contentRatingModel: contentRatingModel ?? ContentRatingSettingsModel(
+                store: ContentRatingSettingsStore(namespace: ns)
+            ),
             heroModels: HeroModels(
                 home: heroSettingsModel ?? HeroSettingsModel(store: HeroSettingsStore(namespace: ns)),
                 background: heroBackgroundModel ?? HeroBackgroundSettingsModel(

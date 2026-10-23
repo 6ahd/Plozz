@@ -2544,6 +2544,7 @@ private struct PlozziOSHeroMetadata: View {
 
     @Environment(\.themePalette) private var palette
     @Environment(\.plozziOSHeroLogoSize) private var logoSize
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     @State private var availableWidth: CGFloat = 0
     let presentation: HeroPresentation
     let style: HeroArtworkStyle
@@ -2788,7 +2789,8 @@ private struct PlozziOSHeroMetadata: View {
     }
 
     private var effectiveRatingBadge: MediaBadge? {
-        switch mode {
+        guard showsContentRatings else { return nil }
+        return switch mode {
         case .home:
             rootPresentation.ratingBadge
         case .detail:

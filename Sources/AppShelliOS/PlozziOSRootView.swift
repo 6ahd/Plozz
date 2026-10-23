@@ -265,6 +265,7 @@ public struct PlozziOSRootView: View {
             )
         }
         .environment(\.familyGuidanceProvider, appModel.familyGuidance)
+        .environment(\.plozzShowsContentRatings, appModel.settings.contentRatings.showsRatings)
         .environment(
             \.versionPickerAudioLanguage,
             appModel.settings.playback.settings.audioLanguagePreference.explicitLanguageCode

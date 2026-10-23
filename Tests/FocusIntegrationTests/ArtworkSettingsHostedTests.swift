@@ -1486,6 +1486,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             .environment(models.navigationStyleModel)
             .environment(models.transparencyModel)
             .environment(models.appLanguageModel)
+            .environment(models.contentRatingModel)
             try await withScreen(content: content) { window in
                 let text = try await self.capture(window, name: "artwork-appearance-providers-\(canManage)")
                 XCTAssertTrue(text.contains("Choose the posters, backgrounds, and logos you see"), text)

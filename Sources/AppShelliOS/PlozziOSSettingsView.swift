@@ -1632,6 +1632,9 @@ struct PlozziOSAppearanceSettingsView: View {
                     .accessibilityIdentifier("appearance-\(page.rawValue)")
                 }
             }
+            SettingsSectionGroup {
+                ContentRatingToggle(model: appModel.settings.contentRatings)
+            }
         }
         .settingsPageSurface()
         .navigationTitle("Appearance")

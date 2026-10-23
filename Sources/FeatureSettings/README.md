@@ -7,6 +7,13 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Appearance has one profile-wide **Show content ratings** switch, on by default.
+Its label includes small, noninteractive PG-13 and R examples using the actual
+classification badge style; the examples stay visible when the switch is off.
+The label adapts to narrow widths and accessibility text sizes. This controls
+Home/detail badges, featured-card metadata, title-information classifications,
+and exported Top Shelf classifications, not review scores or parental restrictions.
+
 Server sign-ins offer **Sign In Again** without removing the saved account.
 Plex, Jellyfin, Emby, and Silo share the same guarded recovery contract; IPTV
 uses **Edit connection**. Failed library authentication routes to that exact

@@ -824,6 +824,8 @@ public struct RootView: View {
             appState.addAccount(provider: .iptv, playlist: request.playlist, iptvAccount: request.account)
         }
         .environment(\.gradientBackgroundsEnabled, appState.profileSettings.themeModel.gradientEnabled)
+        .environment(appState.profileSettings.contentRatingModel)
+        .environment(\.plozzShowsContentRatings, appState.profileSettings.contentRatingModel.showsRatings)
         .environment(\.familyGuidanceProvider, appState.familyGuidance)
         .environment(\.detailHeaderSettings, appState.profileSettings.detailPageModel)
         .environment(appState.profileSettings.libraryPresentationModel)

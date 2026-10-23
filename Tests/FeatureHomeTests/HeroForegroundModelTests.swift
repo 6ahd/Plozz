@@ -17,6 +17,21 @@ final class HeroForegroundModelTests: XCTestCase {
     private typealias Builder = HeroForegroundModelBuilder
     private typealias PillInput = HeroForegroundModelBuilder.PillInput
 
+    func testContentRatingVisibilityIsIndependentOfReviewScoresAndAgeRecommendations() {
+        var item = movie(officialRating: "FR/Tous publics avec avertissement")
+        item.ratings = [.init(source: .imdb, value: 8, scale: .outOfTen)]
+        item.familyGuidance = .init(recommendedAge: 14, qualityRating: nil)
+        let model = Builder.model(
+            item: item, overviewVisible: true, showsContentRatings: false,
+            maskedTitle: nil, pillInputs: [], selectedIndex: 0, heroFocused: false,
+            slideCount: 1, slideIndex: 0
+        )
+        XCTAssertNil(model.ratingBadgeText)
+        XCTAssertEqual(model.ratings, item.ratings)
+        XCTAssertEqual(model.familyGuidanceAge, 14)
+        XCTAssertEqual(item.officialRating, "FR/Tous publics avec avertissement")
+    }
+
     func testHeroShowsAgeAndTwoReviewsByDefaultAndHonorsHiding() {
         var item = movie()
         item.familyGuidance = .init(recommendedAge: 14, qualityRating: 5)

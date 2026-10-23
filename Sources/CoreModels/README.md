@@ -106,6 +106,32 @@ outboxes without retry metadata remain readable and immediately eligible.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Content-rating presentation
+
+`ContentRatingPresentation` shortens known classification descriptions, not ages.
+Country prefixes identify the rating system independently of the app's language.
+Existing codes, native scripts, meaningful slashes (India's `U/A`, Portugal's
+`M/12`, Belgium's `AL/TOUS`), and unrecognized qualifiers remain intact.
+French `avec avertissement` is an additional warning: show `TP` or the age
+restriction with a warning indicator, never silently drop it or invent a US rating.
+`MediaItem.officialRating` and the badge's accessibility text retain the original.
+Unknown descriptions remain provider content; presentation bounds their width.
+
+References used for display aliases:
+[CNC classification and warnings](https://www.cnc.fr/cinema/actualites/proteger-sans-censurer--la-classification-des-oeuvres-cinematographiques_1924881),
+[FSK age labels](https://www.fsk.de/altersstufen/),
+[regional classification overview](https://en.wikipedia.org/wiki/Motion_picture_content_rating_system),
+and [Jellyfin's regional input tokens](https://github.com/jellyfin/jellyfin/tree/master/Emby.Server.Implementations/Localization/Ratings).
+Jellyfin's numeric parental-control scores are **not** display equivalences;
+for example, exemptions, warning qualifiers, and age-restricted classifications
+must not collapse just because they share a score. This is not a complete registry
+of every custom classification a media server can supply.
+
+`ContentRatingSettingsModel` owns one default-on, profile-scoped visibility
+preference. It transfers between devices and is rebuilt on profile switches.
+It changes presentation only, never parental authorization, catalog filtering,
+review scores, or Common Sense Media recommendations.
+
 ## Home section editing
 
 `HomeSectionCatalog` adapts the existing `HomeRowChoice` inventory into section

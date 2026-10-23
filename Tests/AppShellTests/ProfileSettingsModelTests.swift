@@ -10,6 +10,25 @@ import CoreModels
 /// as immutable and never rebuilt.
 @MainActor
 final class ProfileSettingsModelTests: XCTestCase {
+    func testContentRatingVisibilityChangesWithTheActiveProfile() {
+        let first = "ContentRatings.first.\(UUID())"
+        let second = "ContentRatings.second.\(UUID())"
+        defer {
+            for namespace in [first, second] {
+                UserDefaults.standard.removeObject(forKey: SettingsKey.scoped(
+                    ContentRatingSettingsStore.storageKey, namespace: namespace
+                ))
+            }
+        }
+        let model = ProfileSettingsModel(namespace: first)
+        XCTAssertTrue(model.contentRatingModel.showsRatings)
+        model.contentRatingModel.showsRatings = false
+        model.rebuild(namespace: second)
+        XCTAssertTrue(model.contentRatingModel.showsRatings)
+        model.rebuild(namespace: first)
+        XCTAssertFalse(model.contentRatingModel.showsRatings)
+    }
+
     func testRebuildingKeepsAutomaticDiscoveryAndExplicitChoicesProfileScoped() {
         let first = "Discovery.first.\(UUID())"
         let second = "Discovery.second.\(UUID())"
@@ -81,6 +100,7 @@ final class ProfileSettingsModelTests: XCTestCase {
         let model = ProfileSettingsModel(namespace: "ns-a")
 
         let before: [ObjectIdentifier] = [
+            ObjectIdentifier(model.contentRatingModel),
             ObjectIdentifier(model.appLanguageModel),
             ObjectIdentifier(model.subtitleBehaviorModel),
             ObjectIdentifier(model.subtitleStyleModel),
@@ -101,11 +121,12 @@ final class ProfileSettingsModelTests: XCTestCase {
             ObjectIdentifier(model.heroSettingsModel),
             ObjectIdentifier(model.nightShiftModel),
         ]
-        XCTAssertEqual(before.count, 19, "Expected 19 per-profile sub-models")
+        XCTAssertEqual(before.count, 20, "Expected 20 per-profile sub-models")
 
         model.rebuild(namespace: "ns-b")
 
         let after: [ObjectIdentifier] = [
+            ObjectIdentifier(model.contentRatingModel),
             ObjectIdentifier(model.appLanguageModel),
             ObjectIdentifier(model.subtitleBehaviorModel),
             ObjectIdentifier(model.subtitleStyleModel),
@@ -219,6 +240,7 @@ final class ProfileSettingsModelTests: XCTestCase {
     /// (`subtitlePolicyModel`, `audioPolicyModel`, `heroSettingsModel`) are now
     /// injectable and preserved as-is, mirroring the other injected models.
     func testNewlyInjectableModelsArePreservedAndNotRebuilt() {
+        let injectedContentRatings = ContentRatingSettingsModel(store: ContentRatingSettingsStore(namespace: "seed"))
         let injectedSubtitlePolicy = SubtitlePolicyModel(store: SubtitlePolicyStore(namespace: "seed"))
         let injectedAudioPolicy = AudioPolicyModel(store: AudioPolicyStore(namespace: "seed"))
         let injectedHero = HeroSettingsModel(store: HeroSettingsStore(namespace: "seed"))
@@ -227,6 +249,7 @@ final class ProfileSettingsModelTests: XCTestCase {
             namespace: "ns-a",
             subtitlePolicyModel: injectedSubtitlePolicy,
             audioPolicyModel: injectedAudioPolicy,
+            contentRatingModel: injectedContentRatings,
             heroSettingsModel: injectedHero
         )
 
@@ -234,12 +257,14 @@ final class ProfileSettingsModelTests: XCTestCase {
         XCTAssertTrue(model.subtitlePolicyModel === injectedSubtitlePolicy)
         XCTAssertTrue(model.audioPolicyModel === injectedAudioPolicy)
         XCTAssertTrue(model.heroSettingsModel === injectedHero)
+        XCTAssertTrue(model.contentRatingModel === injectedContentRatings)
 
         // Rebuild is a no-op under injection: identities are preserved.
         model.rebuild(namespace: "ns-b")
         XCTAssertTrue(model.subtitlePolicyModel === injectedSubtitlePolicy)
         XCTAssertTrue(model.audioPolicyModel === injectedAudioPolicy)
         XCTAssertTrue(model.heroSettingsModel === injectedHero)
+        XCTAssertTrue(model.contentRatingModel === injectedContentRatings)
     }
 
     func testInjectedModelsAreNotRebuilt() {

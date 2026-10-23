@@ -138,6 +138,7 @@ struct DetailHeroView: View, Equatable {
     /// Fridays" or "New season Aug 5". `nil` when nothing is known.
     var scheduleLine: LocalizedStringResource? = nil
     let spoilerSettings: SpoilerSettings
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     /// Title for the ready Play/Resume button. Pending library details can keep
     /// its disabled placeholder visible before a target has resolved.
     let playTitle: LocalizedStringResource?
@@ -691,7 +692,8 @@ struct DetailHeroView: View, Equatable {
     /// backdrop item (the series), so a show's TV rating still shows while
     /// scrubbing episodes — matching Apple TV.
     private var heroRatingBadge: MediaBadge? {
-        HeroContentPolicy.ratingBadge(
+        guard showsContentRatings else { return nil }
+        return HeroContentPolicy.ratingBadge(
             focused: focusedPresentation,
             root: rootPresentation
         )

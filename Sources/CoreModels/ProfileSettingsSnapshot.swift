@@ -40,6 +40,7 @@ public enum ProfileSettingsTransfer {
     public static let transferableBaseKeys: [String] = [
         "com.plozz.appTheme",
         ThemeSettingsStore.gradientStorageKey,
+        ContentRatingSettingsStore.storageKey,
         "transparencyPreference",
         "com.plozz.cardStyle",
         CardCaptionSettingsStore.storageKey,

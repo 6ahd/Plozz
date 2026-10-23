@@ -55,6 +55,7 @@ struct HomeTab: View {
     @Environment(\.locale) private var locale
     @Environment(LibraryPresentationSettingsModel.self) private var libraryPresentation
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     @Environment(\.mediaItemActionHandler) private var mediaItemActionHandler
     /// The rail's chrome model, present only under ``NavigationStyle/rail``. This
     /// stack reports its depth so the rail steps aside on a detail page.
@@ -247,6 +248,7 @@ struct HomeTab: View {
                         latest: latest,
                         locale: locale,
                         spoilerSettings: SpoilerSettingsStore(namespace: libraryPreferencesNamespace).load(),
+                        showsContentRatings: ContentRatingSettingsStore(namespace: libraryPreferencesNamespace).load(),
                         resolveMetadata: { item in
                             guard let accountID = item.sourceAccountID else { return item }
                             return try await TopShelfItemResolver.resolve(
@@ -494,6 +496,9 @@ struct HomeTab: View {
             }
             .onChange(of: pendingTitleRoute) { _, _ in consumePendingTitleRoute() }
             .onChange(of: artworkPolicy.forArea(.topShelf).identity) { _, _ in
+                if case .home = root { sharedHomeViewModel.publishCurrentContent() }
+            }
+            .onChange(of: showsContentRatings) { _, _ in
                 if case .home = root { sharedHomeViewModel.publishCurrentContent() }
             }
             .onChange(of: isActiveTab, initial: true) { _, _ in consumePendingTitleRoute() }

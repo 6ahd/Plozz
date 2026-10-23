@@ -38,6 +38,7 @@ struct AppearanceDetailView: View {
     @Environment(NavigationStyleSettingsModel.self) private var navigation
     @Environment(TransparencyPreferenceModel.self) private var transparency
     @Environment(AppLanguageSettingsModel.self) private var appLanguage
+    @Environment(ContentRatingSettingsModel.self) private var contentRatings
 
     var body: some View {
         @Bindable var settingsNavigation = settingsNavigation
@@ -80,9 +81,13 @@ struct AppearanceDetailView: View {
                         .destination(.detailPage)
                 ] + availableRows.filter { $0.id == "music-player" }.map { $0.page() }
             }
-            return ["theme", "cards", "artwork", "spoilers", "night-shift"].flatMap { id in
+            return ["theme", "cards", "artwork", "content-ratings", "spoilers", "night-shift"].flatMap { id in
                 availableRows.filter { $0.id == id }.map { row in
-                    id == "artwork" ? row.destination(.artwork) : row.page()
+                    switch id {
+                    case "artwork": row.destination(.artwork)
+                    case "content-ratings": row
+                    default: row.page()
+                    }
                 }
             }
         }
@@ -101,6 +106,9 @@ struct AppearanceDetailView: View {
                     title: "Language"
                 ) {
                     AppLanguagePicker(model: appLanguage)
+                }.labeledControl(),
+                SettingsSplitRow(id: "content-ratings", title: "Show content ratings") {
+                    ContentRatingToggle(model: contentRatings)
                 }.labeledControl(),
                 SettingsSplitRow(
                     id: "theme",
