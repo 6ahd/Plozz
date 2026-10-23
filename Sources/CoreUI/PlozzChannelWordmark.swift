@@ -30,7 +30,19 @@ struct PlozzChannelWordmark: View {
     let cornerRadius: CGFloat
     @Environment(\.colorSchemeContrast) private var contrast
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        #if DEBUG
+        if let style = PlozzChannelWordmarkPreview.requestedStyle {
+            PlozzChannelWordmarkPreview(name: name, size: size, cornerRadius: cornerRadius, style: style)
+        } else {
+            currentWordmark
+        }
+        #else
+        currentWordmark
+        #endif
+    }
+
+    private var currentWordmark: some View {
         VStack(alignment: .leading, spacing: size.height * 0.055) {
             HStack(spacing: size.height * 0.07) {
                 Text(verbatim: "PLOZZ")

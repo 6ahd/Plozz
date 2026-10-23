@@ -19,6 +19,22 @@ And to push the results at the marketing site:
 cd ../plozz-website && npm run shots  # copy the changed masters, re-encode
 ```
 
+## Channel identity design comparison
+
+`PlozzChannelIdentityCaptureTests/testNativeGuideIdentityComparison` in
+`PlozzHomeFixtureTests` captures Quiet signature and Mascot first using the
+production tvOS guide, sidebar, hero, and focus components. Run this selected
+test on an owned Apple TV 4K simulator. The fixture uses identical sample
+channels, a fixed schedule, and the same focused programme for both images.
+Its screenshots are native simulator captures, not physical-TV captures or
+screenshots of a configured user's library.
+
+The Debug-only `PLOZZ_CHANNEL_BADGE_PREVIEW` launch environment selects
+`quiet-signature` or `mascot-first`. With no override, the existing channel
+wordmark remains unchanged; Release builds do not include these previews.
+The saved `assets/plozz-oled-icon-concept.svg` and matching PNG are separate
+app-icon explorations, not shipping assets.
+
 ---
 
 ## Why this exists

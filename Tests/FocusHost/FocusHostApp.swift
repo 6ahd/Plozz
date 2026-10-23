@@ -66,6 +66,8 @@ struct FocusHostApp: App {
                 CastFocusFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--guide-navigation-fixture") {
                 GuideNavigationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--channel-identity-fixture") {
+                PlozzChannelIdentityFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--library-channel-actions") {
                 LibraryChannelActionsFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--navigation-fixture") {
