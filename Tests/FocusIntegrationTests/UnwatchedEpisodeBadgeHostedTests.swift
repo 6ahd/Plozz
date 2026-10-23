@@ -225,7 +225,7 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
         }
     }
 
-    func testMobileArtworkProgressRendersEightPointHeight() throws {
+    func testArtworkProgressRendersSharedDetailedBarHeight() throws {
         for density in UIDensity.allCases {
             let metrics = PlozzMetrics.touch(density: density)
             for kind in [MediaItemKind.movie, .series] {
@@ -239,7 +239,10 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
                         filledRows += 1
                     }
                 }
-                XCTAssertEqual(filledRows, 8, "The actual \(kind) bar must be 8pt tall at \(density)")
+                XCTAssertEqual(
+                    filledRows, Int(metrics.resumeChipBarHeight),
+                    "The actual \(kind) bar must match the Detailed bar at \(density)"
+                )
             }
         }
     }

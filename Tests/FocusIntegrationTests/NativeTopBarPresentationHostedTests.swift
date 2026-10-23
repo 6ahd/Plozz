@@ -83,6 +83,28 @@ final class NativeTopBarPresentationHostedTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
+        func tabController(_ controller: UIViewController) -> UITabBarController? {
+            if let tabs = controller as? UITabBarController { return tabs }
+            return controller.children.lazy.compactMap { tabController($0) }.first
+        }
+        func navigationController(_ controller: UIViewController) -> UINavigationController? {
+            if let navigation = controller as? UINavigationController { return navigation }
+            return controller.children.lazy.compactMap { navigationController($0) }.first
+        }
+        func waitForNavigationDepth(_ depth: Int) async throws {
+            let deadline = ContinuousClock.now + .seconds(5)
+            while ContinuousClock.now < deadline {
+                window.layoutIfNeeded()
+                if let selected = tabController(host)?.selectedViewController,
+                   let navigation = navigationController(selected),
+                   navigation.viewControllers.count == depth,
+                   navigation.transitionCoordinator == nil {
+                    return
+                }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            XCTFail("The native Home stack did not finish transitioning to depth \(depth).")
+        }
         for _ in 0..<20 {
             for destination in [NavigationRailDestination.settings, .watchlist, .home] {
                 model.selection = destination
@@ -90,22 +112,38 @@ final class NativeTopBarPresentationHostedTests: XCTestCase {
                 try await Task.sleep(for: .milliseconds(20))
             }
             model.path = ["detail"]
-            window.layoutIfNeeded()
-            try await Task.sleep(for: .milliseconds(20))
+            try await waitForNavigationDepth(2)
             model.path = []
+            try await waitForNavigationDepth(1)
         }
-        try await Task.sleep(for: .milliseconds(500))
         window.layoutIfNeeded()
-        func tabController(_ controller: UIViewController) -> UITabBarController? {
-            if let tabs = controller as? UITabBarController { return tabs }
-            return controller.children.lazy.compactMap { tabController($0) }.first
-        }
         let tabs = try XCTUnwrap(tabController(host))
         let controllers = try XCTUnwrap(tabs.viewControllers).map(ObjectIdentifier.init)
         XCTAssertEqual(controllers.count, 3)
         XCTAssertEqual(Set(controllers).count, 3)
         XCTAssertNotNil(tabs.selectedViewController)
         XCTAssertEqual(model.selection, .home)
+
+        window.isHidden = true
+        window.rootViewController = nil
+        let nextWindow = UIWindow(windowScene: scene)
+        let nextController = UIViewController()
+        let nextButton = UIButton(type: .system)
+        nextButton.setTitle("Next fixture", for: .normal)
+        nextButton.frame = CGRect(x: 700, y: 450, width: 300, height: 100)
+        nextController.view.addSubview(nextButton)
+        nextWindow.rootViewController = nextController
+        nextWindow.makeKeyAndVisible()
+        defer {
+            nextWindow.isHidden = true
+            nextWindow.rootViewController = nil
+        }
+        let focused = ContinuousClock.now + .seconds(3)
+        while !nextButton.isFocused, ContinuousClock.now < focused {
+            nextWindow.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertTrue(nextButton.isFocused, "Native transitions must not leave subsequent windows' focus updates postponed.")
     }
 
     @Observable

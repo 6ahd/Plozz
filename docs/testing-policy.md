@@ -325,11 +325,15 @@ Runner verdict regressions use the existing host-side unittest runner:
 Episode-panel fixtures activate native window focus before reissuing their
 SwiftUI Browse entry request. Repeated window handoffs must start on Browse and
 still allow the playing episode to receive actual native focus.
+The rapid native-tab fixture waits for each real navigation push and pop to
+finish before issuing the next stack mutation, and verifies that a subsequent
+window receives native focus. Mutating a stack again during its transition can
+leave UIKit focus updates postponed and contaminate unrelated hosted tests.
 
-`PlayerSkipMarkerHostedTests` updates one live scrub track and waits for stable
-rendered frames before comparing native fills. Liquid Glass can keep changing
-after layout; comparing its first frames must not be mistaken for a marker color
-regression or worked around by relaxing the pixel assertions.
+`PlayerSkipMarkerHostedTests` compares one live scrub track before and after
+adding skip boundaries, at the same screen coordinates. Separate native-glass
+instances at different positions are not pixel-identical reference materials.
+Retain extended-range capture precision before converting to comparison pixels.
 Capture at the window's native display scale and sample every backing pixel in
 the asserted point ranges. Downsampling a 2x TV render to 1x introduces ringing
 even around plain opaque capsules; a separate capsule fixture protects snapshot

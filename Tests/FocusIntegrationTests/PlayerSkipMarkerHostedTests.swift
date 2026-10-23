@@ -40,10 +40,11 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
             for performance in [false, true] {
                 for focused in [false, true] {
                     let background = Color(red: 0.15, green: 0.35, blue: 0.6)
-                    let model = showTracks(
+                    let model = showTrack(
                         in: window, focused: focused, performance: performance,
                         background: background
                     )
+                    let unmarked = try await render(in: window)
                     model.skipSegments.segments = [.init(kind: .intro, start: 12.5, end: 87.5)]
                     let frame = try await render(in: window)
                     let top = focused ? 580 : 584
@@ -57,7 +58,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                             for channel in 0..<3 {
                                 XCTAssertEqual(
                                     Int(frame.colorAtPixel(x, y)[channel]),
-                                    Int(frame.colorAtPixel(x, y - frame.pixel(100))[channel]), accuracy: 1,
+                                    Int(unmarked.colorAtPixel(x, y)[channel]), accuracy: 1,
                                                "The sections retain the original played, buffered, and unplayed fills. flat=\(performance) focused=\(focused)")
                             }
                         }
@@ -94,31 +95,22 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
         try await body(window)
     }
 
-    private func showTracks(
+    private func showTrack(
         in window: UIWindow, focused: Bool, performance: Bool,
         background: Color
     ) -> PlayerControlsModel {
-        func makeModel() -> PlayerControlsModel {
-            let model = PlayerControlsModel()
-            model.duration = 100
-            model.currentSeconds = 40
-            model.bufferedSeconds = 60
-            model.controlsVisible = true
-            model.controlBarVisible = !focused
-            return model
-        }
-        let plain = makeModel()
-        let marked = makeModel()
+        let marked = PlayerControlsModel()
+        marked.duration = 100
+        marked.currentSeconds = 40
+        marked.bufferedSeconds = 60
+        marked.controlsVisible = true
+        marked.controlBarVisible = !focused
         let host = UIHostingController(rootView:
             background
                 .overlay {
-                    // Both adaptive materials must be compared in the same frame.
-                    VStack(spacing: 56) {
-                        ScrubBar(model: plain, palette: .dark)
-                            .frame(width: 1280, height: 44)
-                        ScrubBar(model: marked, palette: .dark)
-                            .frame(width: 1280, height: 44)
-                    }
+                    ScrubBar(model: marked, palette: .dark)
+                        .frame(width: 1280, height: 44)
+                        .offset(y: 50)
                 }
                 .ignoresSafeArea()
                 .environment(\.colorScheme, .dark)
@@ -149,7 +141,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
     private func capture(in window: UIWindow) throws -> Frame {
         let format = UIGraphicsImageRendererFormat()
         format.scale = window.screen.scale
-        format.preferredRange = .standard
+        format.preferredRange = .extended
         let snapshot = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }

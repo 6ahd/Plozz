@@ -486,8 +486,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   radius at every display size and responsive width. Borderless cards use that
   radius directly; glass frames add their inset to remain concentric. Loaded
   artwork, missing-art placeholders, and skeletons agree. TV rounding is unchanged.
-  Regular mobile artwork progress bars use an 8pt minimum height, leaving their
-  length and the separate Continue Watching, hero, and TV bars unchanged.
+  Regular artwork progress bars use the shared Detailed bar metric described
+  above, including its density and Dynamic Type scaling.
   Mobile library, episode, and download artwork uses the same metric, keeping
   its caption clearance consistent with its actual corners. Mobile captions use
   a shared 4pt horizontal inset from the artwork edge, independently of their
