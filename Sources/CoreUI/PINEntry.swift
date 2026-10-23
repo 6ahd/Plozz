@@ -598,6 +598,9 @@ public struct PINDialPad: View {
                             Text(verbatim: digit).font(digitFont)
                         }
                         .buttonStyle(PINKeyStyle(width: PINMetrics.keyDiameter))
+                        #if os(tvOS)
+                        .settingsPageEntryFocus(enabled: digit == "1")
+                        #endif
                         .modifier(PINKeyEntrance(
                             enabled: animatesEntrance, position: rowIndex * 3 + columnIndex,
                             reduceMotion: reduceMotion
