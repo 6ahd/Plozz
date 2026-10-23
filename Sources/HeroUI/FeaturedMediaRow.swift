@@ -28,7 +28,6 @@ public struct FeaturedMediaRow: View {
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
     @Environment(\.plozzPinnedSidebarActive) private var pinnedSidebarActive
     @Environment(\.plozzMetrics) private var metrics
-    @Environment(\.displayScale) private var displayScale
     @Environment(\.plozzRowTitleTightening) private var titleTightening
 
     public init(
@@ -65,7 +64,7 @@ public struct FeaturedMediaRow: View {
     private var size: CGSize {
         FeaturedCardLayout.size(
             viewportWidth: viewportWidth - (television ? navigationContentInset : 0),
-            television: television, displayScale: displayScale
+            television: television
         )
     }
     private var candidate: MediaItem? {

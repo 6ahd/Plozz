@@ -4,16 +4,14 @@ import MetadataKit
 import SwiftUI
 
 public enum FeaturedCardLayout {
-    public static func size(viewportWidth: CGFloat, television: Bool, displayScale: CGFloat = 1) -> CGSize {
+    public static func size(viewportWidth: CGFloat, television: Bool) -> CGSize {
         let width = television
             ? min(560, max(280, (viewportWidth - 96) / 3.15))
             : min(440, max(220, viewportWidth - 48))
-        let size = CGSize(width: width, height: width * (television ? 1.25 : 1.125))
-        guard television else { return size }
-        return CGSize(
-            width: (size.width * displayScale).rounded(.up) / displayScale,
-            height: (size.height * displayScale).rounded(.up) / displayScale
-        )
+        guard television else { return CGSize(width: width, height: width * 1.125) }
+        // Preserve the 4:5 ratio without fractional native clip bounds, even on 2x displays.
+        let alignedWidth = (width / 4).rounded(.up) * 4
+        return CGSize(width: alignedWidth, height: alignedWidth * 1.25)
     }
 }
 

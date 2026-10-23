@@ -180,9 +180,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   button label; non-system styles retain the shared focus fallback. Native
   Featured labels remain untrimmed until the control applies its outer clip:
   do not add separate rectangular image/video clips or a second rounded label
-  mask. TV label and control dimensions round outward to physical pixels so
-  fractional layout does not leave an uncovered raster edge. Standalone
-  previews and mobile cards keep their own outer rounded clip.
+  mask. TV widths round outward to multiples of four points, keeping both
+  dimensions integral and the 4:5 ratio exact. Keep native clip geometry in
+  whole points rather than rounding each dimension separately to physical
+  pixels. Standalone previews and mobile cards keep their own outer rounded clip.
   Rails reserve the shared shadow clearance without increasing row spacing.
   Full-bleed Home artwork preserves the measured trailing title-safe inset for
   row actions. Remote-driven coverage checks resting painted sizes after rapid

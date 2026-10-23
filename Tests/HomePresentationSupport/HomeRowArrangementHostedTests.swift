@@ -18,22 +18,29 @@ import XCTest
 #if os(tvOS)
 @MainActor
 extension HomeRowArrangementHostedTests {
-    func testFeaturedTVLayoutCoversWholePhysicalPixels() {
-        for width: CGFloat in [390, 1024, 1696, 1760.25, 1920] {
+    func testFeaturedTVLayoutKeepsWholePointFourByFiveGeometry() {
+        for width: CGFloat in [390, 1024, 1696, 1760.25, 1776, 1920] {
+            let size = FeaturedCardLayout.size(viewportWidth: width, television: true)
+            let unalignedWidth = min(560, max(280, (width - 96) / 3.15))
+            XCTAssertEqual(size.width.truncatingRemainder(dividingBy: 4), 0)
+            XCTAssertEqual(size.height, size.height.rounded())
+            XCTAssertEqual(size.height / size.width, 1.25)
+            XCTAssertGreaterThanOrEqual(size.width, unalignedWidth)
+            XCTAssertLessThan(size.width - unalignedWidth, 4)
             for scale: CGFloat in [1, 2] {
-                let size = FeaturedCardLayout.size(viewportWidth: width, television: true, displayScale: scale)
-                let unalignedWidth = min(560, max(280, (width - 96) / 3.15))
-                for (aligned, original) in [(size.width, unalignedWidth), (size.height, unalignedWidth * 1.25)] {
-                    XCTAssertEqual(aligned * scale, (aligned * scale).rounded(), accuracy: 0.00001)
-                    XCTAssertGreaterThanOrEqual(aligned, original)
-                    XCTAssertLessThan(aligned - original, 1 / scale)
-                }
+                XCTAssertEqual(size.width * scale, (size.width * scale).rounded())
+                XCTAssertEqual(size.height * scale, (size.height * scale).rounded())
             }
         }
         XCTAssertEqual(
-            FeaturedCardLayout.size(viewportWidth: 393, television: false, displayScale: 2),
+            FeaturedCardLayout.size(viewportWidth: 1776, television: true),
+            CGSize(width: 536, height: 670),
+            "The pinned-navigation case must not retain a half-point width or distort the aspect ratio."
+        )
+        XCTAssertEqual(
+            FeaturedCardLayout.size(viewportWidth: 393, television: false),
             CGSize(width: 345, height: 388.125),
-            "TV pixel alignment must not change the mobile layout."
+            "TV alignment must not change the mobile layout."
         )
     }
 
