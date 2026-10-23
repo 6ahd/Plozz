@@ -11,6 +11,78 @@ import UIKit
 
 @MainActor
 final class PlayerViewModelEOFTests: XCTestCase {
+    func testLocalPlaybackBypassesServerResolutionAcrossProviders() async {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie)
+        let localURL = URL(fileURLWithPath: "/fixture/download.mp4")
+        for kind in [ProviderKind.jellyfin, .plex, .emby, .silo] {
+            let provider = RecordingPlaybackProvider(
+                request: .init(item: item, streamURL: URL(string: "https://fixture.invalid/remote.mp4")!),
+                kind: kind
+            )
+            let engine = SpyVideoEngine()
+            let model = PlayerViewModel(
+                provider: provider, itemID: item.id, mediaSourceID: "remote-4k",
+                offlineItem: item,
+                offlinePlaybackResolver: LocalPlaybackFixture(files: [item.id: localURL]),
+                playbackSettings: .init(showUpNextCard: false),
+                engineFactory: .init(makeNative: { _ in engine })
+            )
+            await model.load()
+            let calls = await provider.playbackInfoCallCountValue()
+            XCTAssertEqual(calls, 0, kind.rawValue)
+            XCTAssertEqual(engine.lastLoadedRequest?.streamURL, localURL)
+            await model.stop()
+        }
+    }
+
+    func testEpisodePrefetchResolvesTheIncomingDownloadBeforeTheServer() async throws {
+        let current = MediaItem(id: "current", title: "Current", kind: .episode)
+        let next = MediaItem(id: "next", title: "Next", kind: .episode)
+        let localURL = URL(fileURLWithPath: "/fixture/next.mp4")
+        let provider = RecordingPlaybackProvider(request: .init(
+            item: next, streamURL: URL(string: "https://fixture.invalid/next.mp4")!
+        ))
+        let model = PlayerViewModel(
+            provider: provider, itemID: current.id, offlineItem: current,
+            offlinePlaybackResolver: LocalPlaybackFixture(files: [
+                current.id: URL(fileURLWithPath: "/fixture/current.mp4"),
+                next.id: localURL
+            ]),
+            engineFactory: .init(makeNative: { _ in SpyVideoEngine() })
+        )
+        await model.load()
+        for forceTranscode in [false, true] {
+            let resolved = try await model.upNextResolveAndRoute(item: next, forceTranscode: forceTranscode)
+            XCTAssertEqual(resolved.request.item.id, next.id)
+            XCTAssertEqual(resolved.request.streamURL, localURL)
+        }
+        let calls = await provider.playbackInfoCallCountValue()
+        XCTAssertEqual(calls, 0)
+        await model.stop()
+    }
+
+    func testNewlyAvailableDownloadSupersedesAnAdoptedServerStream() async {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie)
+        let localURL = URL(fileURLWithPath: "/fixture/download.mp4")
+        let remote = PlaybackRequest(
+            item: item, streamURL: URL(string: "https://fixture.invalid/remote.mp4")!
+        )
+        let provider = RecordingPlaybackProvider(request: remote)
+        let engine = SpyVideoEngine()
+        let model = PlayerViewModel(
+            provider: provider, itemID: item.id, offlineItem: item,
+            offlinePlaybackResolver: LocalPlaybackFixture(files: [item.id: localURL]),
+            playbackSettings: .init(showUpNextCard: false),
+            engineFactory: .init(makeNative: { _ in engine }),
+            adoptedResolved: .init(itemID: item.id, request: remote, engineKind: .native)
+        )
+        await model.load()
+        let calls = await provider.playbackInfoCallCountValue()
+        XCTAssertEqual(calls, 0)
+        XCTAssertEqual(engine.lastLoadedRequest?.streamURL, localURL)
+        await model.stop()
+    }
+
     func testSkipContentGatesUseTheSharedClassificationOnBothProviders() async throws {
         let fixtures: [(MediaItem, ContentCategory)] = [
             (.init(id: "movie", title: "Movie", kind: .movie), .movie),
@@ -2627,6 +2699,14 @@ private actor NeighborResolverGate {
     func release() {
         continuation?.resume(returning: (nil, next))
         continuation = nil
+    }
+}
+
+private struct LocalPlaybackFixture: OfflinePlaybackResolving {
+    let files: [String: URL]
+
+    func localPlaybackURL(for item: MediaItem, versionID: String?) async -> URL? {
+        files[item.id]
     }
 }
 

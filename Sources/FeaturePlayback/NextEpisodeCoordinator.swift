@@ -25,7 +25,7 @@ protocol NextEpisodeCoordinatorHost: AnyObject {
     var upNextCurrentEngineKind: PlaybackEngineKind { get }
     var upNextBringUpStartedAt: Date? { get }
     func upNextResolveAndRoute(
-        itemID: String, mediaSourceID: String?, forceTranscode: Bool
+        item: MediaItem, forceTranscode: Bool
     ) async throws -> PlayerViewModel.PrefetchedPlayback
 }
 
@@ -181,7 +181,7 @@ final class NextEpisodeCoordinator {
         try Task.checkCancellation()
         guard let host else { throw CancellationError() }
         var resolved = try await host.upNextResolveAndRoute(
-            itemID: episode.id, mediaSourceID: episode.selectedVersionID, forceTranscode: false
+            item: episode, forceTranscode: false
         )
         if !Task.isCancelled, resolved.engineKind == .plozzigen,
            let probe = engineFactory.probeSourceDynamicRange {

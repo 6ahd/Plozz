@@ -167,6 +167,8 @@ public final class PlaybackVersionChoiceModel {
             if !item.explicitSourceSelection {
                 item.selectedVersionID = nil
             }
+        } else {
+            return opened
         }
         try Task.checkCancellation()
         guard owner == id, isCurrent() else { throw CancellationError() }

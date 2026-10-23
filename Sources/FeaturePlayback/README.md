@@ -574,8 +574,16 @@ authoritative `playbackItem(id:)` inventory, even for a cached one-version seed.
 Both shells await the existing bounded cross-server discovery rather than relying
 on the detail page's speculative background pass. Same-account edition sources
 are refreshed before presenting their files; partial lists and failed
-remote discovery cannot fall through into playback. Local downloads remain
-usable without a server lookup. tvOS shows a loading indicator during this wait.
+remote discovery cannot fall through into playback. On iPhone/iPad, a usable
+download bypasses server inventory and version prompts, including when another
+server or version is selected. Playback prefers that version only among usable
+local copies, then tries the other matching downloads in the active profile.
+Incomplete or missing copies cannot hide a completed file. Matching uses captured
+provider identities or account-scoped source references, never a bare server item
+ID; media kind and episode ordinals remain boundaries. Local subtitles and metadata
+follow the chosen file. Episode prefetch resolves the incoming episode locally,
+and a newly available download supersedes an already-prefetched server stream.
+tvOS shows a loading indicator during its server inventory wait.
 Cached automatic recommendations are recomputed against the complete inventory;
 deliberate selections keep their precedence.
 Discovered primary references are stamped with that fresh inventory before a

@@ -171,6 +171,8 @@ limits and refuses an incompatible plan rather than quietly using Maximum.
 
 - **Downloads on iPhone and iPad** — save movies and episodes for playback
   without a server connection, with local artwork and metadata for browsing.
+  Playback prefers an available download over streaming, even when another
+  server or version is selected.
   Native Silo downloads are supported too; they use the server's download
   permissions and preparation options, not a temporary playback link.
   Missing artwork is repaired when the source is reachable on an allowed network,
