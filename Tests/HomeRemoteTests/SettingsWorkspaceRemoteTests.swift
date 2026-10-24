@@ -2,6 +2,57 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testDetailSizingCannotBeSkippedBetweenBackAndBackground() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-title-details"], in: app)
+        XCUIRemote.shared.press(.select)
+        let logo = app.buttons["Logo size"]
+        let text = app.buttons["Text size"]
+        let back = pageBack(in: app)
+        XCTAssertTrue(logo.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(text.exists, app.debugDescription)
+
+        func press(_ direction: XCUIRemote.Button, expecting target: XCUIElement) {
+            XCUIRemote.shared.press(direction)
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in self.hasFocus(target) }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                           "Vertical navigation must reach \(target.label). \(app.debugDescription)")
+        }
+
+        try focus(back, in: app)
+        press(.down, expecting: logo)
+        press(.down, expecting: text)
+        XCUIRemote.shared.press(.down)
+        XCTAssertTrue(["Off", "Trailer", "Theme music"].contains { hasFocus(app.buttons[$0]) },
+                      "Down from Text size must enter Background.")
+        for option in ["Off", "Trailer", "Theme music"] {
+            try focus(app.buttons[option], in: app)
+            press(.up, expecting: text)
+            press(.up, expecting: logo)
+            press(.up, expecting: back)
+            for control in [logo, text] {
+                press(.down, expecting: control)
+                let original = try XCTUnwrap(control.value as? String)
+                XCUIRemote.shared.press(.right)
+                XCTAssertTrue(hasFocus(control), "Left/Right must still adjust without navigating.")
+                XCTAssertNotEqual(control.value as? String, original)
+                XCUIRemote.shared.press(.left)
+                XCTAssertEqual(control.value as? String, original)
+            }
+            XCUIRemote.shared.press(.down)
+        }
+        capture("detail-size-vertical-focus", in: app)
+        #else
+        throw XCTSkip("Never changes detail settings on a physical device.")
+        #endif
+    }
+
     func testCustomizeLibrariesPlacesNavigationBeforeRecommendedPageSettings() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -1944,6 +1995,11 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         if diagnostics { app.launchEnvironment["PLZHFOCUS"] = "1" }
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
+        let declineDiagnostics = app.buttons.matching(NSPredicate(format: "label == %@", "Don't Share")).firstMatch
+        if declineDiagnostics.waitForExistence(timeout: 2) {
+            try focus(declineDiagnostics, in: app)
+            XCUIRemote.shared.press(.select)
+        }
         if app.buttons["Looks good"].waitForExistence(timeout: 2) {
             try focus(app.buttons["Looks good"], in: app)
             XCUIRemote.shared.press(.select)

@@ -56,6 +56,8 @@ layout-choice previews live instead of adding a second preview to the control.
 Recommended retains its 320-point-wide preview. Detail Page uses a 400-by-300
 preview showing the hero, right-side credits, and episode captions scaling
 together. Both retain the shared group inset and inner corner radius.
+The complete preview-and-controls group is one native tvOS focus section, so
+vertical navigation reaches the size controls even from the preview's side.
 Artwork shares the layout picker's backdrop: Showcase fades in from the right,
 while Home and detail previews use edge-to-edge artwork.
 Mobile Home keeps native sliders beside their labels and one stacked preview.

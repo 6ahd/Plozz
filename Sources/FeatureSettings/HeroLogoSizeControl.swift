@@ -84,6 +84,7 @@ public struct HeroLogoSizeControl: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .fixedSize(horizontal: false, vertical: true)
+        .focusSection()
         .environment(\.settingsFormRowsFlushLeading, false)
         .accessibilityElement(children: .contain)
         #else
