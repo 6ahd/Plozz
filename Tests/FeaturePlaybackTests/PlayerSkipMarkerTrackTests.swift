@@ -118,7 +118,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
-    func testFocusedCornersGrowVerticallyWithoutWideningNarrowJoins() {
+    func testFocusedCornersPreserveSliverProportionsAndRoundTheWiderSideMore() {
         let restingHeight: CGFloat = 12
         for (sectionWidth, neighborWidth) in [(CGFloat(4.8), CGFloat(200)), (200, 4.8), (4.8, 4.8)] {
             let resting = SkipMarkerTrackLayout.cornerSize(
@@ -129,11 +129,29 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                     sectionWidth: sectionWidth, neighborWidth: neighborWidth,
                     height: height, referenceHeight: restingHeight
                 )
-                XCTAssertEqual(expanded.width, resting.width)
-                XCTAssertEqual(expanded.height / height, resting.height / restingHeight, accuracy: 0.000001)
+                let extra: CGFloat = sectionWidth > neighborWidth ? (height - restingHeight) / 8 : 0
+                XCTAssertEqual(expanded.width, resting.width + extra)
+                XCTAssertEqual(expanded.height, resting.height * height / restingHeight + extra, accuracy: 0.000001)
+                XCTAssertLessThanOrEqual(expanded.width, min(sectionWidth, height) / 2)
                 XCTAssertLessThanOrEqual(expanded.height, height / 2)
             }
         }
+    }
+
+    func testExtraWiderCornerRoundingTapersAtEqualWidthsAndStopsAtFullRounding() {
+        XCTAssertEqual(
+            SkipMarkerTrackLayout.cornerSize(sectionWidth: 200, neighborWidth: 4.8, height: 20, referenceHeight: 12),
+            CGSize(width: 4, height: 6)
+        )
+        let almostEqual = SkipMarkerTrackLayout.cornerSize(
+            sectionWidth: 5, neighborWidth: 4.8, height: 20, referenceHeight: 12
+        )
+        XCTAssertEqual(almostEqual.width, 2.5)
+        XCTAssertEqual(almostEqual.height, 5.1, accuracy: 0.000001)
+        XCTAssertEqual(
+            SkipMarkerTrackLayout.cornerSize(sectionWidth: 200, neighborWidth: 40, height: 20, referenceHeight: 12),
+            CGSize(width: 10, height: 10)
+        )
     }
 
     func testFocusedTightGapsTakeExtraWidthOnlyFromTheWiderNeighbor() throws {

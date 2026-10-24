@@ -94,6 +94,16 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                     if focused {
                         XCTAssertEqual(frame.color(widerSectionStart, top + 1), frame.color(widerSectionStart, 450),
                                        "Focus must grow the corner curve vertically instead of leaving it boxy.")
+                        let backdrop = frame.color(widerSectionStart + 1, 450)
+                        let corner = frame.color(widerSectionStart + 1, top + 1)
+                        let solid = frame.color(widerSectionStart + 1, 590)
+                        for channel in 0..<3 {
+                            XCTAssertLessThan(
+                                2 * (Int(corner[channel]) - Int(backdrop[channel])),
+                                Int(solid[channel]) - Int(backdrop[channel]),
+                                "The wider corner should reveal more picture than track at its outer curve."
+                            )
+                        }
                     }
                     for y in frame.pixels(top..<(focused ? 600 : 596)) {
                         for x in frame.pixels(326..<(focused ? 330 : 327)) {

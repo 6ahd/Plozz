@@ -1504,12 +1504,14 @@ not consumed or enlarged. Outer timeline ends remain unchanged.
 Both sides of each gap use the narrower rendered section to size their corners,
 with a small amount of extra rounding capped at half the bar height. Slivers use
 slightly taller elliptical corners without exceeding their available width;
-wider neighbors can use the corresponding circular corner. Facing corners meet
+wider neighbors can use the corresponding circular corner. Base facing corners meet
 the gap at the same height. Roomy joins retain full rounding, and rounding never
 removes a divider. Live programme tracks use the same geometry.
 On TV, constrained corners grow vertically from the 12pt resting geometry as
 focus expands the bar to 20pt. Their horizontal width stays constrained while
 the curves retain their resting proportions instead of becoming squarer.
+The wider side of a tight join gains up to 1pt of additional rounding during
+focus, without changing the smaller piece or exceeding a fully rounded end.
 Focused tight joins also gain up to 2pt of optical spacing, taken only from the
 wider neighbor. The smaller piece stays in place, and the original time boundary
 remains inside the gap. Spacing tapers away at fully rounded joins and is bounded

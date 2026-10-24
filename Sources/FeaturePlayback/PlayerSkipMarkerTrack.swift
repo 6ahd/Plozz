@@ -102,7 +102,13 @@ enum SkipMarkerTrackLayout {
         let reference = referenceHeight ?? height
         // Grow the vertical curve with focus instead of stretching a nearly square middle.
         let verticalRadius = min(reference / 2, availableRadius) * (height / reference)
-        return CGSize(width: min(sectionWidth / 2, radius), height: verticalRadius)
+        let extra = sectionWidth > neighborWidth
+            ? min(1, max(0, height - reference) / 8, (sectionWidth - neighborWidth) / 2)
+            : 0
+        return CGSize(
+            width: min(sectionWidth / 2, height / 2, radius + extra),
+            height: min(height / 2, verticalRadius + extra)
+        )
     }
 
     static func maskPath(
