@@ -222,10 +222,10 @@ headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
 Plozz pins the playback-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/32f5c5b24c6c1e63c8f036020af8a49dc9d76570)
-at commit `32f5c5b24c6c1e63c8f036020af8a49dc9d76570`, integrating upstream
-**7.45.0** and subsequent fixes through `98cd7cc29809dbbd71bb8e44fb7cd5c8466713f9`.
-Playback diagnostics show `AetherEngine v7.45.0`, read from the linked engine
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/5fe2d42d68524dcfbcfacf07cbefe5b28b618155)
+at commit `5fe2d42d68524dcfbcfacf07cbefe5b28b618155`, integrating upstream
+**7.47.0** (`a1a70cd63c1fef89cffcf0e8110456807d0fab05`).
+Playback diagnostics show `AetherEngine v7.47.0`, read from the linked engine
 rather than a duplicated version constant. The exact fork commit remains in
 attributions because the upstream version does not identify Plozz's patches.
 The update retains overlapped VOD/HDR preparation and adds the upstream
@@ -235,6 +235,15 @@ display, avoiding its extra fullscreen read-ahead. Native subtitle readiness
 can still wait for OCR. Live startup waits for the requested first buffered
 window before attaching AVPlayer, rather than spending its playlist timeout
 filling a large cushion.
+
+The 7.47.0 update starts software Live TV picture and sound together at the
+first keyframe and no longer reports a brief rebuffer while AVPlayer evaluates
+its buffer on resume. It corrects the HDMI route check for the optional TrueHD
+spatial-output activator and no longer runs that activator for DTS:X conversion.
+The existing 30-second diagnostic probe also reports coarse per-thread CPU
+usage. Upstream stereo presentation is additive and remains at `.automatic`;
+Plozz's tvOS and iOS targets still present these sources in 2D. Dependency
+versions and production component traits are unchanged.
 
 Plozz uses the new session-cache byte budget with its existing Video buffer
 presets and exposes a separate Live TV buffer, both defaulting to Automatic.
