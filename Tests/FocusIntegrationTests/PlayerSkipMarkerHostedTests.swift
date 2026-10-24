@@ -86,7 +86,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                     model.skipSegments.segments = [.init(kind: .intro, start: 0.5, end: 25)]
                     let frame = try await render(in: window)
                     let top = focused ? 580 : 584
-                    let widerSectionStart = focused ? 330 : 328
+                    let widerSectionStart = focused ? 330 : 329
                     XCTAssertNotEqual(frame.color(widerSectionStart + 2, top + 1), frame.color(widerSectionStart + 2, 450),
                                       "The wide section must not use an oversized cap beside the tiny opening.")
                     XCTAssertEqual(frame.color(widerSectionStart, top), frame.color(widerSectionStart, 450),
@@ -106,7 +106,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                         }
                     }
                     for y in frame.pixels(top..<(focused ? 600 : 596)) {
-                        for x in frame.pixels(326..<(focused ? 330 : 327)) {
+                        for x in frame.pixels(326..<widerSectionStart) {
                             XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))
                         }
                     }

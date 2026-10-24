@@ -129,7 +129,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                     sectionWidth: sectionWidth, neighborWidth: neighborWidth,
                     height: height, referenceHeight: restingHeight
                 )
-                let extra: CGFloat = sectionWidth > neighborWidth ? (height - restingHeight) / 8 : 0
+                let extra: CGFloat = sectionWidth > neighborWidth ? (height - restingHeight) * 3 / 16 : 0
                 XCTAssertEqual(expanded.width, resting.width + extra)
                 XCTAssertEqual(expanded.height, resting.height * height / restingHeight + extra, accuracy: 0.000001)
                 XCTAssertLessThanOrEqual(expanded.width, min(sectionWidth, height) / 2)
@@ -141,7 +141,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
     func testExtraWiderCornerRoundingTapersAtEqualWidthsAndStopsAtFullRounding() {
         XCTAssertEqual(
             SkipMarkerTrackLayout.cornerSize(sectionWidth: 200, neighborWidth: 4.8, height: 20, referenceHeight: 12),
-            CGSize(width: 4, height: 6)
+            CGSize(width: 4.5, height: 6.5)
         )
         let almostEqual = SkipMarkerTrackLayout.cornerSize(
             sectionWidth: 5, neighborWidth: 4.8, height: 20, referenceHeight: 12
@@ -154,17 +154,18 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         )
     }
 
-    func testFocusedTightGapsTakeExtraWidthOnlyFromTheWiderNeighbor() throws {
+    func testTightGapsGainOnePointAtRestAndKeepTwoAtFocusFromTheWiderNeighbor() throws {
         for (ranges, narrowIndex) in [
             ([0.02..<0.25], 0), ([0.4..<0.42], 1), ([0.5..<0.98], 2)
         ] {
-            for height in [CGFloat(12), 14, 16, 18, 20] {
+            for (height, extra) in [
+                (CGFloat(12), CGFloat(1)), (14, 1.25), (16, 1.5), (18, 1.75), (20, 2)
+            ] {
                 let size = CGSize(width: 320, height: height)
                 let original = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
                 let focused = SkipMarkerTrackLayout.segmentedSections(
                     ranges: ranges, size: size, restingHeight: 12
                 )
-                let extra = (height - 12) / 4
                 var expected = original
                 if narrowIndex > 0 {
                     expected[narrowIndex - 1].size.width -= extra
@@ -277,10 +278,9 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
-    func testFocusReferencePreservesTheRestingMaskAndMaximumRoomyRounding() throws {
+    func testTVSpacingPreservesMaximumRoomyRoundingAtRestAndFocus() throws {
         for (height, ranges) in [
-            (CGFloat(12), [0.02..<0.25]), (12, [0.4..<0.405]), (12, [0.5..<0.98]),
-            (12, [0.125..<0.875]), (20, [0.125..<0.875])
+            (CGFloat(12), [0.125..<0.875]), (20, [0.125..<0.875])
         ] {
             let size = CGSize(width: 320, height: height)
             let original = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
@@ -291,6 +291,24 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                 try pixels(original.fill(.white).frame(width: size.width, height: height).background(.black)).bytes,
                 try pixels(referenced.fill(.white).frame(width: size.width, height: height).background(.black)).bytes
             )
+        }
+    }
+
+    func testRestingSpacingPreservesTheTinyPieceAndItsCornerCurves() throws {
+        let size = CGSize(width: 320, height: 12)
+        for ranges in [[0.02..<0.25], [0.4..<0.42], [0.5..<0.98]] {
+            let sections = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+            let tiny = try XCTUnwrap(sections.first { $0.width < 12 })
+            let original = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
+            let spaced = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size, restingHeight: 12)
+            let before = try pixels(original.fill(.white).frame(width: 320, height: 12).background(.black))
+            let after = try pixels(spaced.fill(.white).frame(width: 320, height: 12).background(.black))
+            for x in Int(floor(tiny.minX))..<Int(ceil(tiny.maxX)) {
+                for y in 0..<12 {
+                    XCTAssertEqual(before.rgb(x: x, y: y), after.rgb(x: x, y: y),
+                                   "The wider neighbor pays for resting space without changing the tiny piece.")
+                }
+            }
         }
     }
 

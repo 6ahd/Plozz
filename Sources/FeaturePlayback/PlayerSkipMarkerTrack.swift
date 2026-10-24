@@ -70,8 +70,8 @@ enum SkipMarkerTrackLayout {
             let end = boundaries[index + 1] - halfGaps[index + 1]
             return CGRect(x: start, y: 0, width: end - start, height: size.height)
         }
-        guard let restingHeight, size.height > restingHeight else { return sections }
-        let maximumExtraGap = min(2, (size.height - restingHeight) / 4)
+        guard let restingHeight else { return sections }
+        let maximumExtraGap = min(2, 1 + max(0, size.height - restingHeight) / 8)
         var spaced = sections
         for index in sections.indices.dropLast() {
             let left = sections[index]
@@ -103,7 +103,7 @@ enum SkipMarkerTrackLayout {
         // Grow the vertical curve with focus instead of stretching a nearly square middle.
         let verticalRadius = min(reference / 2, availableRadius) * (height / reference)
         let extra = sectionWidth > neighborWidth
-            ? min(1, max(0, height - reference) / 8, (sectionWidth - neighborWidth) / 2)
+            ? min(1.5, max(0, height - reference) * 3 / 16, (sectionWidth - neighborWidth) / 2)
             : 0
         return CGSize(
             width: min(sectionWidth / 2, height / 2, radius + extra),

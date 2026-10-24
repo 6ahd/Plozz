@@ -1510,14 +1510,15 @@ removes a divider. Live programme tracks use the same geometry.
 On TV, constrained corners grow vertically from the 12pt resting geometry as
 focus expands the bar to 20pt. Their horizontal width stays constrained while
 the curves retain their resting proportions instead of becoming squarer.
-The wider side of a tight join gains up to 1pt of additional rounding during
+The wider side of a tight join gains up to 1.5pt of additional rounding during
 focus, without changing the smaller piece or exceeding a fully rounded end.
-Focused tight joins also gain up to 2pt of optical spacing, taken only from the
-wider neighbor. The smaller piece stays in place, and the original time boundary
-remains inside the gap. Spacing tapers away at fully rounded joins and is bounded
-so a section contributing to both neighboring gaps retains at least half its
-width. Neither seek positions nor marker times change.
-Resting masks and full-radius roomy joins are unchanged.
+Tight TV joins also gain up to 1pt of optical spacing at rest, increasing to
+2pt at full focus, taken only from the wider neighbor. The smaller piece stays
+in place, and the original time boundary remains inside the gap. Spacing tapers
+away at fully rounded joins and is bounded so a section contributing to both
+neighboring gaps retains at least half its width. Neither seek positions nor
+marker times change.
+Full-radius roomy joins are unchanged.
 Touch timelines retain their existing minimum-width suppression, so expanding
 the bar does not introduce tiny sections or change its established rounded caps.
 The mask applies to the base, buffered, and played fills and glass backing
