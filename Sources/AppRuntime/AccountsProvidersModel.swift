@@ -329,6 +329,15 @@ public final class AccountsProvidersModel {
         return [resolvedAccount(account, provider: provider)]
     }
 
+    /// Configured sources for navigation, not authorization to access their data.
+    /// Pending credentials must not turn a media profile into a Live-TV-only one.
+    public var navigationAccounts: [Account] {
+        guard !watchesNothingByChoice, !accountSelectionIsUnavailable else { return [] }
+        let active = accounts.filter { activeAccountIDs.contains($0.id) }
+        if !active.isEmpty { return active }
+        return primaryActiveAccount.map { [$0] } ?? []
+    }
+
     private func resolvedAccount(_ account: Account, provider: any MediaProvider) -> ResolvedAccount {
         ResolvedAccount(
             account: account, provider: provider,

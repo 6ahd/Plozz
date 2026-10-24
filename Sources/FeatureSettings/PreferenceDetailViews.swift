@@ -237,6 +237,8 @@ struct AppearanceDetailView: View {
                 SettingsControlGroup(illustrated: true) {
                     CompactNavigationPicker(selection: $navigation.style)
                     Toggle("Prevent Accidental Exit", isOn: $navigation.preventsAccidentalExit)
+                    Toggle("Zoom when opening titles", isOn: $navigation.detailZoomEnabled)
+                        .accessibilityIdentifier("detail-zoom-enabled")
                 }
                 #else
                 CompactNavigationPicker(selection: $navigation.style)
@@ -327,8 +329,7 @@ struct DetailPageDetailView: View {
         var rows = [
             SettingsSplitRow(
                 id: "detail-page-hero-mode",
-                title: "Background",
-                description: "Choose what plays behind the hero on a title's detail page. Trailer and theme music never play together."
+                title: "Background"
             ) {
                 SettingsControlRows(nonTVSpacing: SettingsMetrics.sectionSpacing) {
                     DescribedSegmentedPicker(
@@ -343,7 +344,7 @@ struct DetailPageDetailView: View {
                     if heroBackground.settings.detailMode == .themeMusic {
                         SettingsDetailGroup(title: "Volume") {
                             DescribedSegmentedPicker(
-                                options: ThemeMusicVolume.allCases,
+                                options: ThemeMusicVolume.playbackLevels,
                                 selection: $themeMusic.settings.volume,
                                 title: { $0.displayName },
                                 detail: { $0.detail }
@@ -356,7 +357,7 @@ struct DetailPageDetailView: View {
         if let detailHeaderSettings {
             rows.insert(SettingsSplitRow(
                 id: "detail-page-logo-size",
-                title: "Logo size"
+                title: "Logo & text size"
             ) {
                 DetailLogoSizeSettingsForm(model: detailHeaderSettings)
             }, at: 0)
@@ -384,7 +385,7 @@ private struct DetailLogoSizeSettingsForm: View {
     @Bindable var model: DetailPageSettingsModel
 
     var body: some View {
-        HeroLogoSizeControl(size: $model.settings.logoSize, surface: .detail)
+        HeroLogoSizeControl(size: $model.settings.logoSize, textSize: $model.settings.textSize, surface: .detail)
     }
 }
 

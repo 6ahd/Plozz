@@ -60,21 +60,49 @@ text below. Opening, focusing, or cancelling the menu does not save a choice;
 Select does. Mobile retains its native pickers. These remain independent,
 device-local preferences with Automatic as the default.
 
-Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
-controls. Each shows one local fictional-wordmark preview and a Small-to-Large
-adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
+**Screens & Navigation → Navigation → Zoom when opening titles** is a tvOS-only,
+profile-scoped opt-in. Off uses native page opening and closing; on restores the
+cinematic artwork transition. The hero's staged content reveal is shared by both
+modes, without waiting for backdrop artwork when zoom is off.
+It defaults off for both new and existing profiles,
+stays local to the device, and still respects Reduce Motion.
+
+Home hero, Showcase (TV), Recommended Page (TV), and Detail Page have independent
+profile-scoped **Logo size** controls. Thirteen stops span 0.5x to 1.5x, with finer
 adjustments around the unchanged 1x default, marked at the center. Previously
-saved intermediate sizes keep their exact scale until adjusted. TV reuses the
-shared Settings stepper's remote/focus behavior with minus/plus glyphs and a
-stepped range bar. Home and Showcase update their existing layout-choice previews
-live instead of adding a second preview to the size control. Detail Page retains
-its single 320-point-wide preview beside the adjustment and compact Reset action.
-The bar fills its control column; the detail preview matches that column's height
-and uses the shared group inset and inner corner radius for concentric spacing.
+saved intermediate sizes keep their exact scale until adjusted.
+These areas also have independent **Text size** controls:
+eleven stops with a centered default. Apple TV spans 0.75x to 1.5x (24pt
+descriptions by default, 18–36pt overall); mobile retains 0.75x to 1.25x.
+They scale title fallbacks, metadata, descriptions, and the corresponding badge
+icons, padding, and borders together, not actions, cards, or menus.
+On Apple TV, Detail text sizing also controls episode titles and synopses beneath
+the artwork. Detail hero descriptions are capped at four lines; Home may gain
+one line when enlarged. Mobile retains its existing line limits, with
+scrim coverage extended upward to suit the enlarged content. Showcase and
+Recommended retain their available space: if needed, logo and text fit down
+together while preserving their requested proportions and saved preferences.
+TV reuses the shared Settings stepper's remote/focus behavior in two single-line
+rows, with short stepped tracks and a larger center tick marking the default.
+Labels, ticks, and adjustment glyphs share a vertical center; there is no Default
+caption or Reset button. VoiceOver still announces the default value.
+Long labels can wrap rather than shrink. Home and Showcase update their existing
+layout-choice previews live instead of adding a second preview to the control.
+Recommended retains its 320-point-wide preview. Detail Page uses a 400-by-300
+preview showing the hero, right-side credits, and episode captions scaling
+together. Both retain the shared group inset and inner corner radius.
+The complete preview-and-controls group is one native tvOS focus section, so
+vertical navigation reaches the size controls even from the preview's side.
 Artwork shares the layout picker's backdrop: Showcase fades in from the right,
 while Home and detail previews use edge-to-edge artwork.
-Mobile keeps the native slider and stacked preview. No artwork lookup is needed
-for the preview.
+Mobile Home keeps native sliders beside their labels and one stacked preview.
+No artwork lookup is needed for these fictional previews.
+
+Detail Page theme music offers Low, Medium, and High volume; the Background mode
+owns Off. Older silent theme-music preferences migrate to Background Off without
+changing Home or trailer settings, with Low ready for the next explicit opt-in.
+On tvOS, the selected Background option supplies its own explanation rather than
+repeating it in a section footer.
 
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their

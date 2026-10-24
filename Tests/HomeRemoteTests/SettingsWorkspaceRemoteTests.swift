@@ -2,6 +2,125 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testDetailZoomIsOptInAndSurvivesRelaunch() throws {
+        #if targetEnvironment(simulator)
+        for (expected, updated) in [("0", "1"), ("1", "0"), ("0", "0")] {
+            let app = try launchSettings()
+            defer { app.terminate() }
+            try focus(section("screensNavigation", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["settings-page-navigation"], in: app)
+            XCUIRemote.shared.press(.select)
+            let zoom = app.switches["detail-zoom-enabled"]
+            XCTAssertTrue(zoom.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertEqual(zoom.value as? String, expected)
+            try focus(zoom, in: app)
+            if expected != updated { XCUIRemote.shared.press(.select) }
+            XCTAssertEqual(zoom.value as? String, updated)
+            XCTAssertTrue(hasFocus(zoom))
+            capture("detail-zoom-\(updated)", in: app)
+        }
+        #else
+        throw XCTSkip("Never changes navigation preferences on a physical device.")
+        #endif
+    }
+
+    func testDetailThemeMusicUsesOneOffChoiceAndThreeVolumeLevels() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-title-details"], in: app)
+        XCUIRemote.shared.press(.select)
+        let music = app.buttons["Theme music"]
+        try focus(music, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["Low"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label == %@", "Off")).count, 1)
+        XCTAssertFalse(app.staticTexts[
+            "Choose what plays behind the hero on a title's detail page. Trailer and theme music never play together."
+        ].exists)
+        XCTAssertTrue(app.staticTexts["Play a title's theme music while you browse its detail page."].exists)
+        for level in ["Low", "Medium", "High"] {
+            let option = app.buttons[level]
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertEqual(option.value as? String, "Selected", "\(level) must remain selectable.")
+        }
+        capture("detail-background-volume-options", in: app)
+        try focus(app.buttons["Off"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.buttons["Off"].value as? String, "Selected")
+        XCTAssertFalse(app.buttons["Low"].exists, "Background Off hides the volume choices.")
+        XCUIRemote.shared.press(.menu)
+        let detailPage = app.buttons["settings-page-title-details"]
+        try focus(detailPage, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.buttons["Off"].value as? String, "Selected")
+        try focus(music, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["High"].waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            app.buttons["High"].value as? String, "Selected",
+            "Switching the background retains the chosen volume."
+        )
+        #else
+        throw XCTSkip("Never changes detail settings on a physical device.")
+        #endif
+    }
+
+    func testDetailSizingCannotBeSkippedBetweenBackAndBackground() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-title-details"], in: app)
+        XCUIRemote.shared.press(.select)
+        let logo = app.buttons["Logo size"]
+        let text = app.buttons["Text size"]
+        let back = pageBack(in: app)
+        XCTAssertTrue(logo.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(text.exists, app.debugDescription)
+
+        func press(_ direction: XCUIRemote.Button, expecting target: XCUIElement) {
+            XCUIRemote.shared.press(direction)
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in self.hasFocus(target) }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                           "Vertical navigation must reach \(target.label). \(app.debugDescription)")
+        }
+
+        try focus(back, in: app)
+        press(.down, expecting: logo)
+        press(.down, expecting: text)
+        XCUIRemote.shared.press(.down)
+        XCTAssertTrue(["Off", "Trailer", "Theme music"].contains { hasFocus(app.buttons[$0]) },
+                      "Down from Text size must enter Background.")
+        for option in ["Off", "Trailer", "Theme music"] {
+            try focus(app.buttons[option], in: app)
+            press(.up, expecting: text)
+            press(.up, expecting: logo)
+            press(.up, expecting: back)
+            for control in [logo, text] {
+                press(.down, expecting: control)
+                let original = try XCTUnwrap(control.value as? String)
+                XCUIRemote.shared.press(.right)
+                XCTAssertTrue(hasFocus(control), "Left/Right must still adjust without navigating.")
+                XCTAssertNotEqual(control.value as? String, original)
+                XCUIRemote.shared.press(.left)
+                XCTAssertEqual(control.value as? String, original)
+            }
+            XCUIRemote.shared.press(.down)
+        }
+        capture("detail-size-vertical-focus", in: app)
+        #else
+        throw XCTSkip("Never changes detail settings on a physical device.")
+        #endif
+    }
+
     func testCustomizeLibrariesPlacesNavigationBeforeRecommendedPageSettings() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -2110,7 +2229,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         if diagnostics { app.launchEnvironment["PLZHFOCUS"] = "1" }
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let declineDiagnostics = app.buttons["Don't Share"]
+        let declineDiagnostics = app.buttons.matching(NSPredicate(format: "label == %@", "Don't Share")).firstMatch
         if declineDiagnostics.waitForExistence(timeout: 2) {
             try focus(declineDiagnostics, in: app)
             XCUIRemote.shared.press(.select)

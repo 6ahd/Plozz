@@ -941,7 +941,7 @@ struct PlozziOSTabShell: View {
     private static func navigationAvailability(appModel: PlozziOSAppModel) -> NavigationContentAvailability {
         let navigation = appModel.settings.navigation
         return NavigationContentAvailability(
-            accounts: appModel.accountsProviders.homeAccounts.map(\.account),
+            accounts: appModel.accountsProviders.navigationAccounts,
             libraries: navigation.contentLibraries,
             discoveredAccountIDs: navigation.discoveredAccountIDs,
             disabledLibraryKeys: appModel.settings.homeVisibility.visibility.disabledKeys,

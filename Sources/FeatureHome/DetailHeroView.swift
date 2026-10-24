@@ -85,6 +85,7 @@ struct DetailHeroView: View, Equatable {
     @Environment(HeroTrailerController.self) private var heroTrailerController
     @Environment(HeroBackgroundSettingsModel.self) private var heroBackground
     @Environment(\.detailHeaderSettings) private var detailHeaderSettings
+    @Environment(\.plozzAppTextScale) private var appTextScale
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.seasonRequestContextID) private var seasonRequestContextID
@@ -428,6 +429,10 @@ struct DetailHeroView: View, Equatable {
         HeroLogoLayout.box(size: detailHeaderSettings?.settings.logoSize ?? .default)
     }
 
+    private var textScale: CGFloat {
+        PlozzTypography.scale(local: headerRatingPreferences.textSize.scale, app: appTextScale)
+    }
+
     // MARK: - Visible item actions (discoverability)
 
     /// The subject of watched-state actions: the play target when it differs from
@@ -532,12 +537,12 @@ struct DetailHeroView: View, Equatable {
     /// button: there is nothing to press.
     @ViewBuilder
     private func scheduleBadge(_ text: LocalizedStringResource) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 14 * textScale, style: .continuous)
         Text(text)
-            .font(.system(size: 24, weight: .semibold))
+            .font(.system(size: PlozzTypography.heroSchedule.scaled(by: textScale).pointSize, weight: .semibold))
             .foregroundStyle(Color.primary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 18 * textScale)
+            .padding(.vertical, 10 * textScale)
             .background {
                 if #available(tvOS 26.0, *) {
                     shape.fill(.regularMaterial)
@@ -546,7 +551,7 @@ struct DetailHeroView: View, Equatable {
                 }
             }
             .overlay {
-                shape.stroke(Color.primary.opacity(0.16), lineWidth: 1)
+                shape.stroke(Color.primary.opacity(0.16), lineWidth: textScale)
             }
             .padding(.bottom, 6)
             .contentTransition(.opacity)
@@ -788,6 +793,12 @@ struct DetailHeroView: View, Equatable {
         return rootPresentation.directorNames
     }
 
+    private static let creditColumnWidth: CGFloat = 440
+    private var showsCreditColumn: Bool {
+        !presentsEpisodeStill
+            && (!starringCastValues.isEmpty || !directorValues.isEmpty || !animeStudioValues.isEmpty)
+    }
+
     var body: some View {
         let _ = plozzTraceBodyChanges { Self._printChanges() }
         let hideText = spoilerSettings.shouldHideText(for: item)
@@ -891,7 +902,7 @@ struct DetailHeroView: View, Equatable {
                !isYearOnlySubtitle(subtitle),
                item.kind != .episode {
                 Text(subtitle)
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 26 * textScale, weight: .medium))
                     .plozzForeground(.secondary)
                     .lineLimit(1)
                     .contentTransition(.opacity)
@@ -914,59 +925,56 @@ struct DetailHeroView: View, Equatable {
             // subtitle above — an always-present container costs a spacing gap even
             // with nothing in it.
             if heroRatingBadge != nil || !genreParts.isEmpty {
-                HStack(alignment: .center, spacing: 16) {
+                HStack(alignment: .center, spacing: 16 * textScale) {
                     if let badge = heroRatingBadge {
                         MediaBadgeChip(badge: badge)
                     }
                     if !genreParts.isEmpty {
                         Text(genreParts.joined(separator: "  ·  "))
-                            .font(.system(size: 23, weight: .medium))
+                            .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                             .contentTransition(.opacity)
                     }
                 }
+                .environment(\.metadataTextScale, textScale)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .detailEntranceStage(.metadata)
             }
-            // Description directly beneath the genres line.
-            SpoilerSafeOverviewText(
-                overview: HeroContentPolicy.detailDescription(
-                    focused: focusedPresentation,
-                    root: rootPresentation
-                ),
-                hidesSpoilers: hideText,
-                mode: spoilerSettings.mode,
-                lineCount: 3,
-                maxWidth: 800,
-                reservesSpace: false
-            )
-            // Refuse to be squeezed below the line limit.
-            //
-            // A series hero is a FIXED-height frame, and the browser transition
-            // pushes the content column up with a large bottom inset
-            // (`heroContentBottomLift`) so the action row's layout sits above the
-            // season bar. That leaves little slack, and the overview is the only
-            // flexible element in the column — so SwiftUI compressed it, silently,
-            // to a single line. `fixedSize` makes it claim its natural height for
-            // however many lines it actually has, up to `lineCount`.
-            .fixedSize(horizontal: false, vertical: true)
-            .detailEntranceStage(.metadata)
-            // Bottom facts region just above the action buttons: year · runtime,
-            // ratings, then capability badges (4K / Atmos / HDR …). One wrapping
-            // layout owns every item so an unusually rich title can add a real
-            // second line that reserves space instead of drawing behind the buttons.
-            ZStack(alignment: .leading) {
-                if !factParts.isEmpty || showRatings || !featureBadges.isEmpty {
-                    DetailHeroFactsRow(
-                        facts: factParts,
-                        ratings: showRatings ? heroRatings : [],
-                        familyGuidanceAge: heroFamilyGuidanceAge,
-                        featureBadges: featureBadges
-                    )
+            HeroDescriptionFactsLayout {
+                SpoilerSafeOverviewText(
+                    overview: HeroContentPolicy.detailDescription(
+                        focused: focusedPresentation,
+                        root: rootPresentation
+                    ),
+                    hidesSpoilers: hideText,
+                    mode: spoilerSettings.mode,
+                    lineCount: PlozzTypography.detailDescriptionLines,
+                    fontSize: PlozzTypography.heroDescription.scaled(by: textScale).pointSize,
+                    lineSpacing: PlozzTypography.heroDescription.scaled(by: textScale).lineSpacing,
+                    maxWidth: .infinity,
+                    reservesSpace: false
+                )
+                // The fixed-height series hero must not compress this below its
+                // natural height (up to the line cap) when lifted above seasons.
+                .fixedSize(horizontal: false, vertical: true)
+                .detailEntranceStage(.metadata)
+                // One wrapping row reserves real height when rich facts need
+                // another line, rather than drawing behind the action buttons.
+                ZStack(alignment: .leading) {
+                    if !factParts.isEmpty || showRatings || !featureBadges.isEmpty {
+                        DetailHeroFactsRow(
+                            facts: factParts,
+                            ratings: showRatings ? heroRatings : [],
+                            familyGuidanceAge: heroFamilyGuidanceAge,
+                            featureBadges: featureBadges
+                        )
+                        .environment(\.metadataTextScale, textScale)
+                    }
                 }
+                .detailEntranceStage(.metadata)
             }
-            .detailEntranceStage(.metadata)
+            .padding(.trailing, showsCreditColumn ? Self.creditColumnWidth + 60 : 0)
             if isDiscoveryItem
                 ? (showsRequestPill
                     || onPlayTrailer != nil
@@ -1070,7 +1078,7 @@ struct DetailHeroView: View, Equatable {
             alignment: .bottomLeading
         )
         .modifier(SeriesHeroContentLiftModifier(model: seriesRecedeModel))
-        .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasCinematicEntrance, reduceMotion: reduceMotion))
+        .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasStagedEntrance, reduceMotion: reduceMotion))
         // The full-bleed backdrop lives in a `.background`, which by definition is
         // sized to the host and does NOT contribute to the host's measured size.
         // That is the fix: previously the backdrop was a ZStack *sibling* whose
@@ -1101,11 +1109,8 @@ struct DetailHeroView: View, Equatable {
         // `bottomInset` so the two sit on the same baseline and follows the same
         // compositor lift as the left-side hero content.
         .overlay(alignment: .bottomTrailing) {
-            if !presentsEpisodeStill,
-               !starringCastValues.isEmpty
-                || !directorValues.isEmpty
-                || !animeStudioValues.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+            if showsCreditColumn {
+                VStack(alignment: .leading, spacing: 8 * textScale) {
                     if !animeStudioValues.isEmpty {
                         DetailHeroCreditLine(
                             label: "Studio",
@@ -1130,16 +1135,16 @@ struct DetailHeroView: View, Equatable {
                         )
                     }
                 }
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: PlozzTypography.heroCredit.scaled(by: textScale).pointSize, weight: .semibold))
                 .multilineTextAlignment(.leading)
-                .frame(maxWidth: 440, alignment: .trailing)
+                .frame(maxWidth: Self.creditColumnWidth, alignment: .trailing)
                 .shadow(color: .black.opacity(colorScheme == .light ? 0.22 : 0.55), radius: 5, y: 1)
                 .padding(.trailing, PlozzTheme.Metrics.screenPadding)
                 .padding(.bottom, bottomInset)
                 .contentTransition(.opacity)
                 .allowsHitTesting(false)
                 .modifier(SeriesHeroContentLiftModifier(model: seriesRecedeModel))
-                .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasCinematicEntrance, reduceMotion: reduceMotion))
+                .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasStagedEntrance, reduceMotion: reduceMotion))
                 .detailEntranceStage(.metadata)
             }
         }
@@ -1297,7 +1302,7 @@ struct DetailHeroView: View, Equatable {
         }
     }
 
-    private var hasCinematicEntrance: Bool {
+    private var hasStagedEntrance: Bool {
         #if os(tvOS)
         detailEntrance != nil
         #else
@@ -1372,6 +1377,13 @@ struct DetailHeroView: View, Equatable {
             showsTrailer: heroBackground.settings.detailMode == .trailer
                 && heroTrailerController.isShowing((backdropItem ?? item).id)
                 && heroTrailerController.isPlaying
+        )
+        .environment(
+            \.heroScrimHeightScale,
+            PlozzTypography.heroScrimScale(
+                textScale: textScale, logoSize: headerRatingPreferences.logoSize,
+                lines: PlozzTypography.detailDescriptionLines
+            )
         )
     }
 
@@ -1889,17 +1901,17 @@ struct DetailHeroView: View, Equatable {
                     seriesBreadcrumb(show, action: action)
                 } else {
                     Text(show)
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.system(size: 30 * textScale, weight: .semibold))
                         .plozzForeground(.secondary)
                         .lineLimit(1)
                 }
             }
             title
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: PlozzTypography.heroFallbackTitle.scaled(by: textScale).pointSize, weight: .bold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.leading)
-                .frame(maxWidth: 1200, alignment: .leading)
+                .frame(maxWidth: HeroDescriptionFactsLayout.maximumWidth, alignment: .leading)
                 .contentTransition(.opacity)
         }
     }
@@ -2052,19 +2064,20 @@ private struct DetailHeroFactsRow: View {
     let ratings: [ExternalRating]
     let familyGuidanceAge: Double?
     let featureBadges: [MediaBadge]
+    @Environment(\.metadataTextScale) private var textScale
 
     var body: some View {
         WrappingHStackLayout(
             alignment: .leading,
-            spacing: 16,
-            lineSpacing: 8
+            spacing: 16 * textScale,
+            lineSpacing: 8 * textScale
         ) {
             if !facts.isEmpty {
                 // Year and runtime sit with the ratings and capability badges,
                 // which are all full-strength, so holding these at `.secondary`
                 // made the one text item in the row look faded next to them.
                 Text(facts.joined(separator: "  ·  "))
-                    .font(.system(size: 23, weight: .medium))
+                    .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
                     .plozzForeground(.primary)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)

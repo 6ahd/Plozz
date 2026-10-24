@@ -8,6 +8,7 @@ public struct HomeLayoutOptionCard: View {
     private let isSelected: Bool
     private let swatchHeight: CGFloat
     private let logoSize: HeroLogoSize?
+    private let textSize: HeroTextSize
     private let action: () -> Void
     @Environment(\.themePalette) private var palette
 
@@ -16,12 +17,14 @@ public struct HomeLayoutOptionCard: View {
         isSelected: Bool,
         swatchHeight: CGFloat,
         logoSize: HeroLogoSize? = nil,
+        textSize: HeroTextSize = .default,
         action: @escaping () -> Void
     ) {
         self.style = style
         self.isSelected = isSelected
         self.swatchHeight = swatchHeight
         self.logoSize = logoSize
+        self.textSize = textSize
         self.action = action
     }
 
@@ -34,7 +37,9 @@ public struct HomeLayoutOptionCard: View {
             swatchHeight: swatchHeight,
             action: action
         ) {
-            HomeLayoutSwatch(style: style, cornerRadius: PlozzTheme.Metrics.Radius.content, logoSize: logoSize)
+            HomeLayoutSwatch(
+                style: style, cornerRadius: PlozzTheme.Metrics.Radius.content, logoSize: logoSize, textSize: textSize
+            )
         }
         .accessibilityIdentifier("home-layout-\(style.rawValue)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

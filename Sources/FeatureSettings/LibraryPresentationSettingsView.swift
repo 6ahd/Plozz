@@ -53,7 +53,8 @@ public struct LibraryPresentationSettingsView: View {
             #if os(tvOS)
             SettingsSectionGroup("Recommended Page") {
                 HeroLogoSizeControl(
-                    size: $model.settings.logoSize, surface: .showcase, showsLibraryPreview: true
+                    size: $model.settings.logoSize, textSize: $model.settings.textSize,
+                    surface: .showcase, showsLibraryPreview: true
                 )
             }
             #endif

@@ -416,32 +416,55 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                             coordinator: coordinator, controller: controller, settings: .default,
                             resolver: { _ in nil }, isActive: false, onSeeAll: {}, onSelect: { _ in }
                         )
-                        .disabled(true)
                     }
                 }
+                .disabled(true)
                 .environment(\.plozzPinnedSidebarActive, pinned)
                 .environment(\.plozzNavigationContentInset, pinned ? 64 : 0)
                 .environment(\.plozzCardFocusStyle, .system)
             } inspect: { window in
-                let lines = try await self.capture(window, name: "Featured keyline pinned \(pinned)")
-                let reference = try XCTUnwrap(lines.first { $0.0 == "Reference row" }).1
-                let featured = try XCTUnwrap(lines.first { $0.0 == "Featured row" }).1
-                XCTAssertEqual(featured.minX * window.bounds.width, reference.minX * window.bounds.width, accuracy: 3)
-                XCTAssertEqual(featured.height * window.bounds.height, reference.height * window.bounds.height, accuracy: 3)
-                let actions = lines.filter { $0.0 == "See all" }.map(\.1)
-                XCTAssertEqual(actions.count, 2)
-                if actions.count == 2 {
-                    XCTAssertEqual(actions[0].maxX * window.bounds.width, actions[1].maxX * window.bounds.width, accuracy: 3)
-                    XCTAssertEqual(actions[0].height * window.bounds.height, actions[1].height * window.bounds.height, accuracy: 3)
-                }
-                let image = try await self.snapshot(window, name: "Resting keyline")
+                let image = try await self.snapshot(window, name: "Featured keyline pinned \(pinned)")
                 let bitmap = try XCTUnwrap(image.cgImage)
                 let pixels = try self.rgba(bitmap)
-                let y = Int((1 - featured.minY) * window.bounds.height) + 150
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: bitmap).perform([request])
+                // Vision locates words; its approximate boxes are not glyph geometry.
+                func inkBounds(_ observation: VNRecognizedTextObservation) throws -> CGRect {
+                    let box = observation.boundingBox
+                    let search = CGRect(
+                        x: box.minX * CGFloat(bitmap.width), y: (1 - box.maxY) * CGFloat(bitmap.height),
+                        width: box.width * CGFloat(bitmap.width), height: box.height * CGFloat(bitmap.height)
+                    ).insetBy(dx: -12, dy: -12).intersection(CGRect(x: 0, y: 0, width: bitmap.width, height: bitmap.height))
+                    var ink = CGRect.null
+                    for y in Int(search.minY)..<Int(search.maxY) {
+                        for x in Int(search.minX)..<Int(search.maxX) {
+                            let offset = (y * bitmap.width + x) * 4
+                            if pixels[offset] > 80, pixels[offset + 1] > 80, pixels[offset + 2] > 80 {
+                                ink = ink.union(CGRect(x: x, y: y, width: 1, height: 1))
+                            }
+                        }
+                    }
+                    XCTAssertFalse(ink.isNull)
+                    return ink
+                }
+                let lines = request.results ?? []
+                let reference = try inkBounds(XCTUnwrap(lines.first { $0.topCandidates(1).first?.string == "Reference row" }))
+                let featured = try inkBounds(XCTUnwrap(lines.first { $0.topCandidates(1).first?.string == "Featured row" }))
+                XCTAssertEqual(featured.minX, reference.minX, accuracy: 3)
+                XCTAssertEqual(featured.height, reference.height, accuracy: 3)
+                let actions = try lines.filter { $0.topCandidates(1).first?.string == "See all" }.map(inkBounds)
+                XCTAssertEqual(actions.count, 2)
+                if actions.count == 2 {
+                    XCTAssertEqual(actions[0].maxX, actions[1].maxX, accuracy: 3)
+                    XCTAssertEqual(actions[0].height, actions[1].height, accuracy: 3)
+                }
+                let y = Int(featured.maxY) + 150
                 let edge = try XCTUnwrap((0..<bitmap.width / 2).first { x in
                     pixels[(y * bitmap.width + x) * 4] > 3
                 })
-                XCTAssertEqual(CGFloat(edge), reference.minX * window.bounds.width, accuracy: 4,
+                XCTAssertEqual(CGFloat(edge), reference.minX, accuracy: 4,
                                "The resting artwork and both headings must share the same keyline.")
             }
         }

@@ -348,16 +348,10 @@ struct HomeTab: View {
                         Task { @MainActor in
                             await heroTrailerController.captureHandoffFrame()
                         }
-                        // Keep the live player handoff, but never make navigation
-                        // or the first animation frame wait for video decoding.
-                        var transaction = Transaction()
-                        transaction.disablesAnimations = true
-                        withTransaction(transaction) {
-                            navigate(item)
-                        }
-                    } else {
-                        navigate(item)
                     }
+                    // Frame capture must not delay navigation. The shared router
+                    // suppresses native motion only for an opted-in zoom.
+                    navigate(item)
                 },
                 onPlayItem: { requestPlay($0) },
                 onSelectLibrary: { library in

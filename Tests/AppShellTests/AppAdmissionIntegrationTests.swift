@@ -90,6 +90,27 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertEqual(harness.profiles.activeProfile.name, "Me")
     }
 
+    func testPendingPlexHomeIdentityKeepsNavigationWithoutAuthorizingProviderAccess() throws {
+        let harness = try makeHarness(profileSetupComplete: true, withAccount: true, accountProvider: .plex)
+        harness.profiles.update(harness.profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "viewer", name: "Viewer", requiresPIN: true),
+            forPlexAccount: "media-account"
+        ))
+        harness.state.bootstrap()
+
+        XCTAssertNil(harness.state.plexHomeUsers.resolvedToken(for: "media-account"))
+        XCTAssertTrue(harness.state.accountsProviders.homeAccounts.isEmpty)
+        XCTAssertFalse(harness.state.isLiveTVProfileAuthorized)
+        let accounts = harness.state.accountsProviders.navigationAccounts
+        XCTAssertEqual(accounts.map(\.id), ["media-account"])
+        let availability = NavigationContentAvailability(
+            accounts: accounts, libraries: [], discoveredAccountIDs: [],
+            disabledLibraryKeys: [], hasDiscoverySearch: false, hasWatchlistItems: false
+        )
+        XCTAssertTrue(availability.hasHomeContent)
+        XCTAssertFalse(availability.prefersLiveTV)
+    }
+
     func testTopShelfDetailsWaitForAdmissionWithoutBecomingAPlayRequest() throws {
         let harness = try makeHarness()
         harness.state.handle(url: TopShelf.itemDeepLink(id: "1", accountID: "plex", action: .details))
@@ -320,6 +341,7 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         )
 
         XCTAssertFalse(harness.state.didAuthenticate(session))
+        XCTAssertTrue(harness.state.accountsProviders.navigationAccounts.isEmpty)
 
         secrets.failMembershipReads = false
         harness.profiles.retryUnconfirmedAccountSelections()

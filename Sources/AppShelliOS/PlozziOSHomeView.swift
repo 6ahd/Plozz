@@ -214,6 +214,7 @@ struct PlozziOSHomeView: View {
                         settings: appModel.settings.hero.effectiveSettings,
                         hasItems: false, recomputeComplete: false
                     ) != .hidden,
+                    logoSize: appModel.settings.hero.settings.logoSize,
                     showsPosterCaptions: appModel.settings.cardStyle.captions.showsLabels(in: .home),
                     continueWatchingLayout: appModel.settings.homeVisibility.continueWatchingLayout,
                     continueWatchingShowsSeriesArtwork: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
@@ -484,7 +485,7 @@ struct PlozziOSHomeView: View {
             case .hidden:
                 EmptyView()
             case .placeholder:
-                PlozziOSHomeHeroSkeleton(style: heroStyle)
+                PlozziOSHomeHeroSkeleton(style: heroStyle, logoSize: appModel.settings.hero.settings.logoSize)
             case .content:
                 PlozziOSHomeHeroCarousel(
                     items: displayHeroItems,
@@ -1365,7 +1366,11 @@ struct PlozziOSHomeHeroCarousel: View {
                         model: pullModel,
                         style: style,
                         heroHeight: heroHeight,
-                        extendsArtwork: extendsArtwork
+                        extendsArtwork: extendsArtwork,
+                        scrimHeightScale: appModel.settings.hero.settings.textSize.scrimHeightScale(
+                            logoSize: appModel.settings.hero.settings.logoSize,
+                            descriptionLines: 2
+                        )
                     ) { pullScale in
                         ZStack {
                             if let dragTargetItem {
@@ -1461,7 +1466,7 @@ struct PlozziOSHomeHeroCarousel: View {
                     )
                     // Shared with the loading placeholder — see
                     // `PlozziOSHeroForegroundPlacement`.
-                    .plozziOSHeroForegroundPlacement(style: style)
+                    .plozziOSHeroForegroundPlacement(style: style, logoSize: appModel.settings.hero.settings.logoSize)
                     .animation(
                         .easeInOut(duration: 0.24),
                         value: currentItem.id
@@ -2092,6 +2097,7 @@ private struct PlozziOSPullResponsiveHomeBackdrop<Backdrop: View>: View {
     let style: HeroArtworkStyle
     let heroHeight: CGFloat
     var extendsArtwork: Bool = false
+    var scrimHeightScale: CGFloat = 1
     @ViewBuilder let backdrop: (CGFloat) -> Backdrop
 
     var body: some View {
@@ -2124,6 +2130,7 @@ private struct PlozziOSPullResponsiveHomeBackdrop<Backdrop: View>: View {
                 height: heroHeight,
                 extendsArtwork: extendsArtwork
             )
+            .environment(\.heroScrimHeightScale, scrimHeightScale)
         }
         // Masked BEFORE the pull offset, exactly as tvOS masks before its recede
         // lift. Applied after, the mask sits in the fixed parent space: the hero

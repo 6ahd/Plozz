@@ -6,6 +6,22 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`PlozzTypography` owns semantic text metrics, including additional line spacing,
+and composes local adjustments with `plozzAppTextScale` once at a surface boundary.
+SwiftUI text and the UIKit Home foreground resolve the same styles; badge children
+receive the resolved `metadataTextScale`, not another multiplier. Episode captions,
+loading placeholders, and the Detail preview use the same episode styles.
+Persisted preferences remain raw `CoreModels/HeroTextSize` values, not point sizes.
+The app multiplier currently defaults to 1 and has no settings UI. A future
+app-wide preference can supply it at the root while additional surfaces adopt
+semantic styles; unmigrated app text is not implicitly covered.
+
+`HeroDescriptionFactsLayout` measures the live facts row during layout and gives
+its description the same reading width, with an 800pt baseline and 1200pt cap.
+The Detail hero reserves the separate credits column before proposing this width.
+Changes to badges, text size, or the focused episode remeasure in the same pass,
+without geometry state or an extra hidden copy of the badge views.
+
 `ActionProgressIcon` overlays native progress inside the original symbol's
 layout footprint. `PlayResumeButtonLabel.isLoading` uses it without changing the
 button's dimensions or the existing resume/placeholder layout.
@@ -286,7 +302,16 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   boolean destinations retain native navigation outside this workspace,
   including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
   subtitle panels, with Reduce Motion respected by their hosts.
-- **Cinematic detail returns** — TV browse stacks install
+- **Title navigation** — tvOS uses native page pushes and pops by default.
+  The profile's **Zoom when opening titles** preference opts into cinematic
+  transitions. `detailNavigationZoom(isEnabled:)` applies the same policy to
+  SwiftUI destinations and the window-scoped native card/router preparation.
+  Both modes share the logo, metadata, controls, and episode entrance sequence.
+  With zoom off it starts when the native page appears, without a cover, window
+  input guard, artwork wait, or custom Back handler. Leaving cancels the reveal;
+  returning to an existing page does not replay it. Reduce Motion shows everything
+  immediately. iOS/iPadOS navigation is unchanged.
+- **Opt-in cinematic detail returns** — TV browse stacks install
   `cinematicDetailNavigation(path:)` on the stack so its destinations inherit it.
   Back changes that bound path in the reverse transition's nonanimated transaction:
   SwiftUI's environment dismiss action can still animate a native pop underneath
@@ -341,12 +366,22 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Immediately or a duration; do not resolve localized copy into `verbatimTitle`.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
+  `inlineRange` uses a short, vertically centered track beside the label with a larger middle tick;
+  long labels retain the row's wrapping fallback instead of shrinking text.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
   bounded layout sizing for TV heroes, Showcase, and mobile heroes, from half to
   1.5 times the unchanged default with finer adjustment stops near default.
   Width/height ceilings preserve aspect ratio and available screen space. The
   local `HeroLogoSizePreview` uses the same sizing math and shared illustrated
   scenery; adjustments do not change logo cache keys or prepare another bitmap.
+- **Hero text size** — Home, Detail Page, and TV Showcase/Recommended scale text independently
+  of artwork. `metadataTextScale` scales badge fonts, icons, borders, and spacing
+  together without changing `mediaBadgeScale`'s existing compact-format styling.
+  Scope it to the metadata subtree, not buttons, cards, or whole pages.
+  The default is 1; mobile preserves Dynamic Type in addition to the chosen size.
+- **Hero scrim coverage** — `heroScrimHeightScale` extends both the analytic gradient
+  and cached texture upward from their bottom anchor, within the existing bounds
+  and before the backdrop's dissolve mask. Default coverage remains unchanged.
 - **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
   between tvOS rows sharing a container, never after the last visible row. Keep
   a control and its helper in one child view; the divider belongs after both.

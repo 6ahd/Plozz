@@ -3,6 +3,29 @@ import XCTest
 @testable import CoreUI
 
 final class HeroLogoSizingTests: XCTestCase {
+    func testHomeTextWidthTracksTheAllowedLogoWidthWithoutNarrowingTheDefault() {
+        for layout in [HeroLogoSizing.Layout.television, .regular, .compact] {
+            let minimum: CGFloat = layout == .compact ? 500 : layout.budget.width
+            for size in HeroLogoSize.allSizes {
+                let expected = max(minimum, layout.budget.width * size.scale)
+                XCTAssertEqual(
+                    HeroLogoSizing.homeTextWidth(for: layout, logoSize: size, minimumWidth: minimum),
+                    expected, accuracy: 0.001
+                )
+                for viewport: CGFloat in [300, 480, 900] {
+                    XCTAssertEqual(
+                        HeroLogoSizing.homeTextWidth(
+                            for: layout, logoSize: size, minimumWidth: minimum, availableWidth: viewport
+                        ),
+                        min(expected, viewport), accuracy: 0.001
+                    )
+                }
+            }
+        }
+        XCTAssertEqual(HeroLogoSizing.homeTextWidth(for: .television), 496)
+        XCTAssertEqual(HeroLogoSizing.homeTextWidth(for: .television, logoSize: .init(rawValue: 10)), 744)
+    }
+
     func testDefaultPreservesExistingBoxesExactly() {
         for layout in [HeroLogoSizing.Layout.television, .compact, .regular] {
             let budget = layout.budget

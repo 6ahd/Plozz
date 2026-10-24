@@ -1950,8 +1950,10 @@ private struct PlozziOSDetailPageSettingsView: View {
             SettingsSectionGroup("Card labels") {
                 CardCaptionSettingsControls(cards: cards, scope: .detail)
             }
-            SettingsSectionGroup("Logo size") {
-                HeroLogoSizeControl(size: $detailPage.settings.logoSize, surface: .detail)
+            SettingsSectionGroup {
+                HeroLogoSizeControl(
+                    size: $detailPage.settings.logoSize, textSize: $detailPage.settings.textSize, surface: .detail
+                )
             }
             SettingsSectionGroup("Review scores") {
                 Toggle("Show review scores", isOn: $detailPage.settings.showsHeaderRatings)
@@ -1987,7 +1989,7 @@ private struct PlozziOSDetailPageSettingsView: View {
                         "Theme music volume",
                         selection: $themeMusic.settings.volume
                     ) {
-                        ForEach(ThemeMusicVolume.allCases, id: \.self) {
+                        ForEach(ThemeMusicVolume.playbackLevels, id: \.self) {
                             Text($0.displayName).tag($0)
                         }
                     }

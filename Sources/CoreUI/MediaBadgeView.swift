@@ -38,6 +38,10 @@ private struct MediaBadgeScaleKey: EnvironmentKey {
     static let defaultValue: CGFloat = 1
 }
 
+private struct MetadataTextScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1
+}
+
 private struct ContentRatingVisibilityKey: EnvironmentKey {
     static let defaultValue = ContentRatingSettingsStore.defaultShowsRatings
 }
@@ -52,10 +56,18 @@ extension EnvironmentValues {
         get { self[MediaBadgeScaleKey.self] }
         set { self[MediaBadgeScaleKey.self] = newValue }
     }
+
+    /// Scales text and its badge artwork together, independently of compact badge styling.
+    public var metadataTextScale: CGFloat {
+        get { self[MetadataTextScaleKey.self] }
+        set { self[MetadataTextScaleKey.self] = newValue }
+    }
 }
 
 public struct MediaBadgeRow: View {
-    @Environment(\.mediaBadgeScale) private var scale
+    @Environment(\.mediaBadgeScale) private var containerScale
+    @Environment(\.metadataTextScale) private var textScale
+    private var scale: CGFloat { containerScale * textScale }
     private let badges: [MediaBadge]
 
     public init(badges: [MediaBadge]) {
@@ -77,6 +89,7 @@ public struct MetadataMediaBadgeChip: View {
     private let adjacentSpacing: CGFloat?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.mediaBadgeScale) private var containerScale
+    @Environment(\.metadataTextScale) private var contentScale
 
     public init(badge: MediaBadge, adjacentSpacing: CGFloat? = nil) {
         self.badge = badge
@@ -86,7 +99,7 @@ public struct MetadataMediaBadgeChip: View {
     public var body: some View {
         MediaBadgeChip(
             badge: badge,
-            adjacentSpacing: adjacentSpacing ?? MetadataBadgeSpacing.betweenBadges * containerScale * textScale
+            adjacentSpacing: adjacentSpacing ?? MetadataBadgeSpacing.betweenBadges * containerScale * textScale * contentScale
         )
             .environment(\.mediaBadgeScale, containerScale * compactScale * textScale)
     }
@@ -109,7 +122,9 @@ public struct MediaBadgeChip: View {
     private let badge: MediaBadge
     private let adjacentSpacing: CGFloat?
     @Environment(\.themePalette) private var palette
-    @Environment(\.mediaBadgeScale) private var scale
+    @Environment(\.mediaBadgeScale) private var containerScale
+    @Environment(\.metadataTextScale) private var textScale
+    private var scale: CGFloat { containerScale * textScale }
     @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass

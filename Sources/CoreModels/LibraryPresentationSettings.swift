@@ -49,6 +49,7 @@ public struct LibraryContentLayout: Codable, Equatable, Sendable {
 
 public struct LibraryPresentationSettings: Codable, Equatable, Sendable {
     public var logoSize: HeroLogoSize
+    public var textSize: HeroTextSize
     public var navigation: LibraryContentLayout
     public var recommendedRows: [String: LibraryContentLayout]
 
@@ -56,22 +57,25 @@ public struct LibraryPresentationSettings: Codable, Equatable, Sendable {
 
     public init(
         logoSize: HeroLogoSize = .default,
+        textSize: HeroTextSize = .default,
         navigation: LibraryContentLayout = .init(),
         recommendedRows: [String: LibraryContentLayout] = [:]
     ) {
         self.logoSize = logoSize
+        self.textSize = textSize
         self.navigation = navigation
         self.recommendedRows = recommendedRows
     }
 
     private enum CodingKeys: String, CodingKey {
-        case logoSize, navigation, recommendedRows
+        case logoSize, textSize, navigation, recommendedRows
     }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             logoSize: try values.decodeIfPresent(HeroLogoSize.self, forKey: .logoSize) ?? .default,
+            textSize: try values.decodeIfPresent(HeroTextSize.self, forKey: .textSize) ?? .default,
             navigation: try values.decodeIfPresent(LibraryContentLayout.self, forKey: .navigation) ?? .init(),
             recommendedRows: try values.decodeIfPresent(
                 [String: LibraryContentLayout].self, forKey: .recommendedRows
@@ -100,6 +104,7 @@ public struct LibraryPresentationSettings: Codable, Equatable, Sendable {
     public var showcaseSettings: HeroSettings {
         var settings = HeroSettings.default
         settings.showcaseLogoSize = logoSize
+        settings.showcaseTextSize = textSize
         return settings
     }
 }

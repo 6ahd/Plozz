@@ -42,6 +42,40 @@ Library-specific rows, discovery, account selection, server-user permissions,
 and parental authorization retain their existing boundaries. A catalog-load
 failure does not replace a successful history response with that failure.
 
+Home text sizing applies to both SwiftUI and persistent UIKit foregrounds.
+Detail Page, Showcase, and library Recommended have independent profile-scoped sizes.
+Title fallbacks, descriptions, metadata, and badge details scale together;
+artwork sizing and action controls remain independent. On Apple TV, Detail Page
+text sizing also scales the episode titles and three-line synopses below episode
+artwork, including loading placeholders; other row/card labels remain independent.
+Home's text column can use the same wider budget as an enlarged logo, even at
+default Text size. Smaller logos retain the original reading width; changing
+Text size alone never widens it. Both TV foreground renderers share this rule,
+and mobile Home remains capped by its available screen width. Apple TV Detail
+descriptions can grow to the live facts/badges row's width, within the shared
+reading-width limit and the space reserved for right-side credits. Showcase
+and Recommended keep their existing column widths.
+Apple TV descriptions default to 24pt with 3pt additional line spacing; the
+slider spans 18–36pt. Detail descriptions stay capped at four lines, while Home
+may gain a fourth line when enlarged. Mobile typography is unchanged. Their scrims
+extend upward by the larger of the requested logo growth and description-height
+growth, without weakening default coverage or resizing the artwork.
+Showcase and Recommended keep their row positions and description budgets.
+Custom sizes use the actual space above the active row, not a fixed worst-case
+footprint. They fit the complete logo/metadata block down by one shared factor
+only when that space is insufficient; the requested proportions stay intact.
+Incoming titles use their destination size from the first frame, not a smaller
+transitional size. The native motion owner adjusts placement and the row mask
+together to protect the title while rows move, including reversals.
+Recommended sizes against the destination's navigation clearance immediately,
+but reserves the outgoing header's space until it fades. Custom Recommended
+uses the logo's actual artwork height and the header's existing bottom padding
+rather than reserving empty logo space or a second navigation gap.
+Default Recommended sizing retains its existing constrained layout.
+
+Shared typography and future app-wide scale composition are owned by
+[`CoreUI/PlozzTypography`](../CoreUI/README.md#responsibility), not individual heroes.
+
 Home Continue Watching failures use the existing Details / Try Again actions on
 TV (including focus-following layouts), iPhone and iPad. The report follows the
 same failed source as the visible error and retains bounded, task-scoped HTTP,
@@ -554,9 +588,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Library Showcase measures its navigation clearance and reserves one native
   badge's height for schedule/availability-capable items before the line loads.
   The visible badge hugs the fitted logo, not unused space in its sizing slot;
-  late schedule arrival cannot resize it. Description lines give way before logo
-  space; exceptionally constrained layouts cap the logo rather than overlap
-  navigation. Pinned rows and Home's separate details footprint are unchanged.
+  late schedule arrival cannot resize it. Default sizing trims description lines
+  before constraining the logo. Custom sizing fits the logo and text together
+  within the fixed details footprint, retaining their proportions. Row motion
+  translates that block without resizing it or borrowing navigation space.
   A cold logo is adopted
   when it finishes for the still-current title, without requiring a focus round trip.
   Its title slot stays visually empty while the logo resolves; text appears only
@@ -564,7 +599,8 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   Home hero and Showcase use independent `HeroSettings` logo sizes; full detail
   heroes use `DetailPageSettings.logoSize`. Both Home foreground renderers apply
   the same sizing math without reloading artwork. Defaults preserve existing sizes,
-  and text fallback fonts and the compact series-browser logo remain unchanged.
+  while text fallback fonts follow the separate text preference. The compact
+  series-browser logo remains unchanged.
   Dark coloured Showcase logos can select CoreUI's cached contrast lift against
   the leading page colour, preserving hue, saturation, white highlights, and
   the logo's geometry rather than whitening the lettering.
