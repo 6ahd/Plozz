@@ -24,8 +24,13 @@ may gain a fourth line when enlarged. Mobile typography is unchanged. Their scri
 extend upward by the larger of the requested logo growth and description-height
 growth, without weakening default coverage or resizing the artwork.
 Showcase and Recommended keep their row positions and description budgets.
-Custom sizes fit the complete logo/metadata block down by one shared factor only
-when it exceeds the space above the row; the requested proportions stay intact.
+Custom sizes use the actual space above the active row, not a fixed worst-case
+footprint. They fit the complete logo/metadata block down by one shared factor
+only when that space is insufficient; the requested proportions stay intact.
+The native motion owner keeps the block fitted to the tightest space along a
+row transition, including reversals, then expands it after the viewport settles.
+Recommended releases library-navigation clearance after the header fades out and
+restores it immediately on return, retaining a top margin while it is hidden.
 Default Recommended sizing retains its existing constrained layout.
 
 Shared typography and future app-wide scale composition are owned by

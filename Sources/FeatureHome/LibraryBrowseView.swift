@@ -10,12 +10,38 @@ import UIKit
 
 @MainActor
 @Observable
-private final class ShowcaseNavigationVisibility {
+final class ShowcaseNavigationVisibility {
+    static let transitionDuration: TimeInterval = 0.18
     var focusedRowID: String?
 
     func showsNavigation(in rowIDs: [String]) -> Bool {
         guard let focusedRowID, rowIDs.contains(focusedRowID) else { return true }
         return focusedRowID == rowIDs.first
+    }
+}
+
+struct ShowcaseDetailsTopModifier: ViewModifier {
+    let visibility: ShowcaseNavigationVisibility
+    let rowIDs: [String]
+    let visibleTop: CGFloat
+    let hiddenTop: CGFloat
+    @State private var clearanceReleased = false
+
+    func body(content: Content) -> some View {
+        let isVisible = visibility.showsNavigation(in: rowIDs)
+        content.environment(
+            \.focusHeroMinimumDetailsTop,
+            isVisible || !clearanceReleased ? visibleTop : hiddenTop
+        )
+        .task(id: isVisible) {
+            if isVisible {
+                clearanceReleased = false
+            } else {
+                try? await Task.sleep(for: .seconds(ShowcaseNavigationVisibility.transitionDuration))
+                guard !Task.isCancelled else { return }
+                clearanceReleased = true
+            }
+        }
     }
 }
 
@@ -30,7 +56,7 @@ private struct ShowcaseNavigationVisibilityModifier: ViewModifier {
             .opacity(isVisible ? 1 : 0)
             .disabled(!isVisible)
             .accessibilityHidden(!isVisible)
-            .animation(.easeOut(duration: 0.18), value: isVisible)
+            .animation(.easeOut(duration: ShowcaseNavigationVisibility.transitionDuration), value: isVisible)
     }
 }
 #endif
@@ -444,6 +470,11 @@ public struct LibraryBrowseView: View {
             }
         }
         .ignoresSafeArea(.container, edges: .trailing)
+        .modifier(ShowcaseDetailsTopModifier(
+            visibility: showcaseNavigation, rowIDs: rows.map(\.id),
+            visibleTop: showcaseHeaderBottom + PlozzTheme.Spacing.large,
+            hiddenTop: headerTopClearance + PlozzTheme.Spacing.large
+        ))
     }
     #endif
 
