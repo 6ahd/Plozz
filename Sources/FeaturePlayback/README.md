@@ -1501,6 +1501,12 @@ There are no internal cutouts, patterns, or user-selectable marker styles.
 The 4pt gaps are centered on the original time boundaries. Each half-gap is
 capped at a quarter of either neighboring section's width so a tiny range is
 not consumed or enlarged. Outer timeline ends remain unchanged.
+Both sides of each gap share a corner radius based on the narrower rendered
+section. Sections at least as wide as the bar is tall keep maximum rounding;
+shorter sections progressively flatten the join into a thin cut, including the
+facing edge of a wider neighbor. Live programme tracks use the same geometry.
+Touch timelines retain their existing minimum-width suppression, so expanding
+the bar does not introduce tiny sections or change its established rounded caps.
 The mask applies to the base, buffered, and played fills and glass backing
 together, never the white playhead. Each section retains the bar's exact
 material and opacity; only its rounded ends and full-height gaps reveal the

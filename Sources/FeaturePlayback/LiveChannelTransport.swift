@@ -2318,14 +2318,9 @@ private struct LiveChannelProgrammeTrack: View, Equatable {
 
     var body: some View {
         Canvas { context, size in
-            guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
-            var mask = Path()
-            for section in SkipMarkerTrackLayout.segmentedSections(
+            let mask = SkipMarkerTrackLayout.maskPath(
                 ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
-            ) {
-                let radius = min(section.width, section.height) / 2
-                mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
-            }
+            )
             context.fill(mask, with: .color(.white))
         }
         .frame(height: height)

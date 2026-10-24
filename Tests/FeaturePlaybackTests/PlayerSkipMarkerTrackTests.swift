@@ -97,6 +97,90 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
+    func testBoundaryCornersFlattenTogetherOnlyWhenEitherSectionIsNarrowerThanTheTrackHeight() {
+        for height in [CGFloat(8), 12, 20] {
+            for (widthFraction, radiusFraction) in [
+                (CGFloat(0.05), CGFloat(0.0025)), (0.25, 0.0625), (0.5, 0.25),
+                (0.75, 0.5625), (1, 1), (2, 1)
+            ] {
+                let narrowWidth = height * widthFraction
+                let radius = SkipMarkerTrackLayout.boundaryCornerRadius(
+                    leftWidth: narrowWidth, rightWidth: 200, height: height
+                )
+                XCTAssertEqual(radius, height / 2 * radiusFraction, accuracy: 0.000001)
+                XCTAssertLessThanOrEqual(radius, narrowWidth / 2)
+                XCTAssertEqual(radius, SkipMarkerTrackLayout.boundaryCornerRadius(
+                    leftWidth: 200, rightWidth: narrowWidth, height: height
+                ))
+            }
+        }
+    }
+
+    func testNarrowOpeningMiddleAndEndingJoinsRenderAsThinCuts() throws {
+        let height: CGFloat = 20
+        for (start, end, filledPixels, gapPixels) in [
+            (5.0, 90.0, [7, 8], [4, 5]),
+            (230.0, 315.0, [311, 312], [314, 315]),
+            (156.0, 164.0, [152, 167], [155, 156, 163, 164])
+        ] {
+            let range = (start / 320)..<(end / 320)
+            let mask = SkipMarkerTrackLayout.maskPath(ranges: [range], size: CGSize(width: 320, height: height))
+            let frame = try pixels(
+                PlayerSkipMarkerTrack(
+                    segments: [.init(kind: .intro, start: start, end: end)], duration: 320, height: height
+                )
+                .frame(width: 320, height: 44).background(.black)
+            )
+            for x in filledPixels {
+                XCTAssertEqual(frame.red(x: x, y: 13), 255,
+                               "A narrow neighboring section must flatten this side of the cut too.")
+            }
+            for x in gapPixels {
+                for y in 12..<32 {
+                    XCTAssertEqual(frame.red(x: x, y: y), 0)
+                }
+            }
+            for section in SkipMarkerTrackLayout.segmentedSections(
+                ranges: [range], size: CGSize(width: 320, height: height)
+            ) {
+                XCTAssertTrue(mask.contains(CGPoint(x: section.midX, y: height / 2)),
+                              "No short section is erased or shifted.")
+            }
+        }
+    }
+
+    func testRoomySectionsAndMobileSuppressionKeepTheOriginalRoundedMask() throws {
+        for height in [CGFloat(8), 12, 20] {
+            for (ranges, minimumWidth) in [
+                ([Range<Double>](), CGFloat(0)),
+                ([0..<1], 0),
+                ([0.125..<0.875], 0),
+                ([0.01..<0.5, 0.6..<0.61], 20)
+            ] {
+                let size = CGSize(width: 320, height: height)
+                var reference = Path()
+                for section in SkipMarkerTrackLayout.segmentedSections(
+                    ranges: ranges, size: size, minimumSectionWidth: minimumWidth
+                ) {
+                    let radius = min(section.width, section.height) / 2
+                    reference.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
+                }
+                let actual = SkipMarkerTrackLayout.maskPath(
+                    ranges: ranges, size: size, minimumSectionWidth: minimumWidth
+                )
+                XCTAssertEqual(
+                    try pixels(actual.fill(.white).frame(width: 320, height: height).background(.black)).bytes,
+                    try pixels(reference.fill(.white).frame(width: 320, height: height).background(.black)).bytes
+                )
+            }
+        }
+        for size in [
+            CGSize.zero, CGSize(width: CGFloat.infinity, height: 20), CGSize(width: 320, height: CGFloat.nan)
+        ] {
+            XCTAssertTrue(SkipMarkerTrackLayout.maskPath(ranges: [0.1..<0.2], size: size).isEmpty)
+        }
+    }
+
     func testDefaultMaskHasFullHeightTransparentGapsButNoInternalTexture() throws {
         XCTAssertEqual(PlayerScrubTrackSurface.glassBackingOpacity, 0.10)
         for height in [CGFloat(12), 20] {

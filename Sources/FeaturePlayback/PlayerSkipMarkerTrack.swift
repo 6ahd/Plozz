@@ -70,6 +70,38 @@ enum SkipMarkerTrackLayout {
             return CGRect(x: start, y: 0, width: end - start, height: size.height)
         }
     }
+
+    static func boundaryCornerRadius(leftWidth: CGFloat, rightWidth: CGFloat, height: CGFloat) -> CGFloat {
+        let available = min(1, min(leftWidth, rightWidth) / height)
+        // Both sides of a tight cut flatten together; roomy sections retain full caps.
+        return height / 2 * available * available
+    }
+
+    static func maskPath(
+        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0
+    ) -> Path {
+        let sections = segmentedSections(ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth)
+        var mask = Path()
+        for index in sections.indices {
+            let section = sections[index]
+            let outerRadius = min(section.width, section.height) / 2
+            let leading = index == 0 ? outerRadius : boundaryCornerRadius(
+                leftWidth: sections[index - 1].width, rightWidth: section.width, height: section.height
+            )
+            let trailing = index == sections.count - 1 ? outerRadius : boundaryCornerRadius(
+                leftWidth: section.width, rightWidth: sections[index + 1].width, height: section.height
+            )
+            if leading == trailing {
+                mask.addRoundedRect(in: section, cornerSize: CGSize(width: leading, height: leading))
+            } else {
+                mask.addPath(UnevenRoundedRectangle(
+                    topLeadingRadius: leading, bottomLeadingRadius: leading,
+                    bottomTrailingRadius: trailing, topTrailingRadius: trailing, style: .circular
+                ).path(in: section))
+            }
+        }
+        return mask
+    }
 }
 
 /// Splits all three progress fills at legible skip boundaries without changing timing.
@@ -82,14 +114,9 @@ struct PlayerSkipMarkerTrack: View, Equatable {
     var body: some View {
         let ranges = SkipMarkerTrackLayout.ranges(segments: segments, duration: duration)
         Canvas { context, size in
-            guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
-            var mask = Path()
-            for section in SkipMarkerTrackLayout.segmentedSections(
+            let mask = SkipMarkerTrackLayout.maskPath(
                 ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
-            ) {
-                let radius = min(section.width, section.height) / 2
-                mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
-            }
+            )
             context.fill(mask, with: .color(.white))
         }
         .frame(height: height)

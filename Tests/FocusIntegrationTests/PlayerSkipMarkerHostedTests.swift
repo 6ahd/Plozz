@@ -75,6 +75,33 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
         }
     }
 
+    func testTinyOpeningSectionFlattensItsJoinButKeepsRoomyJoinsRounded() async throws {
+        try await withWindow { window in
+            for performance in [false, true] {
+                for focused in [false, true] {
+                    let background = Color(red: 0.15, green: 0.35, blue: 0.6)
+                    let model = showTrack(
+                        in: window, focused: focused, performance: performance, background: background
+                    )
+                    model.skipSegments.segments = [.init(kind: .intro, start: 0.5, end: 25)]
+                    let frame = try await render(in: window)
+                    let top = focused ? 580 : 584
+                    XCTAssertNotEqual(frame.color(330, top + 1), frame.color(330, 450),
+                                      "The wide section beside the tiny opening needs a nearly flat join.")
+                    for y in frame.pixels(top..<(focused ? 600 : 596)) {
+                        for x in frame.pixels(326..<327) {
+                            XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))
+                        }
+                    }
+                    XCTAssertEqual(frame.color(643, top), frame.color(643, 450),
+                                   "The other intro boundary still has room for maximum rounding.")
+                    XCTAssertNotEqual(frame.color(643, 590), frame.color(643, 450))
+                    attach(frame.image, name: "Adaptive opening cut - \(performance ? "flat" : "glass") - \(focused ? "focused" : "normal")")
+                }
+            }
+        }
+    }
+
     private func withWindow(_ body: (UIWindow) async throws -> Void) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
