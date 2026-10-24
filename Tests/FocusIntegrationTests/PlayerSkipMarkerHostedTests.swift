@@ -90,6 +90,10 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                                       "The wide section must not use an oversized cap beside the tiny opening.")
                     XCTAssertEqual(frame.color(328, top), frame.color(328, 450),
                                    "The constrained join must still have a visibly rounded top corner.")
+                    if focused {
+                        XCTAssertEqual(frame.color(328, top + 1), frame.color(328, 450),
+                                       "Focus must grow the corner curve vertically instead of leaving it boxy.")
+                    }
                     for y in frame.pixels(top..<(focused ? 600 : 596)) {
                         for x in frame.pixels(326..<327) {
                             XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))

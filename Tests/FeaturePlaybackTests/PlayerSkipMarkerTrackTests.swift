@@ -118,6 +118,88 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
+    func testFocusedCornersGrowVerticallyWithoutWideningNarrowJoins() {
+        let restingHeight: CGFloat = 12
+        for (sectionWidth, neighborWidth) in [(CGFloat(4.8), CGFloat(200)), (200, 4.8), (4.8, 4.8)] {
+            let resting = SkipMarkerTrackLayout.cornerSize(
+                sectionWidth: sectionWidth, neighborWidth: neighborWidth, height: restingHeight
+            )
+            for height in [CGFloat(12), 14, 16, 18, 20] {
+                let expanded = SkipMarkerTrackLayout.cornerSize(
+                    sectionWidth: sectionWidth, neighborWidth: neighborWidth,
+                    height: height, referenceHeight: restingHeight
+                )
+                XCTAssertEqual(expanded.width, resting.width)
+                XCTAssertEqual(expanded.height / height, resting.height / restingHeight, accuracy: 0.000001)
+                XCTAssertLessThanOrEqual(expanded.height, height / 2)
+            }
+        }
+    }
+
+    func testFocusedNarrowJoinsGrowTheirCurvesWithoutMovingCuts() throws {
+        let size = CGSize(width: 320, height: 20)
+        for ranges in [[0.02..<0.25], [0.4..<0.42], [0.5..<0.98]] {
+            let sections = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+            let narrowIndex = try XCTUnwrap(sections.firstIndex { $0.width < 12 })
+            let radius = sections[narrowIndex].width / 2 * 1.25
+            let unscaled = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
+            let expanded = SkipMarkerTrackLayout.maskPath(
+                ranges: ranges, size: size, cornerReferenceHeight: 12
+            )
+            let unscaledFrame = try pixels(
+                unscaled.fill(.white).frame(width: size.width, height: size.height).background(.black)
+            )
+            let frame = try pixels(
+                expanded.fill(.white).frame(width: size.width, height: size.height).background(.black)
+            )
+            for index in [narrowIndex - 1, narrowIndex + 1] where sections.indices.contains(index) {
+                let section = sections[index]
+                let minX = index < narrowIndex ? section.maxX - radius : section.minX
+                let maxX = index < narrowIndex ? section.maxX : section.minX + radius
+                let cornerHeight = Int(ceil(radius * size.height / 12))
+                for rows in [0..<cornerHeight, (Int(size.height) - cornerHeight)..<Int(size.height)] {
+                    var unscaledCoverage = 0
+                    var expandedCoverage = 0
+                    for x in Int(floor(minX))..<Int(ceil(maxX)) {
+                        for y in rows {
+                            unscaledCoverage += Int(unscaledFrame.red(x: x, y: y))
+                            expandedCoverage += Int(frame.red(x: x, y: y))
+                        }
+                    }
+                    XCTAssertLessThan(expandedCoverage, unscaledCoverage,
+                                      "The taller curve must remove more corner coverage on both sides of the sliver.")
+                }
+            }
+            for section in sections {
+                XCTAssertEqual(frame.red(x: Int(section.midX), y: 10), 255,
+                               "Focus must preserve every section.")
+            }
+            for index in sections.indices.dropLast() {
+                let x = Int((sections[index].maxX + sections[index + 1].minX) / 2)
+                for y in 0..<Int(size.height) {
+                    XCTAssertEqual(frame.red(x: x, y: y), 0, "The centered divider must stay fully transparent.")
+                }
+            }
+        }
+    }
+
+    func testFocusReferencePreservesTheRestingMaskAndMaximumRoomyRounding() throws {
+        for (height, ranges) in [
+            (CGFloat(12), [0.02..<0.25]), (12, [0.4..<0.405]), (12, [0.5..<0.98]),
+            (12, [0.125..<0.875]), (20, [0.125..<0.875])
+        ] {
+            let size = CGSize(width: 320, height: height)
+            let original = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
+            let referenced = SkipMarkerTrackLayout.maskPath(
+                ranges: ranges, size: size, cornerReferenceHeight: 12
+            )
+            XCTAssertEqual(
+                try pixels(original.fill(.white).frame(width: size.width, height: height).background(.black)).bytes,
+                try pixels(referenced.fill(.white).frame(width: size.width, height: height).background(.black)).bytes
+            )
+        }
+    }
+
     func testNarrowOpeningMiddleAndEndingJoinsStaySoftWithoutMovingTheCuts() throws {
         let height: CGFloat = 20
         for (start, end, filledPixels, gapPixels) in [

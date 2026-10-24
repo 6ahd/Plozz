@@ -71,14 +71,20 @@ enum SkipMarkerTrackLayout {
         }
     }
 
-    static func cornerSize(sectionWidth: CGFloat, neighborWidth: CGFloat, height: CGFloat) -> CGSize {
-        let radius = min(height / 2, min(sectionWidth, neighborWidth) / 2 * 1.25)
-        // An elliptical corner softens the sliver without consuming its width.
-        return CGSize(width: min(sectionWidth / 2, radius), height: radius)
+    static func cornerSize(
+        sectionWidth: CGFloat, neighborWidth: CGFloat, height: CGFloat, referenceHeight: CGFloat? = nil
+    ) -> CGSize {
+        let availableRadius = min(sectionWidth, neighborWidth) / 2 * 1.25
+        let radius = min(height / 2, availableRadius)
+        let reference = referenceHeight ?? height
+        // Grow the vertical curve with focus instead of stretching a nearly square middle.
+        let verticalRadius = min(reference / 2, availableRadius) * (height / reference)
+        return CGSize(width: min(sectionWidth / 2, radius), height: verticalRadius)
     }
 
     static func maskPath(
-        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0
+        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0,
+        cornerReferenceHeight: CGFloat? = nil
     ) -> Path {
         let sections = segmentedSections(ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth)
         var mask = Path()
@@ -87,12 +93,12 @@ enum SkipMarkerTrackLayout {
             let leading = cornerSize(
                 sectionWidth: section.width,
                 neighborWidth: index == 0 ? section.width : sections[index - 1].width,
-                height: section.height
+                height: section.height, referenceHeight: cornerReferenceHeight
             )
             let trailing = cornerSize(
                 sectionWidth: section.width,
                 neighborWidth: index == sections.count - 1 ? section.width : sections[index + 1].width,
-                height: section.height
+                height: section.height, referenceHeight: cornerReferenceHeight
             )
             if leading == trailing {
                 mask.addRoundedRect(in: section, cornerSize: leading)
@@ -149,12 +155,14 @@ struct PlayerSkipMarkerTrack: View, Equatable {
     let duration: TimeInterval
     let height: CGFloat
     var minimumSectionWidth: CGFloat = 0
+    var cornerReferenceHeight: CGFloat? = nil
 
     var body: some View {
         let ranges = SkipMarkerTrackLayout.ranges(segments: segments, duration: duration)
         Canvas { context, size in
             let mask = SkipMarkerTrackLayout.maskPath(
-                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
+                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth,
+                cornerReferenceHeight: cornerReferenceHeight
             )
             context.fill(mask, with: .color(.white))
         }

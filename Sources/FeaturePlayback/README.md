@@ -1507,6 +1507,10 @@ slightly taller elliptical corners without exceeding their available width;
 wider neighbors can use the corresponding circular corner. Facing corners meet
 the gap at the same height. Roomy joins retain full rounding, and rounding never
 removes a divider. Live programme tracks use the same geometry.
+On TV, constrained corners grow vertically from the 12pt resting geometry as
+focus expands the bar to 20pt. Their horizontal width stays constrained while
+the curves retain their resting proportions instead of becoming squarer.
+Resting masks and full-radius roomy joins are unchanged.
 Touch timelines retain their existing minimum-width suppression, so expanding
 the bar does not introduce tiny sections or change its established rounded caps.
 The mask applies to the base, buffered, and played fills and glass backing
