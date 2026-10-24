@@ -1051,7 +1051,7 @@ struct DetailHeroView: View, Equatable {
             alignment: .bottomLeading
         )
         .modifier(SeriesHeroContentLiftModifier(model: seriesRecedeModel))
-        .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasCinematicEntrance, reduceMotion: reduceMotion))
+        .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasStagedEntrance, reduceMotion: reduceMotion))
         // The full-bleed backdrop lives in a `.background`, which by definition is
         // sized to the host and does NOT contribute to the host's measured size.
         // That is the fix: previously the backdrop was a ZStack *sibling* whose
@@ -1117,7 +1117,7 @@ struct DetailHeroView: View, Equatable {
                 .contentTransition(.opacity)
                 .allowsHitTesting(false)
                 .modifier(SeriesHeroContentLiftModifier(model: seriesRecedeModel))
-                .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasCinematicEntrance, reduceMotion: reduceMotion))
+                .modifier(DetailHeroContentReveal(isVisible: heroVisible || hasStagedEntrance, reduceMotion: reduceMotion))
                 .detailEntranceStage(.metadata)
             }
         }
@@ -1161,7 +1161,7 @@ struct DetailHeroView: View, Equatable {
 
     }
 
-    private var hasCinematicEntrance: Bool {
+    private var hasStagedEntrance: Bool {
         #if os(tvOS)
         detailEntrance != nil
         #else

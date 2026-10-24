@@ -7,7 +7,7 @@ import XCTest
 
 @MainActor
 final class CinematicDetailTransitionHostedTests: XCTestCase {
-    func testNativeNavigationSkipsZoomArtworkWaitAndReverseCover() async throws {
+    func testNativeNavigationRevealsHeroWithoutZoomArtworkWaitOrReverseCover() async throws {
         let fixture = try await makeFixture(zoomEnabled: false)
         defer { fixture.close() }
         fixture.model.waitsForBackdrop = true
@@ -20,8 +20,18 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
             XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
             XCTAssertNil(DetailTransitionNavigation.take(in: fixture.window))
             try await waitUntil { fixture.model.pageVisible }
-            XCTAssertNil(fixture.model.session, "Native navigation must not wait for a backdrop or stagger controls.")
+            let session = try XCTUnwrap(fixture.model.session)
+            XCTAssertFalse(session.usesZoom)
+            XCTAssertTrue(session.isBackdropShadingVisible)
+            XCTAssertNil(session.returnArtwork)
             XCTAssertEqual(fixture.model.navigationAnimations.last, true)
+            try await waitUntil { session.stage == .logo }
+            XCTAssertLessThan(try pixel(fixture.window, at: XCTUnwrap(fixture.model.frames[.episodes]))[0], 20)
+            try await waitUntil { session.stage == .complete && fixture.model.stages.last == .complete }
+            XCTAssertEqual(fixture.model.stages, [.artwork, .logo, .metadata, .controls, .episodes, .complete])
+            XCTAssertFalse(session.blocksNavigation)
+            XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+            XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
             XCTAssertGreaterThan(try pixel(fixture.window, at: XCTUnwrap(fixture.model.frames[.episodes]))[0], 240)
             let dismiss = try XCTUnwrap(fixture.model.nativeDismiss)
             withAnimation { dismiss() }
@@ -33,6 +43,65 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
             let frame = try XCTUnwrap(fixture.model.source.visibleFrame(in: fixture.window))
             XCTAssertGreaterThan(try pixel(fixture.window, at: frame)[0], 200)
         }
+    }
+
+    func testNativeHeroRevealWaitsForPageAppearanceNotArtworkAndDoesNotReplay() async throws {
+        let fixture = try await makeFixture(zoomEnabled: false)
+        defer { fixture.close() }
+        let session = TVDetailEntranceSession(usesZoom: false)
+        defer { session.finishImmediately() }
+        session.attach(
+            to: fixture.window, enabled: true, waitsForPageAppearance: true,
+            waitsForBackdrop: true, revealsEpisodesLast: true
+        )
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(session.stage, .artwork)
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+        session.pageAppeared()
+        try await waitUntil { session.stage == .logo }
+        session.pageDisappeared()
+        session.disappeared()
+        XCTAssertEqual(session.stage, .complete)
+        session.pageAppeared()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(session.stage, .complete, "Returning from a child must not restart the hero reveal.")
+        XCTAssertFalse(session.blocksNavigation)
+    }
+
+    func testNativeBackDuringHeroRevealKeepsTheNativePopAndCancelsRemainingStages() async throws {
+        let fixture = try await makeFixture(zoomEnabled: false)
+        defer { fixture.close() }
+        fixture.model.waitsForBackdrop = true
+        fixture.model.revealsEpisodesLast = true
+        withAnimation { fixture.model.open(in: fixture.window, usesCard: true) }
+        try await waitUntil { fixture.model.session?.stage == .logo }
+        let session = try XCTUnwrap(fixture.model.session)
+        let dismiss = try XCTUnwrap(fixture.model.nativeDismiss)
+        withAnimation { dismiss() }
+        try await waitUntil { fixture.model.path.isEmpty && !fixture.model.pageVisible }
+        XCTAssertEqual(fixture.model.dismissalAnimations.last, true)
+        XCTAssertEqual(session.stage, .complete)
+        XCTAssertFalse(session.blocksNavigation)
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+        XCTAssertFalse(DetailTransitionNavigation.isRestoringSourcePage)
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(session.stage, .complete)
+    }
+
+    func testNativeHeroRevealRespectsSystemReduceMotion() async throws {
+        try XCTSkipUnless(UIAccessibility.isReduceMotionEnabled, "Run with system Reduce Motion enabled.")
+        let fixture = try await makeFixture(zoomEnabled: false)
+        defer { fixture.close() }
+        fixture.model.revealsEpisodesLast = true
+        fixture.model.open(in: fixture.window, usesCard: true)
+        try await waitUntil { fixture.model.pageVisible }
+        XCTAssertNil(fixture.model.session)
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+        let frame = try XCTUnwrap(fixture.model.frames[.episodes])
+        XCTAssertGreaterThan(try pixel(fixture.window, at: frame)[0], 240)
     }
 
     func testDisablingZoomDiscardsPreparedCoverAndLetsTheNextOpenUseNativeNavigation() async throws {

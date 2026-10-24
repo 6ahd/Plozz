@@ -286,8 +286,11 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   The profile's **Zoom when opening titles** preference opts into cinematic
   transitions. `detailNavigationZoom(isEnabled:)` applies the same policy to
   SwiftUI destinations and the window-scoped native card/router preparation.
-  Disabled zoom installs no cover, input guard, artwork wait, staged reveal, or
-  custom Back handler. iOS/iPadOS navigation is unchanged.
+  Both modes share the logo, metadata, controls, and episode entrance sequence.
+  With zoom off it starts when the native page appears, without a cover, window
+  input guard, artwork wait, or custom Back handler. Leaving cancels the reveal;
+  returning to an existing page does not replay it. Reduce Motion shows everything
+  immediately. iOS/iPadOS navigation is unchanged.
 - **Opt-in cinematic detail returns** — TV browse stacks install
   `cinematicDetailNavigation(path:)` on the stack so its destinations inherit it.
   Back changes that bound path in the reverse transition's nonanimated transaction:

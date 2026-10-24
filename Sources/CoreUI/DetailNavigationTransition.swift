@@ -794,13 +794,14 @@ public final class TVDetailEntranceSession {
     public private(set) var isClosing = false
     public private(set) var blocksNavigation = true
     public var isBackdropShadingVisible: Bool {
-        foregroundSequenceStarted || stage == .complete
+        !usesZoom || foregroundSequenceStarted || stage == .complete
     }
     /// Retained only for the return transition, never as the detail backdrop.
     private(set) var returnArtwork: DetailTransitionSurface?
     @ObservationIgnored private var returnBackground: DetailTransitionSurface?
     @ObservationIgnored private var destinationArtwork: UIImage?
     public let timing: DetailEntranceTiming
+    let usesZoom: Bool
     @ObservationIgnored private var hasStarted = false
     @ObservationIgnored private weak var window: UIWindow?
     @ObservationIgnored private var source: DetailTransitionSourceReference?
@@ -838,12 +839,13 @@ public final class TVDetailEntranceSession {
     @ObservationIgnored private weak var navigationChrome: NavigationChromeModel?
     @ObservationIgnored private let chromeToken = UUID()
 
-    public init(timing: DetailEntranceTiming = DetailEntranceTiming()) {
+    public init(timing: DetailEntranceTiming = DetailEntranceTiming(), usesZoom: Bool = true) {
         self.timing = timing
+        self.usesZoom = usesZoom
     }
 
     public func resolvedDestinationArtwork(_ image: UIImage) {
-        guard !isClosing else { return }
+        guard usesZoom, !isClosing else { return }
         destinationArtwork = image
         backdropIsAvailable = true
         backdropIsResolved = true
@@ -858,7 +860,7 @@ public final class TVDetailEntranceSession {
     }
 
     public func resolvedDestinationVideo() {
-        guard !isClosing else { return }
+        guard usesZoom, !isClosing else { return }
         backdropIsAvailable = true
         backdropIsResolved = true
         if backdropResolvedAt == nil { backdropResolvedAt = CACurrentMediaTime() }
@@ -867,7 +869,7 @@ public final class TVDetailEntranceSession {
     }
 
     func destinationArtworkUnavailable() {
-        guard !isClosing, !backdropIsResolved else { return }
+        guard usesZoom, !isClosing, !backdropIsResolved else { return }
         PlozzLog.app.info("Detail backdrop exhausted its candidates; revealing controls without artwork")
         backdropIsResolved = true
         backdropResolvedAt = CACurrentMediaTime()
@@ -879,6 +881,7 @@ public final class TVDetailEntranceSession {
     }
 
     func backdropTask(matching key: String) -> Task<FirstPaintArtwork?, Never>? {
+        guard usesZoom else { return nil }
         if let backdropRequest, backdropRequest.key == key { return backdropRequest.task }
         return DetailTransitionNavigation.backdropTask(matching: key)
     }
@@ -895,7 +898,7 @@ public final class TVDetailEntranceSession {
         self.window = window
         guard !hasStarted else { return }
         self.waitsForPageAppearance = waitsForPageAppearance
-        self.waitsForBackdrop = waitsForBackdrop
+        self.waitsForBackdrop = usesZoom && waitsForBackdrop
         self.revealsEpisodesLast = revealsEpisodesLast
         if DetailTransitionNavigation.consumesSuppression(in: window) {
             finishImmediately()
@@ -910,6 +913,11 @@ public final class TVDetailEntranceSession {
         }
         hasStarted = true
         stage = .artwork
+        if !usesZoom {
+            artworkHasLanded = true
+            startForegroundIfReady()
+            return
+        }
         navigationChrome = DetailTransitionNavigation.chromeModel(in: window)
         navigationChrome?.detailAppeared(chromeToken)
         let pending = DetailTransitionNavigation.take(in: window)
@@ -1009,10 +1017,9 @@ public final class TVDetailEntranceSession {
 
     private func removeOpeningCoverIfReady() {
         guard artworkHasLanded, !isClosing, !waitsForPageAppearance || pageIsVisible,
-              !waitsForBackdrop || backdropIsResolved else { return }
-        let cover = overlay
-        UIView.animate(withDuration: 0.1, animations: { cover?.alpha = 0 }) { [weak self] _ in
-            cover?.removeFromSuperview()
+              !waitsForBackdrop || backdropIsResolved, let cover = overlay else { return }
+        UIView.animate(withDuration: 0.1, animations: { cover.alpha = 0 }) { [weak self] _ in
+            cover.removeFromSuperview()
             if self?.overlay === cover { self?.overlay = nil }
         }
     }
@@ -1030,7 +1037,7 @@ public final class TVDetailEntranceSession {
         }
         let pause = waitsForBackdrop && !backdropIsAvailable
             ? 0 : max(0, timing.artworkPause - (now - readyAt))
-        startForegroundSequence(pause: pause)
+        startForegroundSequence(pause: usesZoom ? pause : 0)
     }
 
     private func finishEntranceIfReady() {
@@ -1074,7 +1081,7 @@ public final class TVDetailEntranceSession {
     /// Pop the real stack under a visual cover; never replace SwiftUI's navigation delegate.
     func close(pop: (@MainActor () -> Bool)? = nil, dismiss: @escaping @MainActor () -> Void) {
         guard !isClosing else { return }
-        guard let window, hasStarted, !UIAccessibility.isReduceMotionEnabled else {
+        guard usesZoom, let window, hasStarted, !UIAccessibility.isReduceMotionEnabled else {
             finishImmediately()
             returnArtwork = nil
             returnBackground = nil
@@ -1348,23 +1355,54 @@ private struct TVDetailPageTransition: ViewModifier {
     let isEnabled: Bool
     let waitsForBackdrop: Bool
     let revealsEpisodesLast: Bool
-    @State private var session = TVDetailEntranceSession()
+    @Environment(\.detailZoomEnabled) private var zoomEnabled
+
+    func body(content: Content) -> some View {
+        if zoomEnabled {
+            content.modifier(TVDetailPageEntrance(
+                isEnabled: isEnabled, waitsForBackdrop: waitsForBackdrop,
+                revealsEpisodesLast: revealsEpisodesLast, usesZoom: true
+            ))
+        } else {
+            content.modifier(TVDetailPageEntrance(
+                isEnabled: isEnabled, waitsForBackdrop: false,
+                revealsEpisodesLast: revealsEpisodesLast, usesZoom: false
+            ))
+        }
+    }
+}
+
+private struct TVDetailPageEntrance: ViewModifier {
+    let isEnabled: Bool
+    let waitsForBackdrop: Bool
+    let revealsEpisodesLast: Bool
+    @State private var session: TVDetailEntranceSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.detailNavigationPop) private var pop
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.detailZoomEnabled) private var zoomEnabled
+
+    init(isEnabled: Bool, waitsForBackdrop: Bool, revealsEpisodesLast: Bool, usesZoom: Bool) {
+        self.isEnabled = isEnabled
+        self.waitsForBackdrop = waitsForBackdrop
+        self.revealsEpisodesLast = revealsEpisodesLast
+        _session = State(initialValue: TVDetailEntranceSession(usesZoom: usesZoom))
+    }
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if zoomEnabled {
-            zoomContent(content)
+        if session.usesZoom {
+            entranceContent(content)
+                .onExitCommand {
+                    if isEnabled, !reduceMotion { session.close(dismiss: dismiss, pop: pop) }
+                    else { dismiss() }
+                }
         } else {
-            content.environment(\.detailEntranceSession, nil)
+            entranceContent(content)
         }
     }
 
-    private func zoomContent(_ content: Content) -> some View {
+    private func entranceContent(_ content: Content) -> some View {
         content
             .opacity(session.isClosing ? 0 : 1)
             .animation(nil, value: session.isClosing)
@@ -1374,10 +1412,6 @@ private struct TVDetailPageTransition: ViewModifier {
                     session: session, enabled: isEnabled && !reduceMotion,
                     waitsForBackdrop: waitsForBackdrop, revealsEpisodesLast: revealsEpisodesLast
                 )
-            }
-            .onExitCommand {
-                if isEnabled, !reduceMotion { session.close(dismiss: dismiss, pop: pop) }
-                else { dismiss() }
             }
             .onDisappear { session.disappeared() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in

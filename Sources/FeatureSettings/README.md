@@ -34,7 +34,9 @@ device-local preferences with Automatic as the default.
 
 **Screens & Navigation → Navigation → Zoom when opening titles** is a tvOS-only,
 profile-scoped opt-in. Off uses native page opening and closing; on restores the
-cinematic artwork transition. It defaults off for both new and existing profiles,
+cinematic artwork transition. The hero's staged content reveal is shared by both
+modes, without waiting for backdrop artwork when zoom is off.
+It defaults off for both new and existing profiles,
 stays local to the device, and still respects Reduce Motion.
 
 Home hero, Showcase (TV), Recommended Page (TV), and Detail Page have independent
