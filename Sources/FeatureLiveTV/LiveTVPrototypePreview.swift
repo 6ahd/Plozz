@@ -157,9 +157,14 @@ struct PrototypePreviewLayout {
         metadataWidth = compact || largeText ? contentFrame.width : contentFrame.width * 0.56
         let videoWidth = bounds.width
         let videoHeight = videoWidth * 9 / 16
+        #if os(iOS)
+        let videoTop = contentFrame.minY
+        #else
+        let videoTop = bounds.minY
+        #endif
         videoFrame = CGRect(
             x: bounds.maxX - videoWidth,
-            y: bounds.minY,
+            y: videoTop,
             width: videoWidth, height: videoHeight
         )
         fadeEnd = min(bounds.height * 0.82, videoHeight * 0.88)

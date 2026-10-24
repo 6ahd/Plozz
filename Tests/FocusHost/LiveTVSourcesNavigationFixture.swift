@@ -5,6 +5,7 @@ import CoreSecureStore
 import CoreUI
 import FeatureAuthCore
 import FeatureLiveTVCore
+import FeatureSettings
 import SwiftUI
 
 struct LiveTVSourcesNavigationFixture: View {
@@ -16,15 +17,28 @@ struct LiveTVSourcesNavigationFixture: View {
         Group {
             if let fixture {
                 SettingsPageStack(navigation: navigation, pageWidth: 960, onRootBack: {}) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            SettingsPageHeader("Sources")
-                            LiveTVShellSourcesContent(
+                    if ProcessInfo.processInfo.arguments.contains("--settings-overview-fixture") {
+                        LiveTVSettingsView(
+                            store: LiveTVViewSettingsStore(defaults: fixture.defaults, namespace: "fixture"),
+                            preferencesStore: LiveTVPreferencesStore(defaults: fixture.defaults, namespace: "fixture")
+                        ) { preferences in
+                            AnyView(LiveTVShellSourcesContent(
                                 runtime: fixture.runtime, library: fixture.library,
-                                accounts: fixture.accounts, connectServer: nil, didConfigurePlaylist: {}
-                            )
+                                accounts: fixture.accounts, connectServer: nil, didConfigurePlaylist: {},
+                                settingsPreferences: preferences
+                            ))
                         }
-                        .padding(28)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 24) {
+                                SettingsPageHeader("Sources")
+                                LiveTVShellSourcesContent(
+                                    runtime: fixture.runtime, library: fixture.library,
+                                    accounts: fixture.accounts, connectServer: nil, didConfigurePlaylist: {}
+                                )
+                            }
+                            .padding(28)
+                        }
                     }
                 } destination: { _ in EmptyView() }
                 .environment(fixture.profiles)
@@ -62,10 +76,12 @@ struct LiveTVSourcesNavigationFixture: View {
         let accounts: AccountsProvidersModel
         let runtime: LiveTVSourcesRuntime
         let library: LiveTVLibraryRuntime
+        let defaults: UserDefaults
 
         init() throws {
             let namespace = "SourcesNavigation.\(UUID())"
             let defaults = UserDefaults(suiteName: namespace)!
+            self.defaults = defaults
             let profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
             profiles.select(profiles.add(name: "Sources fixture").id)
             self.profiles = profiles
@@ -77,10 +93,12 @@ struct LiveTVSourcesNavigationFixture: View {
             accounts.reloadAccounts()
             self.accounts = accounts
             let store = LiveTVSourcesStore(secureStore: InMemorySecureStore(), namespace: namespace)
-            try store.save(.init(playlists: [
-                .init(id: "fixture", name: "Fixture source",
+            let count = ProcessInfo.processInfo.arguments.contains("--settings-overview-fixture") ? 6 : 1
+            try store.save(.init(playlists: (0..<count).map { index in
+                .init(id: index == 0 ? "fixture" : "fixture-\(index)",
+                      name: count == 1 ? "Fixture source" : "Fixture source \(index + 1)",
                       playlistURL: URL(string: "https://fixture.invalid/playlist.m3u")!)
-            ]))
+            }))
             runtime = LiveTVSourcesRuntime(
                 profileID: profileID, store: store,
                 approvals: LiveTVSourceApprovalStore(defaults: defaults, profileID: profileID, namespace: namespace),

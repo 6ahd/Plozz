@@ -283,6 +283,7 @@ public struct LiveChannelPlayerView: View {
                 )
                 VideoSurfaceContainer(
                     engine: model.engine, zoom: model.videoZoom.settings,
+                    aspectRatio: model.videoAspectRatio,
                     fitsInsideSafeArea: liveSubtitleViewport != nil && !model.continuesExternally,
                     subtitleViewport: liveSubtitleViewport
                 )
@@ -558,7 +559,7 @@ public struct LiveChannelPlayerView: View {
             .onDisappear { touchGestures.cancel() }
             .onChange(of: reportingID) { _, _ in
                 updateSource()
-                onVideoAspectRatioChange(model?.engine.videoAspectRatio)
+                onVideoAspectRatioChange(model?.videoAspectRatio)
             }
             .onChange(of: isAudible) { _, audible in model?.setAudible(audible) }
             .onChange(of: allowsDisplayMatching) { _, allowed in model?.setDisplayMatchingAllowed(allowed) }
@@ -609,7 +610,7 @@ public struct LiveChannelPlayerView: View {
         .onChange(of: model?.phase) { _, phase in
             playbackPhaseChanged(phase)
         }
-        .onChange(of: model?.engine.videoAspectRatio, initial: true) { _, ratio in
+        .onChange(of: model?.videoAspectRatio, initial: true) { _, ratio in
             onVideoAspectRatioChange(ratio)
         }
         .onChange(of: tracksArePresented) { _, _ in autoHideRevision &+= 1 }
@@ -1364,6 +1365,7 @@ private struct LiveChannelInterruptionView: View {
 private final class LiveChannelPlayerPlaybackState {
     var phase: LiveChannelPlaybackPhase = .loading
     var hasPresentedFrame = false
+    var videoAspectRatio: Double?
     var seekableWindow: LiveSeekableWindow?
     var isAtLiveEdge = true
     var behindLiveSeconds: TimeInterval = 0
@@ -1522,6 +1524,10 @@ final class LiveChannelPlayerModel {
     private(set) var hasPresentedFrame: Bool {
         get { playbackState.hasPresentedFrame }
         set { playbackState.hasPresentedFrame = newValue }
+    }
+    private(set) var videoAspectRatio: Double? {
+        get { playbackState.videoAspectRatio }
+        set { playbackState.videoAspectRatio = newValue }
     }
     private(set) var seekableWindow: LiveSeekableWindow? {
         get { playbackState.seekableWindow }
@@ -2327,6 +2333,10 @@ final class LiveChannelPlayerModel {
         }
 
         let snapshot = engine.liveSnapshot
+        // Engine/AVPlayer dimensions can arrive without an Observation notification.
+        // Publish them through the existing monitor so the retained surface relayouts.
+        let aspectRatio = engine.videoAspectRatio
+        if videoAspectRatio != aspectRatio { videoAspectRatio = aspectRatio }
         subtitles.tick(engine.subtitlePresentationTime)
         diagnostics.sample(snapshot, uptime: uptime(), attempt: attemptCount)
         if isLoading {

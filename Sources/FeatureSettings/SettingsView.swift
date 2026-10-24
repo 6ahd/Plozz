@@ -980,7 +980,7 @@ public struct SettingsView: View {
                 preferencesStore: LiveTVPreferencesStore(
                     namespace: liveTVPreferencesNamespace
                 ),
-                sourceManagement: liveTVSources.map { destination in { destination.content() } }
+                sourceManagement: liveTVSources.map { destination in { destination.content(preferences: $0) } }
             )
             .id(activeProfile.id)
         case .nightShift:

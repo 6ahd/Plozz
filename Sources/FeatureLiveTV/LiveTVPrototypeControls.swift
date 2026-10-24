@@ -360,19 +360,21 @@ private struct PrototypeGuideTimeForm: View {
                     guideOffset = max(-86_400, guideOffset - 7_200)
                     dismiss()
                 }
+                .buttonStyle(SettingsFormButtonStyle())
                 .disabled(guideOffset <= -86_400)
                 Button("Now", systemImage: "clock") {
                     goToNow()
                     dismiss()
                 }
+                .buttonStyle(SettingsFormButtonStyle())
                 Button("Later", systemImage: "chevron.forward") {
                     guideOffset = min(604_800, guideOffset + 7_200)
                     dismiss()
                 }
+                .buttonStyle(SettingsFormButtonStyle())
                 .disabled(guideOffset >= 604_800)
             }
         }
-        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
     }
 }
 
@@ -389,7 +391,7 @@ private struct PrototypeFilterForm: View {
                 } label: {
                     Label("Manage IPTV channels", systemImage: "slider.horizontal.3")
                 }
-                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                .buttonStyle(SettingsFormButtonStyle())
             }
             SettingsSectionGroup("Browse filters") {
                 PrototypeSelectionLink(
@@ -422,7 +424,7 @@ private struct PrototypeFilterForm: View {
             }
             SettingsSectionGroup {
                 Button("Reset filters") { model.resetFilters() }
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .buttonStyle(SettingsFormButtonStyle())
                 Text("\(model.visibleChannels.count) matching channels")
             }
         }
@@ -474,7 +476,7 @@ struct PrototypeSelectionList<Option: Hashable, OptionLabel: View>: View {
                             if option == selection { SettingsSelectionIndicator() }
                         }
                     }
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .buttonStyle(SettingsFormButtonStyle())
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
                 }
             }

@@ -127,6 +127,7 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
 struct VideoSurfaceContainer: UIViewRepresentable {
     let engine: any VideoEngine
     var zoom = PlayerVideoZoom()
+    var aspectRatio: Double? = nil
     var fitsInsideSafeArea = false
     var subtitleViewport: VideoSubtitleViewport?
 
@@ -134,14 +135,14 @@ struct VideoSurfaceContainer: UIViewRepresentable {
         let root = VideoPresentationView(frame: .zero)
         root.subtitleViewport = subtitleViewport
         root.attach(engine)
-        root.update(zoom: zoom, fitsInsideSafeArea: fitsInsideSafeArea)
+        root.update(zoom: zoom, aspectRatio: aspectRatio, fitsInsideSafeArea: fitsInsideSafeArea)
         return root
     }
 
     func updateUIView(_ uiView: VideoPresentationView, context: Context) {
         uiView.subtitleViewport = subtitleViewport
         uiView.attach(engine)
-        uiView.update(zoom: zoom, fitsInsideSafeArea: fitsInsideSafeArea)
+        uiView.update(zoom: zoom, aspectRatio: aspectRatio, fitsInsideSafeArea: fitsInsideSafeArea)
     }
 }
 

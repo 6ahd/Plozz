@@ -6,6 +6,70 @@ import XCTest
 
 @MainActor
 final class SettingsControlRowsHostedTests: XCTestCase {
+    func testNavigationAndMenuLabelsShareTheFormFocusHeight() throws {
+        let labels: [AnyView] = [
+            AnyView(SettingsRowLabel(icon: nil, title: "Manage channels")),
+            AnyView(SettingsRowLabel(icon: "sparkles.tv", title: "Manage channels")),
+            AnyView(SettingsRowLabel(title: Text("Manage channels"), icon: {
+                Color.clear.frame(width: 30, height: 30)
+            })),
+            AnyView(SettingsSectionLabel(
+                title: Text("Channel order"), icon: nil, assetIcon: nil,
+                value: Text("Name"), subtitle: nil,
+                accessorySymbol: "chevron.up.chevron.down"
+            )),
+            AnyView(SettingsDisclosureLabel {
+                Label("Guide preferences", systemImage: "calendar")
+            }.settingsFormRowLayout())
+        ]
+        let expectedHeight = Int(
+            SettingsRowMetrics.minHeight(.primary) + 2 * SettingsRowMetrics.verticalPadding(.primary)
+        )
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for label in labels {
+                let renderer = ImageRenderer(content:
+                    SettingsFocusRow(isFocused: true, size: .contained) { label }
+                        .frame(width: 600)
+                        .environment(\.layoutDirection, direction)
+                        .environment(\.themePalette, .dark)
+                        .environment(\.colorScheme, .dark)
+                )
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.cgImage)
+                XCTAssertEqual(image.height, expectedHeight)
+                let bytes = try pixels(image)
+                for y in [0, image.height - 1] {
+                    XCTAssertGreaterThan(bytes[(y * image.width + image.width / 2) * 4], 230,
+                                         "The shared height must be inside the painted focus fill.")
+                }
+            }
+        }
+    }
+
+    func testCompactInsetsRemainExplicitAndMultilineRowsCanGrow() throws {
+        let compact = ImageRenderer(content:
+            SettingsRowLabel(
+                title: Text("Source"),
+                contentInsets: .init(top: 8, leading: 12, bottom: 8, trailing: 12),
+                icon: { Color.clear.frame(width: 30, height: 30) }
+            )
+            .frame(width: 600)
+        )
+        let multiline = ImageRenderer(content:
+            SettingsRowLabel(icon: "sparkles.tv", title: "Manage channels", secondary: {
+                Text("Channels from your libraries").font(SettingsRowMetrics.descriptionFont)
+            })
+            .frame(width: 600)
+        )
+        compact.scale = 1
+        multiline.scale = 1
+        let standardHeight = Int(
+            SettingsRowMetrics.minHeight(.primary) + 2 * SettingsRowMetrics.verticalPadding(.primary)
+        )
+        XCTAssertLessThan(try XCTUnwrap(compact.cgImage).height, standardHeight)
+        XCTAssertGreaterThan(try XCTUnwrap(multiline.cgImage).height, standardHeight)
+    }
+
     func testConnectedGroupsKeepOuterCornersAndNarrowInternalGaps() throws {
         for count in 1...3 {
             for direction in [LayoutDirection.leftToRight, .rightToLeft] {

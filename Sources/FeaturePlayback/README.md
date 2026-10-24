@@ -75,6 +75,11 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Live channel recovery
 
+Live video dimensions are sampled by the existing player monitor and passed as
+an explicit input to the retained video surface. A late aspect ratio or a format
+change updates Normal/Crop/Stretch geometry without a zoom gesture, retuning, or
+resizing the subtitle overlay; no additional polling loop is created.
+
 On tvOS, temporary scene inactivity from Control Center or Siri does not issue
 a player pause, cancel a live seek, or reload the stream. Playback and explicit
 pause intent survive the overlay; genuine system audio interruptions remain
