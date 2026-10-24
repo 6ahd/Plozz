@@ -33,7 +33,8 @@ enum SkipMarkerTrackLayout {
     }
 
     static func segmentedSections(
-        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0
+        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0,
+        restingHeight: CGFloat? = nil
     ) -> [CGRect] {
         guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return [] }
         var boundaries: [CGFloat] = [0]
@@ -64,11 +65,33 @@ enum SkipMarkerTrackLayout {
                 (boundaries[index + 1] - boundaries[index]) / 4
             ))
         }
-        return boundaries.indices.dropLast().map { index in
+        let sections = boundaries.indices.dropLast().map { index in
             let start = boundaries[index] + halfGaps[index]
             let end = boundaries[index + 1] - halfGaps[index + 1]
             return CGRect(x: start, y: 0, width: end - start, height: size.height)
         }
+        guard let restingHeight, size.height > restingHeight else { return sections }
+        let maximumExtraGap = min(2, (size.height - restingHeight) / 4)
+        var spaced = sections
+        for index in sections.indices.dropLast() {
+            let left = sections[index]
+            let right = sections[index + 1]
+            let wider = max(left.width, right.width)
+            let narrower = min(left.width, right.width)
+            let corner = cornerSize(sectionWidth: wider, neighborWidth: narrower, height: size.height)
+            // Add optical space only on the wider side; leave fully rounded joins alone.
+            let extra = min(
+                maximumExtraGap, size.height / 2 - corner.width,
+                wider / 4, (wider - narrower) / 2
+            )
+            if left.width < right.width {
+                spaced[index + 1].origin.x += extra
+                spaced[index + 1].size.width -= extra
+            } else if right.width < left.width {
+                spaced[index].size.width -= extra
+            }
+        }
+        return spaced
     }
 
     static func cornerSize(
@@ -84,21 +107,23 @@ enum SkipMarkerTrackLayout {
 
     static func maskPath(
         ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0,
-        cornerReferenceHeight: CGFloat? = nil
+        restingHeight: CGFloat? = nil
     ) -> Path {
-        let sections = segmentedSections(ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth)
+        let sections = segmentedSections(
+            ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth, restingHeight: restingHeight
+        )
         var mask = Path()
         for index in sections.indices {
             let section = sections[index]
             let leading = cornerSize(
                 sectionWidth: section.width,
                 neighborWidth: index == 0 ? section.width : sections[index - 1].width,
-                height: section.height, referenceHeight: cornerReferenceHeight
+                height: section.height, referenceHeight: restingHeight
             )
             let trailing = cornerSize(
                 sectionWidth: section.width,
                 neighborWidth: index == sections.count - 1 ? section.width : sections[index + 1].width,
-                height: section.height, referenceHeight: cornerReferenceHeight
+                height: section.height, referenceHeight: restingHeight
             )
             if leading == trailing {
                 mask.addRoundedRect(in: section, cornerSize: leading)
@@ -155,14 +180,14 @@ struct PlayerSkipMarkerTrack: View, Equatable {
     let duration: TimeInterval
     let height: CGFloat
     var minimumSectionWidth: CGFloat = 0
-    var cornerReferenceHeight: CGFloat? = nil
+    var restingHeight: CGFloat? = nil
 
     var body: some View {
         let ranges = SkipMarkerTrackLayout.ranges(segments: segments, duration: duration)
         Canvas { context, size in
             let mask = SkipMarkerTrackLayout.maskPath(
                 ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth,
-                cornerReferenceHeight: cornerReferenceHeight
+                restingHeight: restingHeight
             )
             context.fill(mask, with: .color(.white))
         }

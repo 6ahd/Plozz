@@ -136,7 +136,83 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
-    func testFocusedNarrowJoinsGrowTheirCurvesWithoutMovingCuts() throws {
+    func testFocusedTightGapsTakeExtraWidthOnlyFromTheWiderNeighbor() throws {
+        for (ranges, narrowIndex) in [
+            ([0.02..<0.25], 0), ([0.4..<0.42], 1), ([0.5..<0.98], 2)
+        ] {
+            for height in [CGFloat(12), 14, 16, 18, 20] {
+                let size = CGSize(width: 320, height: height)
+                let original = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+                let focused = SkipMarkerTrackLayout.segmentedSections(
+                    ranges: ranges, size: size, restingHeight: 12
+                )
+                let extra = (height - 12) / 4
+                var expected = original
+                if narrowIndex > 0 {
+                    expected[narrowIndex - 1].size.width -= extra
+                }
+                if narrowIndex < original.count - 1 {
+                    expected[narrowIndex + 1].origin.x += extra
+                    expected[narrowIndex + 1].size.width -= extra
+                }
+                XCTAssertEqual(focused, expected)
+                XCTAssertEqual(focused[narrowIndex], original[narrowIndex],
+                               "The tiny piece must keep its size and position.")
+                for index in original.indices.dropLast() {
+                    let boundary = (original[index].maxX + original[index + 1].minX) / 2
+                    XCTAssertLessThan(focused[index].maxX, boundary)
+                    XCTAssertGreaterThan(focused[index + 1].minX, boundary)
+                }
+            }
+        }
+    }
+
+    func testFocusedOpticalSpacingPreservesRoomyEqualAndDenselyPackedSections() {
+        let size = CGSize(width: 320, height: 20)
+        for ranges in [[0.125..<0.875], [0.25..<0.5, 0.75..<1]] {
+            XCTAssertEqual(
+                SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size, restingHeight: 12),
+                SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+            )
+        }
+        let equalRanges = [0.25..<0.5, 0.75..<1]
+        let smallSize = CGSize(width: 16, height: 20)
+        let equalOriginal = SkipMarkerTrackLayout.segmentedSections(ranges: equalRanges, size: smallSize)
+        let equalFocused = SkipMarkerTrackLayout.segmentedSections(
+            ranges: equalRanges, size: smallSize, restingHeight: 12
+        )
+        XCTAssertEqual(equalFocused[1], equalOriginal[1])
+        XCTAssertEqual(equalFocused[2], equalOriginal[2],
+                       "Neither equally narrow side should pay for extra spacing.")
+        let ranges = [0.4..<0.405, 0.425..<0.43]
+        let original = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+        let focused = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size, restingHeight: 12)
+        XCTAssertEqual(focused.count, original.count)
+        XCTAssertEqual(focused[1], original[1])
+        XCTAssertEqual(focused[3], original[3])
+        for index in original.indices {
+            XCTAssertGreaterThanOrEqual(focused[index].width, original[index].width / 2 - 0.000001,
+                                        "Even a section paying for both gaps must retain at least half its width.")
+            if index < original.count - 1 {
+                XCTAssertLessThan(focused[index].maxX, focused[index + 1].minX)
+            }
+        }
+    }
+
+    func testFocusedOpticalSpacingTapersOutAtFullyRoundedJoins() {
+        let size = CGSize(width: 320, height: 20)
+        for (start, extra) in [(10.0, 2.0), (14, 2), (16, 1.25), (17, 0.625), (18, 0), (24, 0)] {
+            let ranges = [(start / 320)..<0.5]
+            let original = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+            let focused = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size, restingHeight: 12)
+            XCTAssertEqual(focused[0], original[0])
+            XCTAssertEqual(focused[1].minX - original[1].minX, extra, accuracy: 0.000001)
+            XCTAssertEqual(focused[1].maxX, original[1].maxX, accuracy: 0.000001)
+            XCTAssertEqual(focused[2], original[2])
+        }
+    }
+
+    func testFocusedNarrowJoinsLeaveOpticalSpaceAndPreserveEverySection() throws {
         let size = CGSize(width: 320, height: 20)
         for ranges in [[0.02..<0.25], [0.4..<0.42], [0.5..<0.98]] {
             let sections = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
@@ -144,7 +220,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
             let radius = sections[narrowIndex].width / 2 * 1.25
             let unscaled = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
             let expanded = SkipMarkerTrackLayout.maskPath(
-                ranges: ranges, size: size, cornerReferenceHeight: 12
+                ranges: ranges, size: size, restingHeight: 12
             )
             let unscaledFrame = try pixels(
                 unscaled.fill(.white).frame(width: size.width, height: size.height).background(.black)
@@ -167,7 +243,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                         }
                     }
                     XCTAssertLessThan(expandedCoverage, unscaledCoverage,
-                                      "The taller curve must remove more corner coverage on both sides of the sliver.")
+                                      "Focused joins must leave more visible picture beside the sliver.")
                 }
             }
             for section in sections {
@@ -177,7 +253,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
             for index in sections.indices.dropLast() {
                 let x = Int((sections[index].maxX + sections[index + 1].minX) / 2)
                 for y in 0..<Int(size.height) {
-                    XCTAssertEqual(frame.red(x: x, y: y), 0, "The centered divider must stay fully transparent.")
+                    XCTAssertEqual(frame.red(x: x, y: y), 0, "The original time boundary must stay fully transparent.")
                 }
             }
         }
@@ -191,7 +267,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
             let size = CGSize(width: 320, height: height)
             let original = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
             let referenced = SkipMarkerTrackLayout.maskPath(
-                ranges: ranges, size: size, cornerReferenceHeight: 12
+                ranges: ranges, size: size, restingHeight: 12
             )
             XCTAssertEqual(
                 try pixels(original.fill(.white).frame(width: size.width, height: height).background(.black)).bytes,

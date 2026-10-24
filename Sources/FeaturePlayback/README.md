@@ -1498,7 +1498,7 @@ performance fill remains 22% white.
 The TV and touch seek bars share `PlayerSkipMarkerTrack`: solid, rounded
 sections separated at the start and end of each available skippable range.
 There are no internal cutouts, patterns, or user-selectable marker styles.
-The 4pt gaps are centered on the original time boundaries. Each half-gap is
+The base 4pt gaps are centered on the original time boundaries. Each half-gap is
 capped at a quarter of either neighboring section's width so a tiny range is
 not consumed or enlarged. Outer timeline ends remain unchanged.
 Both sides of each gap use the narrower rendered section to size their corners,
@@ -1510,6 +1510,11 @@ removes a divider. Live programme tracks use the same geometry.
 On TV, constrained corners grow vertically from the 12pt resting geometry as
 focus expands the bar to 20pt. Their horizontal width stays constrained while
 the curves retain their resting proportions instead of becoming squarer.
+Focused tight joins also gain up to 2pt of optical spacing, taken only from the
+wider neighbor. The smaller piece stays in place, and the original time boundary
+remains inside the gap. Spacing tapers away at fully rounded joins and is bounded
+so a section contributing to both neighboring gaps retains at least half its
+width. Neither seek positions nor marker times change.
 Resting masks and full-radius roomy joins are unchanged.
 Touch timelines retain their existing minimum-width suppression, so expanding
 the bar does not introduce tiny sections or change its established rounded caps.

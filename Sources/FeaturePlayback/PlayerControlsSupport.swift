@@ -99,7 +99,7 @@ struct ScrubBar: View {
                 .mask {
                     PlayerSkipMarkerTrack(
                         segments: model.skipSegments.segments, duration: model.duration, height: barHeight,
-                        cornerReferenceHeight: Self.restingBarHeight
+                        restingHeight: Self.restingBarHeight
                     )
                     .equatable()
                 }

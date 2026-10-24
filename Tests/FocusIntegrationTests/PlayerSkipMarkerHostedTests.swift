@@ -86,16 +86,17 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                     model.skipSegments.segments = [.init(kind: .intro, start: 0.5, end: 25)]
                     let frame = try await render(in: window)
                     let top = focused ? 580 : 584
-                    XCTAssertNotEqual(frame.color(330, top + 1), frame.color(330, 450),
+                    let widerSectionStart = focused ? 330 : 328
+                    XCTAssertNotEqual(frame.color(widerSectionStart + 2, top + 1), frame.color(widerSectionStart + 2, 450),
                                       "The wide section must not use an oversized cap beside the tiny opening.")
-                    XCTAssertEqual(frame.color(328, top), frame.color(328, 450),
+                    XCTAssertEqual(frame.color(widerSectionStart, top), frame.color(widerSectionStart, 450),
                                    "The constrained join must still have a visibly rounded top corner.")
                     if focused {
-                        XCTAssertEqual(frame.color(328, top + 1), frame.color(328, 450),
+                        XCTAssertEqual(frame.color(widerSectionStart, top + 1), frame.color(widerSectionStart, 450),
                                        "Focus must grow the corner curve vertically instead of leaving it boxy.")
                     }
                     for y in frame.pixels(top..<(focused ? 600 : 596)) {
-                        for x in frame.pixels(326..<327) {
+                        for x in frame.pixels(326..<(focused ? 330 : 327)) {
                             XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))
                         }
                     }

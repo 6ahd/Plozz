@@ -2071,7 +2071,7 @@ private struct LiveChannelTimeline: View {
                 }
                 .mask {
                     LiveChannelProgrammeTrack(
-                        ranges: layout.maskRanges, height: barHeight, cornerReferenceHeight: Self.restingBarHeight
+                        ranges: layout.maskRanges, height: barHeight, restingHeight: Self.restingBarHeight
                     )
                     .equatable()
                 }
@@ -2317,13 +2317,13 @@ private struct LiveChannelProgrammeTrack: View, Equatable {
     let ranges: [Range<Double>]
     let height: CGFloat
     var minimumSectionWidth: CGFloat = 0
-    var cornerReferenceHeight: CGFloat? = nil
+    var restingHeight: CGFloat? = nil
 
     var body: some View {
         Canvas { context, size in
             let mask = SkipMarkerTrackLayout.maskPath(
                 ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth,
-                cornerReferenceHeight: cornerReferenceHeight
+                restingHeight: restingHeight
             )
             context.fill(mask, with: .color(.white))
         }
