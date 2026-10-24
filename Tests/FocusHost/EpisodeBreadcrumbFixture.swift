@@ -39,6 +39,7 @@ struct EpisodeBreadcrumbFixture: View {
         .environment(\.themePalette, .dark)
         .environment(\.plozzCardFocusStyle, focusStyle)
         .preferredColorScheme(.dark)
+        .detailNavigationZoom(isEnabled: true)
         .task {
             guard !entered else { return }
             entered = true

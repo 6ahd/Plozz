@@ -27,7 +27,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 provider.detailItem = item
                 let model = TransitionShowModel(provider: provider)
                 let host = TransitionShowController(rootView: TransitionShowRoot(
-                    model: model, artworkSettings: ArtworkSettings(preference: .library)
+                    model: model, artworkSettings: ArtworkSettings(preference: .library), zoomEnabled: false
                 ))
                 let previous = scene.windows.first(where: \.isKeyWindow)
                 let window = UIWindow(windowScene: scene)
@@ -45,6 +45,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     model.detail.state.value?.childrenLoaded == true
                         && self.verticalScroll(in: host.view) != nil
                 }
+                XCTAssertTrue(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.isEmpty)
                 try await Task.sleep(for: .seconds(3))
                 let page = try XCTUnwrap(verticalScroll(in: host.view))
                 let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
@@ -643,7 +644,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         try await assertProductionHeroEntrance(episodeContext: true)
     }
 
-    private func assertProductionHeroEntrance(episodeContext: Bool) async throws {
+    func testNativeSeriesAndEpisodeContextOpenOnTheHeroWithoutACover() async throws {
+        try await assertProductionHeroEntrance(episodeContext: false, zoomEnabled: false)
+        try await assertProductionHeroEntrance(episodeContext: true, zoomEnabled: false)
+    }
+
+    private func assertProductionHeroEntrance(episodeContext: Bool, zoomEnabled: Bool = true) async throws {
         let settingsStore = MetadataProviderSettingsStore()
         let originalSettings = settingsStore.load()
         var settings = originalSettings
@@ -654,7 +660,9 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let artwork = try await seedArtwork()
         let provider = TransitionShowProvider(artwork: artwork, episodeCount: 12)
         let model = TransitionShowModel(provider: provider)
-        let host = UIHostingController(rootView: TransitionShowRoot(model: model, directEntry: episodeContext))
+        let host = UIHostingController(rootView: TransitionShowRoot(
+            model: model, directEntry: episodeContext, zoomEnabled: zoomEnabled
+        ))
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
@@ -671,17 +679,20 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         DetailTransitionNavigation.prepare(
             for: episodeContext ? provider.episode : provider.show, in: window, source: nil
         )
-        let cover = try XCTUnwrap(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first)
+        let cover = window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first
+        XCTAssertEqual(cover != nil, zoomEnabled)
         model.path.append(1)
         try await waitUntil {
             model.detail.state.value?.childrenLoaded == true && self.verticalScroll(in: host.view) != nil
         }
-        try await waitUntil { cover.destination.image != nil }
-        XCTAssertNotNil(cover.destination.image, "Use the actual backdrop resolved by the production hero.")
+        if let cover {
+            try await waitUntil { cover.destination.image != nil }
+            XCTAssertNotNil(cover.destination.image, "Use the actual backdrop resolved by the production hero.")
+        }
         let scroll = try XCTUnwrap(verticalScroll(in: host.view))
         XCTAssertEqual(scroll.contentOffset.y + scroll.adjustedContentInset.top, 0, accuracy: 2,
                        "The artwork pause must not move into the episode browser.")
-        try await waitUntil { cover.superview == nil }
+        if let cover { try await waitUntil { cover.superview == nil } }
         try await Task.sleep(for: .seconds(2))
         XCTAssertEqual(scroll.contentOffset.y + scroll.adjustedContentInset.top, 0, accuracy: 2,
                        "Show and episode-context opens must stay on the hero when controls finish appearing.")
@@ -700,7 +711,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(focusFrame(focused, in: window)).contains(playCenter),
                       "Actual native focus must enclose the rendered Play label, not an episode or tab: \(focused)")
         let shot = XCTAttachment(image: DetailTransitionSnapshot.image(of: window))
-        shot.name = "production-series-entrance-episode-\(episodeContext)"
+        shot.name = "production-series-entrance-episode-\(episodeContext)-zoom-\(zoomEnabled)"
         shot.lifetime = .keepAlways
         add(shot)
     }
@@ -1762,6 +1773,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let source = DetailTransitionSourceReference()
         let item = MediaItem(id: "focused-return", title: "Focused return", kind: .movie)
         let controller = FocusReturnController()
+        private let zoomToken = UUID()
 
         init(scene: UIWindowScene) {
             previous = scene.windows.first(where: \.isKeyWindow)
@@ -1774,10 +1786,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             source.cornerRadius = 22
             source.focusRequester = controller
             window.makeKeyAndVisible()
+            DetailTransitionNavigation.registerZoom(true, in: window, token: zoomToken)
             controller.view.layoutIfNeeded()
         }
 
         func close() {
+            DetailTransitionNavigation.unregisterZoom(in: window, token: zoomToken)
             DetailTransitionNavigation.take(in: window)?.discard()
             window.isHidden = true
             window.rootViewController = nil
@@ -2038,6 +2052,7 @@ private struct RealPosterReturnRoot: View {
                         .cinematicDetailPage(isEnabled: true)
                 }
         }
+        .detailNavigationZoom(isEnabled: true)
     }
 }
 
@@ -2128,6 +2143,7 @@ private struct ShowcaseReturnRoot: View {
         .environment(\.themePalette, .dark)
         .environment(\.gradientBackgroundsEnabled, false)
         .environment(\.focusHeroLayoutMeasurement, model.measurement)
+        .detailNavigationZoom(isEnabled: true)
     }
 }
 
@@ -2267,6 +2283,7 @@ private struct TransitionShowRoot: View {
     var focusStyle: CardFocusStyle = .system
     var directEntry = false
     var artworkSettings: ArtworkSettings = .default
+    var zoomEnabled = true
 
     var body: some View {
         TabView {
@@ -2303,6 +2320,7 @@ private struct TransitionShowRoot: View {
         .environment(\.gradientBackgroundsEnabled, model.gradientEnabled)
         .environment(\.plozzArtworkSettings, artworkSettings)
         .modifier(ReducedMotion())
+        .detailNavigationZoom(isEnabled: zoomEnabled)
     }
 }
 

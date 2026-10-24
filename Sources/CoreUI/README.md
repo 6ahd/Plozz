@@ -282,7 +282,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   boolean destinations retain native navigation outside this workspace,
   including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
   subtitle panels, with Reduce Motion respected by their hosts.
-- **Cinematic detail returns** — TV browse stacks install
+- **Title navigation** — tvOS uses native page pushes and pops by default.
+  The profile's **Zoom when opening titles** preference opts into cinematic
+  transitions. `detailNavigationZoom(isEnabled:)` applies the same policy to
+  SwiftUI destinations and the window-scoped native card/router preparation.
+  Disabled zoom installs no cover, input guard, artwork wait, staged reveal, or
+  custom Back handler. iOS/iPadOS navigation is unchanged.
+- **Opt-in cinematic detail returns** — TV browse stacks install
   `cinematicDetailNavigation(path:)` on the stack so its destinations inherit it.
   Back changes that bound path in the reverse transition's nonanimated transaction:
   SwiftUI's environment dismiss action can still animate a native pop underneath

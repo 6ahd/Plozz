@@ -7,6 +7,70 @@ import XCTest
 
 @MainActor
 final class CinematicDetailTransitionHostedTests: XCTestCase {
+    func testNativeNavigationSkipsZoomArtworkWaitAndReverseCover() async throws {
+        let fixture = try await makeFixture(zoomEnabled: false)
+        defer { fixture.close() }
+        fixture.model.waitsForBackdrop = true
+        fixture.model.revealsEpisodesLast = true
+        for usesCard in [true, false, true] {
+            withAnimation {
+                fixture.model.open(in: fixture.window, usesCard: usesCard)
+            }
+            XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+            XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+            XCTAssertNil(DetailTransitionNavigation.take(in: fixture.window))
+            try await waitUntil { fixture.model.pageVisible }
+            XCTAssertNil(fixture.model.session, "Native navigation must not wait for a backdrop or stagger controls.")
+            XCTAssertEqual(fixture.model.navigationAnimations.last, true)
+            XCTAssertGreaterThan(try pixel(fixture.window, at: XCTUnwrap(fixture.model.frames[.episodes]))[0], 240)
+            let dismiss = try XCTUnwrap(fixture.model.nativeDismiss)
+            withAnimation { dismiss() }
+            try await waitUntil { fixture.model.path.isEmpty && !fixture.model.pageVisible }
+            XCTAssertEqual(fixture.model.dismissalAnimations.last, true)
+            XCTAssertFalse(DetailTransitionNavigation.isRestoringSourcePage)
+            XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+            XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+            let frame = try XCTUnwrap(fixture.model.source.visibleFrame(in: fixture.window))
+            XCTAssertGreaterThan(try pixel(fixture.window, at: frame)[0], 200)
+        }
+    }
+
+    func testDisablingZoomDiscardsPreparedCoverAndLetsTheNextOpenUseNativeNavigation() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        fixture.model.source.prepare(for: fixture.model.item)
+        XCTAssertFalse(overlays(in: fixture.window).isEmpty)
+        fixture.model.zoomEnabled = false
+        try await waitUntil { !DetailTransitionNavigation.isZoomEnabled(in: fixture.window) }
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+        fixture.model.source.prepare(for: fixture.model.item)
+        XCTAssertNil(DetailTransitionNavigation.take(in: fixture.window))
+        fixture.model.zoomEnabled = true
+        try await waitUntil { DetailTransitionNavigation.isZoomEnabled(in: fixture.window) }
+        fixture.model.open(in: fixture.window, usesCard: true)
+        try await waitUntil { fixture.model.session?.stage == .complete }
+        XCTAssertNotNil(fixture.model.session)
+    }
+
+    func testZoomRegistrationIsWindowScopedAndIgnoresAnOlderShellTeardown() {
+        let first = UIWindow()
+        let second = UIWindow()
+        let old = UUID()
+        let current = UUID()
+        XCTAssertFalse(DetailTransitionNavigation.isZoomEnabled(in: first))
+        DetailTransitionNavigation.registerZoom(true, in: first, token: old)
+        XCTAssertFalse(DetailTransitionNavigation.isZoomEnabled(in: second))
+        DetailTransitionNavigation.registerZoom(false, in: first, token: current)
+        DetailTransitionNavigation.unregisterZoom(in: first, token: old)
+        XCTAssertFalse(DetailTransitionNavigation.isZoomEnabled(in: first))
+        DetailTransitionNavigation.registerZoom(true, in: first, token: current)
+        DetailTransitionNavigation.unregisterZoom(in: first, token: old)
+        XCTAssertTrue(DetailTransitionNavigation.isZoomEnabled(in: first))
+        DetailTransitionNavigation.unregisterZoom(in: first, token: current)
+        XCTAssertFalse(DetailTransitionNavigation.isZoomEnabled(in: first))
+    }
+
     func testOpeningCurvePicksUpQuicklyAndSettlesWithoutOvershoot() {
         let curve = UnitCurve.bezier(
             startControlPoint: DetailEntranceMotion.pickup,
@@ -932,7 +996,8 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
                     // Rasterization belongs to custom focus; native projection
                     // can change the presented artwork's aspect ratio.
                     .environment(\.plozzCardFocusStyle, .outlined)
-                    .environment(\.plozzReduceTransparency, true))
+                    .environment(\.plozzReduceTransparency, true)
+                    .detailNavigationZoom(isEnabled: true))
                 let window = UIWindow(windowScene: scene)
                 window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
                 window.rootViewController = host
@@ -984,14 +1049,14 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
         return bytes.map(Int.init)
     }
 
-    private func makeFixture() async throws -> CinematicFixtureWindow {
+    private func makeFixture(zoomEnabled: Bool = true) async throws -> CinematicFixtureWindow {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
         }
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
         let policy = artworkPolicy()
-        let fixture = CinematicFixtureWindow(scene: scene, policy: policy)
+        let fixture = CinematicFixtureWindow(scene: scene, policy: policy, zoomEnabled: zoomEnabled)
         let image = UIGraphicsImageRenderer(size: CGSize(width: 320, height: 180)).image {
             UIColor.blue.setFill()
             $0.fill(CGRect(x: 0, y: 0, width: 320, height: 180))
@@ -1004,7 +1069,10 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
             ),
             for: source.key
         )
-        try await waitUntil { fixture.model.source.visibleFrame(in: fixture.window) != nil }
+        try await waitUntil {
+            fixture.model.source.visibleFrame(in: fixture.window) != nil
+                && DetailTransitionNavigation.isZoomEnabled(in: fixture.window) == zoomEnabled
+        }
         try await Task.sleep(for: .milliseconds(150))
         return fixture
     }
@@ -1074,7 +1142,11 @@ private final class CinematicFixtureWindow {
     let previousWindow: UIWindow?
     let model = CinematicFixtureModel()
 
-    init(scene: UIWindowScene, policy: ArtworkPresentationPolicy = .init(area: .details)) {
+    init(
+        scene: UIWindowScene, policy: ArtworkPresentationPolicy = .init(area: .details),
+        zoomEnabled: Bool = true
+    ) {
+        model.zoomEnabled = zoomEnabled
         previousWindow = scene.windows.first(where: \.isKeyWindow)
         window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
@@ -1090,6 +1162,7 @@ private final class CinematicFixtureWindow {
     }
 
     func close() {
+        model.nativeDismiss = nil
         model.session?.finishImmediately()
         DetailTransitionNavigation.take(in: window)?.discard()
         window.isHidden = true
@@ -1104,11 +1177,16 @@ private final class CinematicFixtureModel {
     let source = DetailTransitionSourceReference()
     var path: [Int] = []
     var revealsEpisodesLast = false
+    var waitsForBackdrop = false
+    var zoomEnabled = true
+    @ObservationIgnored var pageVisible = false
+    @ObservationIgnored var nativeDismiss: (() -> Void)?
     @ObservationIgnored var session: TVDetailEntranceSession?
     @ObservationIgnored var stages: [DetailEntranceStage] = []
     @ObservationIgnored var frames: [DetailEntranceStage: CGRect] = [:]
     @ObservationIgnored var events: [String] = []
     @ObservationIgnored var navigationAnimations: [Bool] = []
+    @ObservationIgnored var dismissalAnimations: [Bool] = []
 
     func open(in window: UIWindow, usesCard: Bool) {
         DetailTransitionNavigation.prepare(for: item, in: window, source: usesCard ? source : nil)
@@ -1131,15 +1209,21 @@ private struct CinematicFixtureRoot: View {
                 .focusable()
                 .navigationDestination(for: Int.self) { _ in
                     CinematicFixturePage(model: model)
-                        .cinematicDetailPage(isEnabled: true, revealsEpisodesLast: model.revealsEpisodesLast)
+                        .cinematicDetailPage(
+                            isEnabled: true, waitsForBackdrop: model.waitsForBackdrop,
+                            revealsEpisodesLast: model.revealsEpisodesLast
+                        )
                 }
         }
+        .cinematicDetailNavigation(path: $model.path)
+        .detailNavigationZoom(isEnabled: model.zoomEnabled)
     }
 }
 
 private struct CinematicFixturePage: View {
     let model: CinematicFixtureModel
     @Environment(\.detailEntranceSession) private var session
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -1171,6 +1255,7 @@ private struct CinematicFixturePage: View {
         .modifier(DetailTopSafeAreaBreakout())
         .onAppear {
             model.session = session
+            model.nativeDismiss = { dismiss() }
             model.stages = [.artwork]
         }
 
@@ -1205,6 +1290,21 @@ private struct NavigationAppearanceProbe: UIViewControllerRepresentable {
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
             model.navigationAnimations.append(transitionCoordinator?.isAnimated ?? animated)
+        }
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            model.pageVisible = true
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            model.dismissalAnimations.append(transitionCoordinator?.isAnimated ?? animated)
+        }
+
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            model.pageVisible = false
         }
     }
 }

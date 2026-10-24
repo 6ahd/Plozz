@@ -225,6 +225,8 @@ struct AppearanceDetailView: View {
                 SettingsControlGroup(illustrated: true) {
                     CompactNavigationPicker(selection: $navigation.style)
                     Toggle("Prevent Accidental Exit", isOn: $navigation.preventsAccidentalExit)
+                    Toggle("Zoom when opening titles", isOn: $navigation.detailZoomEnabled)
+                        .accessibilityIdentifier("detail-zoom-enabled")
                 }
                 #else
                 CompactNavigationPicker(selection: $navigation.style)

@@ -2,6 +2,29 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testDetailZoomIsOptInAndSurvivesRelaunch() throws {
+        #if targetEnvironment(simulator)
+        for (expected, updated) in [("0", "1"), ("1", "0"), ("0", "0")] {
+            let app = try launchSettings()
+            defer { app.terminate() }
+            try focus(section("screensNavigation", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["settings-page-navigation"], in: app)
+            XCUIRemote.shared.press(.select)
+            let zoom = app.switches["detail-zoom-enabled"]
+            XCTAssertTrue(zoom.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertEqual(zoom.value as? String, expected)
+            try focus(zoom, in: app)
+            if expected != updated { XCUIRemote.shared.press(.select) }
+            XCTAssertEqual(zoom.value as? String, updated)
+            XCTAssertTrue(hasFocus(zoom))
+            capture("detail-zoom-\(updated)", in: app)
+        }
+        #else
+        throw XCTSkip("Never changes navigation preferences on a physical device.")
+        #endif
+    }
+
     func testDetailThemeMusicUsesOneOffChoiceAndThreeVolumeLevels() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()

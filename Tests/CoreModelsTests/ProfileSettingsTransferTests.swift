@@ -18,12 +18,14 @@ final class ProfileSettingsTransferTests: XCTestCase {
         // Non-transferable, device-local keys that must NOT travel.
         source.set("sidebar", forKey: "navigationStyle")
         source.set(true, forKey: "preventsAccidentalExit")
+        source.set(true, forKey: NavigationStyleSettingsStore.detailZoomStorageKey)
 
         let entries = ProfileSettingsTransfer.capture(namespace: nil, defaults: source)
         XCTAssertNotNil(entries["com.plozz.playbackSettings"])
         XCTAssertNotNil(entries["musicLyricsEnabled"])
         XCTAssertNil(entries["navigationStyle"], "device-local settings must not be captured")
         XCTAssertNil(entries["preventsAccidentalExit"], "tvOS-only settings must not be captured")
+        XCTAssertNil(entries[NavigationStyleSettingsStore.detailZoomStorageKey])
 
         let target = makeDefaults()
         ProfileSettingsTransfer.apply(entries, namespace: nil, defaults: target)
@@ -31,6 +33,7 @@ final class ProfileSettingsTransferTests: XCTestCase {
         XCTAssertEqual(target.bool(forKey: "musicLyricsEnabled"), true)
         XCTAssertNil(target.string(forKey: "navigationStyle"))
         XCTAssertNil(target.object(forKey: "preventsAccidentalExit"))
+        XCTAssertNil(target.object(forKey: NavigationStyleSettingsStore.detailZoomStorageKey))
     }
 
     func testNamespacedProfileKeysAreIsolated() {
