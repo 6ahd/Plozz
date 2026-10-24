@@ -63,6 +63,12 @@ while Home and detail previews use edge-to-edge artwork.
 Mobile Home keeps native sliders beside their labels and one stacked preview.
 No artwork lookup is needed for these fictional previews.
 
+Detail Page theme music offers Low, Medium, and High volume; the Background mode
+owns Off. Older silent theme-music preferences migrate to Background Off without
+changing Home or trailer settings, with Low ready for the next explicit opt-in.
+On tvOS, the selected Background option supplies its own explanation rather than
+repeating it in a section footer.
+
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings

@@ -314,8 +314,7 @@ struct DetailPageDetailView: View {
         var rows = [
             SettingsSplitRow(
                 id: "detail-page-hero-mode",
-                title: "Background",
-                description: "Choose what plays behind the hero on a title's detail page. Trailer and theme music never play together."
+                title: "Background"
             ) {
                 SettingsControlRows(nonTVSpacing: SettingsMetrics.sectionSpacing) {
                     DescribedSegmentedPicker(
@@ -330,7 +329,7 @@ struct DetailPageDetailView: View {
                     if heroBackground.settings.detailMode == .themeMusic {
                         SettingsDetailGroup(title: "Volume") {
                             DescribedSegmentedPicker(
-                                options: ThemeMusicVolume.allCases,
+                                options: ThemeMusicVolume.playbackLevels,
                                 selection: $themeMusic.settings.volume,
                                 title: { $0.displayName },
                                 detail: { $0.detail }

@@ -1974,7 +1974,7 @@ private struct PlozziOSDetailPageSettingsView: View {
                         "Theme music volume",
                         selection: $themeMusic.settings.volume
                     ) {
-                        ForEach(ThemeMusicVolume.allCases, id: \.self) {
+                        ForEach(ThemeMusicVolume.playbackLevels, id: \.self) {
                             Text($0.displayName).tag($0)
                         }
                     }

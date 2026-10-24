@@ -2,6 +2,51 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testDetailThemeMusicUsesOneOffChoiceAndThreeVolumeLevels() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-title-details"], in: app)
+        XCUIRemote.shared.press(.select)
+        let music = app.buttons["Theme music"]
+        try focus(music, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["Low"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label == %@", "Off")).count, 1)
+        XCTAssertFalse(app.staticTexts[
+            "Choose what plays behind the hero on a title's detail page. Trailer and theme music never play together."
+        ].exists)
+        XCTAssertTrue(app.staticTexts["Play a title's theme music while you browse its detail page."].exists)
+        for level in ["Low", "Medium", "High"] {
+            let option = app.buttons[level]
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertEqual(option.value as? String, "Selected", "\(level) must remain selectable.")
+        }
+        capture("detail-background-volume-options", in: app)
+        try focus(app.buttons["Off"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.buttons["Off"].value as? String, "Selected")
+        XCTAssertFalse(app.buttons["Low"].exists, "Background Off hides the volume choices.")
+        XCUIRemote.shared.press(.menu)
+        let detailPage = app.buttons["settings-page-title-details"]
+        try focus(detailPage, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.buttons["Off"].value as? String, "Selected")
+        try focus(music, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["High"].waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            app.buttons["High"].value as? String, "Selected",
+            "Switching the background retains the chosen volume."
+        )
+        #else
+        throw XCTSkip("Never changes detail settings on a physical device.")
+        #endif
+    }
+
     func testDetailSizingCannotBeSkippedBetweenBackAndBackground() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
