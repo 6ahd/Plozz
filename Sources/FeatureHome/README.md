@@ -3,6 +3,21 @@
 Home rows, item detail, series/season experience, and the online-trailer
 fallback when the user's server has no attached trailer.
 
+tvOS detail entry keeps the real primary action focusable while its play target
+loads. An early press queues one activation, replacing the icon with a spinner
+without resizing the button. Readiness consumes that intent once through the
+normal playback callback; a pending series request opens the normal season
+chooser, never a bulk request. A fresh Select during the cinematic entrance
+queues only while the target is unavailable. A ready action finishes the
+decorative entrance immediately rather than waiting for its animation or artwork;
+the opening press, cancelled presses, and return-transition input are not replayed.
+Leaving/covering the page, scene inactivity,
+profile/request-identity changes, explicit source/version changes, or entering
+the episode browser cancel the intent. Failed/empty resolution clears it and
+retains the existing error/retry presentation. Late episode resolution must not move focus back from a
+secondary action the user selected. Request/status actions retain the same
+leading-entry preference, and returning from a child preserves source focus.
+
 ## Responsibility
 
 Home Continue Watching failures use the existing Details / Try Again actions on

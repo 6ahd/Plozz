@@ -686,6 +686,7 @@ public final class TVDetailEntranceSession {
     public private(set) var stage = DetailEntranceStage.artwork
     public private(set) var isClosing = false
     public private(set) var blocksNavigation = true
+    public private(set) var primaryActionPressGeneration: UInt = 0
     public var isBackdropShadingVisible: Bool {
         foregroundSequenceStarted || stage == .complete
     }
@@ -823,6 +824,10 @@ public final class TVDetailEntranceSession {
         if cover.superview == nil { window.addSubview(cover) }
         overlay = cover
         inputGuard = pending?.inputGuard ?? installInputGuard(in: window)
+        inputGuard?.onOpeningSelect = { [weak self] in
+            guard let self, pageIsVisible, !isClosing, primaryActionPressGeneration == 0 else { return }
+            primaryActionPressGeneration &+= 1
+        }
         cover.destination.image = earlyDestinationArtwork ?? cover.destination.image
         destinationArtwork = cover.destination.image
         earlyDestinationArtwork = nil
@@ -1160,7 +1165,13 @@ public final class TVDetailEntranceSession {
         }
     }
 
-    func finishImmediately() {
+    /// A ready user action takes precedence over decorative entrance work.
+    public func finishOpeningForPrimaryAction() {
+        guard !isClosing, blocksNavigation else { return }
+        finishImmediately(releaseInputImmediately: false)
+    }
+
+    func finishImmediately(releaseInputImmediately: Bool = true) {
         returnFrame?.invalidate()
         returnFrame = nil
         let wasStarted = hasStarted
@@ -1183,7 +1194,7 @@ public final class TVDetailEntranceSession {
         overlay = nil
         earlyDestinationArtwork = nil
         DetailTransitionNavigation.endSourceRestore(token: restoreToken)
-        releaseInput(force: true)
+        releaseInput(force: releaseInputImmediately)
         stage = .complete
         isClosing = false
         blocksNavigation = false
@@ -1546,11 +1557,12 @@ enum DetailTransitionSnapshot {
     }
 }
 
-/// Physical input is discarded while the entrance runs, but Back/Home remain native.
+/// Navigation is suppressed during entrance; a fresh Select can queue the destination's primary action.
 @MainActor
 final class DetailTransitionInputGuard: UIGestureRecognizer {
     enum Phase { case opening, returning }
     private(set) var phase: Phase
+    var onOpeningSelect: (() -> Void)?
     private var activePresses: Set<ObjectIdentifier> = []
     private var activeTouches: Set<ObjectIdentifier> = []
     private var releaseRequested = false
@@ -1628,8 +1640,12 @@ final class DetailTransitionInputGuard: UIGestureRecognizer {
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent) {
         let identifiers = Set(presses.map(ObjectIdentifier.init))
         guard !activePresses.isDisjoint(with: identifiers) else { return }
+        let selected = phase == .opening && presses.contains {
+            $0.type == .select && activePresses.contains(ObjectIdentifier($0))
+        }
         activePresses.subtract(identifiers)
         finishInputIfIdle()
+        if selected { onOpeningSelect?() }
     }
     override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent) {
         let identifiers = Set(presses.map(ObjectIdentifier.init))

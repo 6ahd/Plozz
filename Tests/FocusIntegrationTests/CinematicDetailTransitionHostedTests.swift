@@ -353,6 +353,52 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
         XCTAssertTrue(blocker.allowedTouchTypes.contains(NSNumber(value: UITouch.TouchType.indirect.rawValue)))
     }
 
+    func testReadyPrimaryEndsAnimationWithoutReleasingHeldInput() async throws {
+        final class SelectPress: UIPress {
+            override var type: UIPress.PressType { .select }
+        }
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let session = TVDetailEntranceSession()
+        defer { session.finishImmediately() }
+        session.attach(to: fixture.window, enabled: true, waitsForPageAppearance: true, waitsForBackdrop: true)
+        session.pageAppeared()
+        let guardView = try XCTUnwrap(inputGuards(in: fixture.window).first)
+        let press = SelectPress()
+        guardView.pressesBegan([press], with: UIPressesEvent())
+        session.finishOpeningForPrimaryAction()
+        XCTAssertFalse(session.blocksNavigation)
+        XCTAssertEqual(session.stage, .complete)
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).contains { $0 === guardView })
+        guardView.pressesEnded([press], with: UIPressesEvent())
+        try await waitUntil { self.inputGuards(in: fixture.window).isEmpty }
+    }
+
+    func testOpeningSelectOnlyForwardsFreshCompletedPresses() {
+        final class SelectPress: UIPress {
+            override var type: UIPress.PressType { .select }
+        }
+        let blocker = DetailTransitionInputGuard()
+        var activations = 0
+        blocker.onOpeningSelect = { activations += 1 }
+        let press = SelectPress()
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 0, "The opening press must not be replayed into the destination.")
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesCancelled([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.setPhase(.returning)
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1, "Return-transition input must remain suppressed.")
+    }
+
     func testLateDestinationDoesNotRestartTheAlreadyRunningZoom() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

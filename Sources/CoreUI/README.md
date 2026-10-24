@@ -6,6 +6,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`ActionProgressIcon` overlays native progress inside the original symbol's
+layout footprint. `PlayResumeButtonLabel.isLoading` uses it without changing the
+button's dimensions or the existing resume/placeholder layout.
+
 `SettingsCheckableRow` is shared by Settings and channel-library selection.
 Its prominence controls the common row metrics; `.contained` keeps focus inside
 a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu

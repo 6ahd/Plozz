@@ -690,6 +690,8 @@ public struct ItemDetailView: View {
                             Task { await viewModel.retryPlaybackInventory(for: detail.item) }
                         } : nil,
                         isRetryingPlaybackInventory: viewModel.isRetryingPlaybackInventory(for: detail.item),
+                        allowsDeferredActivation: isPageVisible && !hasChildOnTop,
+                        deferredActionOwner: ObjectIdentifier(viewModel),
                         playProgress: canPlay ? detail.item.resumeProgressFraction : nil,
                         playRemainingText: canPlay ? detail.item.resumeRemainingText : nil,
                         playSeasonEpisodeText: canPlay ? HeroForegroundModelBuilder.seasonEpisodeButtonText(for: detail.item) : nil,
