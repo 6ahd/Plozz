@@ -30,6 +30,10 @@ final class DetailPrimaryFocusHostedTests: XCTestCase {
         try await verifyEntry(.request)
     }
 
+    func testUnreleasedRequestStatusOwnsEntryFromTrailingInfo() async throws {
+        try await verifyEntry(.awaitingRelease)
+    }
+
     func testLoadingSeasonsOwnsEntryFromTrailingInfo() async throws {
         try await verifyEntry(.seasons)
     }
@@ -239,7 +243,7 @@ private final class PrimaryFocusRecorder: NSObject {
 }
 
 private enum PrimaryFocusMode {
-    case loading, ready, request, seasons, seasonFailure
+    case loading, ready, request, awaitingRelease, seasons, seasonFailure
     case seriesPage, moviePage, episodePage
 
     var pageKind: MediaItemKind? {
@@ -329,8 +333,9 @@ private struct PrimaryFocusRoot: View {
                 onPlay: model.mode == .ready || model.ready ? { model.playCount += 1 } : nil,
                 showsPlayPlaceholder: model.mode == .loading && !model.ready,
                 onPlayTrailer: {},
-                isDiscoveryItem: model.mode == .request || model.mode == .seasons || model.mode == .seasonFailure,
-                requestCTA: .request,
+                isDiscoveryItem: model.mode == .request || model.mode == .awaitingRelease
+                    || model.mode == .seasons || model.mode == .seasonFailure,
+                requestCTA: model.mode == .awaitingRelease ? .awaitingRelease : .request,
                 onRequest: {},
                 seasonRequestAvailability: model.mode == .seasons && model.ready
                     ? MediaRequestAvailability(status: .unknown, seasons: [
