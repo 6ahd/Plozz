@@ -14,6 +14,9 @@ height, while `SettingsMenuLabel` and `SettingsDisclosureLabel` remain padding-f
 pages, including standalone destinations. Native switches retain their green on
 state. Custom-icon `SettingsRowLabel` callers can supply content insets when their
 group already owns the outer spacing.
+Default `SettingsRowLabel` labels reuse `settingsFormRowLayout()` on TV, so
+single-line navigation, menus, and form controls share their minimum height and
+interior padding. Explicit content insets retain compact source-row sizing.
 Padding-free disclosure labels and bare form actions use `SettingsFormButtonStyle`,
 which puts the shared minimum height and padding inside the TV focus fill.
 `SettingsFocusButtonStyle` is only for labels that already supply their own

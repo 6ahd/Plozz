@@ -49,10 +49,7 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
     private let title: Text
     private let secondary: Secondary
     private let trailing: Trailing
-    private var contentInsets = EdgeInsets(
-        top: 12, leading: SettingsRowMetrics.horizontalPadding,
-        bottom: 12, trailing: SettingsRowMetrics.horizontalPadding
-    )
+    private let contentInsets: EdgeInsets?
 
     private var titleFont: Font {
         #if os(tvOS)
@@ -86,6 +83,7 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
         self.icon = icon
         self.assetIcon = assetIcon
         self.customIcon = nil
+        self.contentInsets = nil
         self.title = title
         self.secondary = secondary()
         self.trailing = trailing()
@@ -93,10 +91,7 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
 
     public init<Icon: View>(
         title: Text,
-        contentInsets: EdgeInsets = EdgeInsets(
-            top: 12, leading: SettingsRowMetrics.horizontalPadding,
-            bottom: 12, trailing: SettingsRowMetrics.horizontalPadding
-        ),
+        contentInsets: EdgeInsets? = nil,
         @ViewBuilder icon: () -> Icon,
         @ViewBuilder secondary: () -> Secondary = { EmptyView() },
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
@@ -111,6 +106,23 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
     }
 
     public var body: some View {
+        Group {
+            if let contentInsets {
+                rowContent.padding(contentInsets)
+            } else {
+                #if os(tvOS)
+                rowContent.settingsFormRowLayout()
+                #else
+                rowContent
+                    .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+                    .padding(.vertical, 12)
+                #endif
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 16) {
             // Icon + text share a custom alignment so the icon centers on the
             // TITLE line, not the two-line block. The trailing accessory stays in
@@ -150,8 +162,6 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
             Spacer(minLength: 12)
             trailing
         }
-        .padding(contentInsets)
-        .contentShape(Rectangle())
     }
 }
 #endif

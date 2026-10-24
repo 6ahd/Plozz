@@ -96,6 +96,31 @@ final class LiveTVSettingsInteractionTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["fixture-source-metrics"].label, "Sources 1 writes 0 requests 0")
     }
 
+    func testBrowsingChoicesChangeInlineAndSaveImmediately() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--source-settings", "--configured-sources"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["live-tv-add-source"].waitForExistence(timeout: 10))
+        for (current, choice, identifier, saved) in [
+            ("Channel number", "Name", "fixture-sort-metrics", "Order by name"),
+            ("Name", "Channel number", "fixture-sort-metrics", "Order by number"),
+            ("Categories", "Guide", "fixture-start-view-metrics", "Start with guide"),
+            ("Guide", "Categories", "fixture-start-view-metrics", "Start with categories")
+        ] {
+            tapVisible(app.buttons[current], in: app)
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 5), app.debugDescription)
+            app.buttons[choice].tap()
+            let savedOrder = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "label == %@", saved),
+                object: app.staticTexts[identifier]
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [savedOrder], timeout: 5), .completed)
+            XCTAssertTrue(app.navigationBars["Live TV"].exists)
+            XCTAssertFalse(app.navigationBars["Channel order"].exists)
+        }
+    }
+
     func testRootAutomaticToggleAndFifthSourceStayIndependent() {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         app.launchArguments = ["--source-settings", "--configured-sources", "--many-sources", "--automatic-channels"]

@@ -101,6 +101,10 @@ struct SourceOnboardingFixture: View {
                         let saved = viewSettings.load()
                         Text(verbatim: "Recent \(saved.showsRecentChannels) favorites \(saved.favoritesOnly)")
                             .accessibilityIdentifier("fixture-view-settings-metrics")
+                        Text(verbatim: saved.sortByName ? "Order by name" : "Order by number")
+                            .accessibilityIdentifier("fixture-sort-metrics")
+                        Text(verbatim: saved.startsWithCategories ? "Start with categories" : "Start with guide")
+                            .accessibilityIdentifier("fixture-start-view-metrics")
                     }
                 }
                 .font(.caption2)

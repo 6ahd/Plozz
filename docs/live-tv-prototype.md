@@ -571,9 +571,11 @@ Each source opens its controls and diagnostics on a child page with Back.
 your libraries** switch and a separate **Manage channels** action. The toggle label
 explains the action directly, without a detached section footer. Turning automatic
 channels off leaves custom channels available. **Guide & browsing** labels its root picker
-**Live TV opens to**, with Categories or Guide as its value. It keeps the start view
-on the root and groups channel order, guide preferences, and channel visibility
-on child pages. Mobile retains its network playback preference. **Tools** contains
+**Live TV opens to**, with Categories or Guide as its value. **Channel order** is
+also a root-level menu, offering Channel number or Name without opening a child
+page. Guide preferences and channel visibility have child pages. Single-line
+TV navigation and menu rows share the standard form height; configured source
+rows retain their compact sizing. Mobile retains its network playback preference. **Tools** contains
 source refresh, channel availability checks, and guide coverage when applicable.
 Source management remains PIN-protected while ordinary browsing preferences stay
 available without unlocking source mutations. On Apple TV, child pages stay

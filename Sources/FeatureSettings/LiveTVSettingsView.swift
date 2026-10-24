@@ -60,24 +60,15 @@ private struct LiveTVBrowsingSettingsSections: View {
                 }
             }
             .accessibilityIdentifier("live-tv-start-view")
-            SettingsPageLink {
-                LiveTVPreferencesPage(title: "Channel order") {
-                    SettingsSectionGroup {
-                        Picker("Sort", selection: $settings.sortByName) {
-                            Text("Channel number").tag(false)
-                            Text("Name").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-            } label: {
-                SettingsDisclosureLabel {
-                    Label("Channel order", systemImage: "list.bullet")
-                } value: {
-                    Text(settings.sortByName ? LocalizedStringResource("Name") : "Channel number")
+            SettingsMenuRow(
+                title: "Channel order",
+                value: Text(settings.sortByName ? LocalizedStringResource("Name") : "Channel number")
+            ) {
+                Picker("Channel order", selection: $settings.sortByName) {
+                    Text("Channel number").tag(false)
+                    Text("Name").tag(true)
                 }
             }
-            .buttonStyle(SettingsFormButtonStyle())
             .accessibilityIdentifier("live-tv-channel-order")
             SettingsPageLink {
                 LiveTVPreferencesPage(title: "Guide preferences") {

@@ -1644,6 +1644,11 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(add, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["live-tv-add-server"].waitForExistence(timeout: 5))
+        for identifier in ["live-tv-add-playlist", "live-tv-add-server"] {
+            let action = app.buttons[identifier]
+            try focus(action, in: app)
+            XCTAssertEqual(try assertStandardFormFocusFill(action), 74, accuracy: 1)
+        }
         let rootHidden = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let automatic = app.switches["live-tv-automatic-enabled"]
@@ -1665,11 +1670,29 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].label.contains("Manage channels"))
         XCTAssertFalse(app.staticTexts["Channels made from your movies and shows."].exists)
         capture("live-tv-automatic-action-label", in: app)
-        for identifier in ["live-tv-channel-order", "live-tv-guide-preferences", "live-tv-channel-visibility"] {
+        for identifier in [
+            "live-tv-manage-library-channels", "live-tv-start-view", "live-tv-channel-order",
+            "live-tv-guide-preferences", "live-tv-channel-visibility"
+        ] {
             let row = app.buttons[identifier]
             try focus(row, in: app)
-            XCTAssertGreaterThanOrEqual(row.frame.height, 74)
-            try assertStandardFormFocusFill(row)
+            XCTAssertEqual(try assertStandardFormFocusFill(row), 74, accuracy: 1,
+                           "Single-line navigation and menu controls must share their painted height.")
+        }
+        let order = app.buttons["live-tv-channel-order"]
+        for choice in ["Name", "Channel number"] {
+            try focus(order, in: app)
+            XCUIRemote.shared.press(.select)
+            let option = app.cells.containing(.any, identifier: choice).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            let changed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in order.value as? String == choice }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
+            XCTAssertTrue(hasFocus(order), "Changing channel order must return to the root menu row.")
+            XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].isEnabled)
         }
         try focus(app.buttons["live-tv-guide-preferences"], in: app)
         capture("live-tv-standard-form-controls", in: app)
@@ -1679,7 +1702,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(add.waitForExistence(timeout: 5))
     }
 
-    private func assertStandardFormFocusFill(_ row: XCUIElement) throws {
+    @discardableResult
+    private func assertStandardFormFocusFill(_ row: XCUIElement) throws -> CGFloat {
         let image = try XCTUnwrap(row.screenshot().image.cgImage)
         var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
         try bytes.withUnsafeMutableBytes { buffer in
@@ -1705,6 +1729,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let scale = CGFloat(image.width) / row.frame.width
         XCTAssertGreaterThanOrEqual(CGFloat(longest) / scale, 70,
                                    "The painted focus fill, not just outer padding, must span a standard form row.")
+        return CGFloat(longest) / scale
     }
 
     func testCompactIPTVSourcesAndChildBackNavigation() throws {
