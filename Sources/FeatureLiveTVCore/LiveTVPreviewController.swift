@@ -15,6 +15,7 @@ public final class LiveTVPreviewController {
     public static let settlingDelay: Duration = .milliseconds(600)
 
     public private(set) var isExpanded = false
+    public private(set) var isWatchingInline = false
     public private(set) var followsFocus: Bool
     public private(set) var keepWatchingWhileBrowsing: Bool
     public private(set) var pendingRequest: LiveTVPreviewRequest?
@@ -30,7 +31,7 @@ public final class LiveTVPreviewController {
     private var revision: UInt64 = 0
 
     public var isHoldingWatchedChannel: Bool {
-        keepWatchingWhileBrowsing && hasExplicitPlayback
+        isWatchingInline || (keepWatchingWhileBrowsing && hasExplicitPlayback)
     }
 
     public init(
@@ -97,11 +98,14 @@ public final class LiveTVPreviewController {
         let canCommit = canCommitPreview(request)
         pendingRequest = nil
         guard canCommit else { return false }
+        isWatchingInline = false
         model.tune(request.channelID)
         return !model.tuneFailed
     }
 
-    public func watch(_ channelID: String, origin: LiveTVGuideRowID? = nil) {
+    public func watch(
+        _ channelID: String, origin: LiveTVGuideRowID? = nil, expandsPlayer: Bool = true
+    ) {
         cancelPendingPreview()
         model.tune(channelID)
         guard !model.tuneFailed else { return }
@@ -112,7 +116,8 @@ public final class LiveTVPreviewController {
         watchOrigin = model.guideRow(for: channelID, preferring: preferredSection)
         focusedChannelID = channelID
         isRestoringGuideFocus = false
-        isExpanded = true
+        isExpanded = expandsPlayer
+        isWatchingInline = !expandsPlayer
     }
 
     public func returnToGuide(restoresFocus: Bool = true) {
@@ -150,6 +155,7 @@ public final class LiveTVPreviewController {
 
     public func playbackEnded() {
         isExpanded = false
+        isWatchingInline = false
         isRestoringGuideFocus = false
         hasExplicitPlayback = false
         watchOrigin = nil
@@ -160,6 +166,7 @@ public final class LiveTVPreviewController {
         cancelPendingPreview()
         focusedChannelID = nil
         isExpanded = false
+        isWatchingInline = false
         isRestoringGuideFocus = false
         hasExplicitPlayback = false
         watchOrigin = nil

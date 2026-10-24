@@ -19,6 +19,37 @@ private final class LiveChannelObservationChanges: @unchecked Sendable {
 
 @MainActor
 final class LiveChannelPlayerModelTests: XCTestCase {
+    func testLateVideoDimensionsPublishWithoutRetuningOrRepeatedNotifications() async {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        XCTAssertNil(model.videoAspectRatio)
+        let changes = LiveChannelObservationChanges()
+        withObservationTracking {
+            _ = model.videoAspectRatio
+        } onChange: {
+            changes.record()
+        }
+        engine.videoAspectRatio = 16 / 9
+        model.refreshFromEngine()
+        XCTAssertEqual(model.videoAspectRatio, 16 / 9)
+        XCTAssertEqual(changes.count, 1)
+        withObservationTracking {
+            _ = model.videoAspectRatio
+        } onChange: {
+            changes.record()
+        }
+        model.refreshFromEngine()
+        XCTAssertEqual(changes.count, 1)
+        engine.videoAspectRatio = 4 / 3
+        model.refreshFromEngine()
+        XCTAssertEqual(model.videoAspectRatio, 4 / 3)
+        XCTAssertEqual(changes.count, 2)
+        XCTAssertEqual(engine.liveLoads, 1)
+        XCTAssertEqual(engine.stopCount, 0)
+    }
+
     func testLiveSubtitlesFollowThePresentedFrameInsteadOfTheSeekTarget() async {
         let engine = LiveEngineSpy()
         engine.presentedSubtitleTime = 50
@@ -1808,6 +1839,7 @@ private struct LiveFullscreenHarness: View {
 
 @MainActor
 final class LiveEngineSpy: LiveChannelEngine {
+    var videoAspectRatio: Double?
     var liveStartupBuffer: LivePlaybackBuffer = .automatic
     var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic?
     var isCapturingLiveFailureDiagnostic = false

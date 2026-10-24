@@ -1289,6 +1289,14 @@ and do not commandeer the playing engine.
 
 ### Audible previews and seamless viewing
 
+On iPhone and iPad, tapping a station, programme, or empty guide cell starts that
+channel in the upper preview without opening fullscreen. The preview sits below
+the top safe area. This is explicit playback, independent of the TV auto-preview
+preference; channel preparation, authorization and stale-request cancellation
+still use the shared Watch coordinator. Watch and the channel's Play action open
+fullscreen without replacing an already prepared channel. Long-pressing a station
+retains its channel actions, and programme selection still updates the info bar.
+
 On Apple TV, resting on a different channel for **600 ms** requests its preview.
 Rapid scrolling cancels pending requests; moving between programs on the same
 channel does not restart the delay or retune. The delay is **not** a stream
