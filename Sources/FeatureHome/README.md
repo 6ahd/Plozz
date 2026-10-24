@@ -27,10 +27,13 @@ Showcase and Recommended keep their row positions and description budgets.
 Custom sizes use the actual space above the active row, not a fixed worst-case
 footprint. They fit the complete logo/metadata block down by one shared factor
 only when that space is insufficient; the requested proportions stay intact.
-The native motion owner keeps the block fitted to the tightest space along a
-row transition, including reversals, then expands it after the viewport settles.
-Recommended releases library-navigation clearance after the header fades out and
-restores it immediately on return, retaining a top margin while it is hidden.
+Incoming titles use their destination size from the first frame, not a smaller
+transitional size. The native motion owner adjusts placement and the row mask
+together to protect the title while rows move, including reversals.
+Recommended sizes against the destination's navigation clearance immediately,
+but reserves the outgoing header's space until it fades. Custom Recommended
+uses the logo's actual artwork height and the header's existing bottom padding
+rather than reserving empty logo space or a second navigation gap.
 Default Recommended sizing retains its existing constrained layout.
 
 Shared typography and future app-wide scale composition are owned by

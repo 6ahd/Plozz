@@ -338,6 +338,13 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(450))
         let content = try XCTUnwrap(model.motion.columnContent)
         let column = try XCTUnwrap(model.motion.column)
+        var destinationSizes: [String: CGSize] = [:]
+        for row in [rows[1], rows[0]] {
+            model.activate(row, in: rows)
+            visibility.focusedRowID = row.id
+            try await Task.sleep(for: .seconds(FocusHeroLayout.rowSpring.settlingDuration + 0.3))
+            destinationSizes[row.id] = try XCTUnwrap(redBounds(in: fixture.window)).size
+        }
         let initialLogo = try XCTUnwrap(redBounds(in: fixture.window))
         let localLogo = content.convert(initialLogo, from: fixture.window)
         for row in [rows[1], rows[0], rows[1], rows[0], rows[1]] {
@@ -351,6 +358,10 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 let contentLayer = content.layer.presentation() ?? content.layer
                 let columnLayer = column.layer.presentation() ?? column.layer
                 let logo = contentLayer.convert(localLogo, to: windowLayer)
+                let expectedSize = try XCTUnwrap(destinationSizes[row.id])
+                XCTAssertEqual(logo.width, expectedSize.width, accuracy: 2,
+                               "The incoming title must start at its destination size, not grow after scrolling.")
+                XCTAssertEqual(logo.height, expectedSize.height, accuracy: 2)
                 let bottom = columnLayer.convert(
                     CGPoint(x: 0, y: FocusHeroLayout.lowestSlotTop - FocusHeroLayout.columnGap),
                     to: windowLayer
@@ -365,6 +376,78 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(settledLogo.minY, FocusHeroLayout.columnTop - 2)
         XCTAssertEqual(settledLogo.height,
                        HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize).height, accuracy: 1)
+    }
+
+    func testLargeRecommendedUsesTheVisibleLogoHeightWithScheduleAndThreeDescriptionLines() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let url = try seedLogo(size: CGSize(width: 820, height: 200))
+        defer { removeSeededLogo(url) }
+        _ = await HeroLogoPipeline.shared.preparedLogo(for: .remote(url))
+        let identity = UUID().uuidString
+        let item = MediaItem(
+            id: identity, title: "Scheduled series", kind: .series,
+            overview: "An unexpected encounter.\nA carefully guarded secret.\nThe story continues.",
+            officialRating: "TV-MA", logoURL: url, providerIDs: ["PlexGuid": "plex://show/\(identity)"],
+            allowsTitleBasedMetadataMatching: false
+        )
+        let row = FocusHeroRow(id: "continue", itemIDs: [item.id], leadItem: item, items: [item])
+        let model = FocusHeroModel()
+        model.record(height: 340, for: row.id)
+        model.seed(from: [row])
+        let now = Date()
+        let upcoming = UpcomingEpisode(
+            seriesIdentity: .external(source: "fixture", value: item.id), seasonNumber: 2, episodeNumber: 1,
+            airDate: now.addingTimeInterval(7 * 86400), datePrecision: .dateOnly,
+            source: .tvmaze, refreshedAt: now
+        )
+        await SeriesScheduleStore.shared.store(.init(
+            seriesKey: MetadataQuery(item).seriesScoped.enrichmentCacheKey,
+            upcomingEpisode: upcoming, upcomingEpisodes: [upcoming],
+            refreshedAt: now, refreshDueAt: now.addingTimeInterval(3600)
+        ))
+        let schedules = HeroScheduleLines()
+        await schedules.loadCached([item])
+        var settings = HeroSettings.default
+        settings.showcaseLogoSize = HeroLogoSize(rawValue: 10)
+        settings.showcaseTextSize = HeroTextSize(rawValue: 5)
+        fixture.window.rootViewController = UIHostingController(rootView:
+            Color.black.overlay(alignment: .topLeading) {
+                FocusHeroColumn(
+                    model: model, metadata: FocusHeroMetadata(), enrich: nil, settings: settings,
+                    spoilerSettings: .default, navigationStyle: .tabBar, rows: [row],
+                    minimumDetailsTop: 232, schedules: schedules
+                )
+            }
+            .environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+            .ignoresSafeArea()
+        )
+        try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+        try await Task.sleep(for: .milliseconds(300))
+        let logo = try XCTUnwrap(redBounds(in: fixture.window))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds, format: format).image { _ in
+            fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+        }
+        let frames = try textInkFrames(in: image, terms: [
+            "New season", "An unexpected", "A carefully", "The story"
+        ])
+        let badge = try XCTUnwrap(frames["New season"])
+        let lastLine = try XCTUnwrap(frames["The story"])
+        XCTAssertNotNil(frames["An unexpected"])
+        XCTAssertNotNil(frames["A carefully"])
+        XCTAssertGreaterThanOrEqual(badge.minY, 232)
+        XCTAssertLessThan(badge.minY, 252, "The scheduled title should use the space immediately below navigation.")
+        XCTAssertLessThan(badge.maxY, logo.minY)
+        XCTAssertLessThan(lastLine.maxY, 588)
+        XCTAssertGreaterThan(lastLine.maxY, 574, "Use the available height instead of leaving a second bottom gap.")
+        XCTAssertEqual(logo.width / logo.height, 4.1, accuracy: 0.05)
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "large-recommended-scheduled-three-lines"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testDetailTextSizeScalesItsMetadataWithoutResizingPlay() async throws {

@@ -31,6 +31,10 @@ struct ShowcaseDetailsTopModifier: ViewModifier {
         let isVisible = visibility.showsNavigation(in: rowIDs)
         content.environment(
             \.focusHeroMinimumDetailsTop,
+            isVisible ? visibleTop : hiddenTop
+        )
+        .environment(
+            \.focusHeroVisibleDetailsTop,
             isVisible || !clearanceReleased ? visibleTop : hiddenTop
         )
         .task(id: isVisible) {
@@ -442,7 +446,7 @@ public struct LibraryBrowseView: View {
             spoilerSettings: spoilerSettings,
             navigationStyle: .tabBar,
             isFrontmost: isFrontmost,
-            minimumDetailsTop: showcaseHeaderBottom + PlozzTheme.Spacing.large
+            minimumDetailsTop: showcaseHeaderBottom
         ) { row, reporter in
             if let section = sectionsByID[row.id] {
                 MediaRowView(
@@ -472,7 +476,7 @@ public struct LibraryBrowseView: View {
         .ignoresSafeArea(.container, edges: .trailing)
         .modifier(ShowcaseDetailsTopModifier(
             visibility: showcaseNavigation, rowIDs: rows.map(\.id),
-            visibleTop: showcaseHeaderBottom + PlozzTheme.Spacing.large,
+            visibleTop: showcaseHeaderBottom,
             hiddenTop: headerTopClearance + PlozzTheme.Spacing.large
         ))
     }
