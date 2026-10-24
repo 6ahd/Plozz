@@ -777,7 +777,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         )
         let vm = ItemDetailViewModel(
             provider: nil, itemID: seed.id, initialItem: seed, isDiscoveryItem: true,
-            discoveryStatusRefresh: { _ in (.pending, nil) },
+            discoveryStatusRefresh: { _ in .init(status: .pending) },
             externalMetadataResolver: { _, region in
                 .init(
                     enrichment: MetadataEnrichment(overview: SourcedValue(value: "External overview", source: .tmdb)),
@@ -1282,7 +1282,7 @@ final class ItemDetailViewModelTests: XCTestCase {
                 if statusCalls.increment() == 1 {
                     await firstStatusGate.wait()
                 }
-                return (.processing, nil)
+                return .init(status: .processing)
             },
             externalMetadataResolver: { _, region in
                 ExternalTitleMetadata(
@@ -1332,6 +1332,35 @@ final class ItemDetailViewModelTests: XCTestCase {
             "Max"
         )
         XCTAssertEqual(vm.state.value?.item.availability, .processing)
+    }
+
+    func testDiscoveryQueueOnlyChangesUpdateUnreleasedMovieStatus() async throws {
+        let seed = MediaItem(
+            id: "seer:movie:42", title: "Future Movie", kind: .movie,
+            releaseDate: MediaItem.calendarDayReleaseDate(from: "2099-10-20"),
+            providerIDs: ["Tmdb": "42"], availability: .processing,
+            locallyValidatedPlayableSource: false, hasRequestDownloadActivity: false
+        )
+        let calls = LockedCounter()
+        let vm = ItemDetailViewModel(
+            provider: FakeMediaProvider(allItems: []), itemID: seed.id, initialItem: seed,
+            isDiscoveryItem: true,
+            discoveryStatusRefresh: { _ in
+                .init(status: .processing, hasDownloadActivity: calls.increment() == 1)
+            }
+        )
+        XCTAssertEqual(vm.state.value?.item.heroCTA(seerConnected: true), .awaitingRelease)
+        await vm.refreshDiscoveryStatusNow()
+        XCTAssertEqual(vm.state.value?.item.hasRequestDownloadActivity, true)
+        XCTAssertEqual(vm.state.value?.item.heroCTA(seerConnected: true), .requested)
+        let queued = try XCTUnwrap(vm.state.value?.item)
+        XCTAssertEqual(HeroDiscoveryStatus.merging([queued], into: [seed]).first?.hasRequestDownloadActivity, true)
+        await vm.refreshDiscoveryStatusNow()
+        XCTAssertEqual(vm.state.value?.item.hasRequestDownloadActivity, false)
+        XCTAssertEqual(vm.state.value?.item.heroCTA(seerConnected: true), .awaitingRelease)
+        XCTAssertEqual(vm.state.value?.item.releaseDate, seed.releaseDate)
+        let merged = HeroDiscoveryStatus.merging([try XCTUnwrap(vm.state.value?.item)], into: [queued])
+        XCTAssertEqual(merged.first?.hasRequestDownloadActivity, false)
     }
 
     func testLoadFetchesSeasonsAsChildren() async {

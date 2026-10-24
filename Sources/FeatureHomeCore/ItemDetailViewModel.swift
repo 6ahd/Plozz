@@ -292,7 +292,7 @@ public final class ItemDetailViewModel {
     /// title requested in an earlier visit reflects the real "Requested"/
     /// "Downloading" state instead of the stale "Request" seeded from the search
     /// result. `nil` (or a `nil` result) leaves the seeded state untouched.
-    private let discoveryStatusRefresh: (@Sendable (MediaItem) async -> (MediaAvailabilityStatus, Double?)?)?
+    private let discoveryStatusRefresh: (@Sendable (MediaItem) async -> MediaRequestAvailability?)?
     /// Loads a season's complete canonical metadata roster. Kept separate from
     /// ``seasonEpisodes`` because metadata-only rows are never playable library
     /// items and must not enter snapshots or download flows.
@@ -529,7 +529,7 @@ public final class ItemDetailViewModel {
         initialItem: MediaItem? = nil,
         initialResumeEpisode: MediaItem? = nil,
         isDiscoveryItem: Bool = false,
-        discoveryStatusRefresh: (@Sendable (MediaItem) async -> (MediaAvailabilityStatus, Double?)?)? = nil,
+        discoveryStatusRefresh: (@Sendable (MediaItem) async -> MediaRequestAvailability?)? = nil,
         loadSeasonEpisodeRoster:
             (@Sendable (MediaItem, Int) async -> SeasonEpisodeRosterResult)? = nil,
         externalMetadataResolver: @escaping @Sendable (MediaItem, String) async -> ExternalTitleMetadata = {
@@ -934,6 +934,7 @@ public final class ItemDetailViewModel {
         owned.rejectedSourceIDs = rejectedSourceIDs
         owned.availability = nil
         owned.downloadProgress = nil
+        owned.hasRequestDownloadActivity = nil
         state = .loaded(Detail(item: owned, children: []))
         isDiscoveryItem = false
         PlozzLog.app.info(
@@ -975,8 +976,9 @@ public final class ItemDetailViewModel {
             to: detail.item
         )
         if let status {
-            detail.item.availability = status.availability
+            detail.item.availability = status.status
             detail.item.downloadProgress = status.downloadProgress
+            detail.item.hasRequestDownloadActivity = status.hasDownloadActivity
         }
         detail.externalAvailability =
             resolved.availability.isEmpty ? nil : resolved.availability
@@ -1106,11 +1108,8 @@ public final class ItemDetailViewModel {
     /// by then the page is settled and a change really is news.
     private func discoveryStatus(
         for item: MediaItem
-    ) async -> (availability: MediaAvailabilityStatus, downloadProgress: Double?)? {
-        guard let discoveryStatusRefresh,
-              let (availability, downloadProgress) = await discoveryStatusRefresh(item)
-        else { return nil }
-        return (availability, downloadProgress)
+    ) async -> MediaRequestAvailability? {
+        await discoveryStatusRefresh?(item)
     }
 
     private func refreshDiscoveryStatus() async {
@@ -1119,8 +1118,7 @@ public final class ItemDetailViewModel {
             return
         }
         guard let discoveryStatusRefresh,
-              let (availability, downloadProgress) =
-                  await discoveryStatusRefresh(requestedItem),
+              let status = await discoveryStatusRefresh(requestedItem),
               !Task.isCancelled
         else { return }
         // Re-read after the await. Rich metadata, cast, ratings and release facts
@@ -1128,12 +1126,14 @@ public final class ItemDetailViewModel {
         // would erase all of them.
         guard case var .loaded(latest) = state,
               latest.item.id == requestedItem.id,
-              latest.item.availability != availability
-                  || latest.item.downloadProgress != downloadProgress else {
+              latest.item.availability != status.status
+                  || latest.item.downloadProgress != status.downloadProgress
+                  || latest.item.hasRequestDownloadActivity != status.hasDownloadActivity else {
             return
         }
-        latest.item.availability = availability
-        latest.item.downloadProgress = downloadProgress
+        latest.item.availability = status.status
+        latest.item.downloadProgress = status.downloadProgress
+        latest.item.hasRequestDownloadActivity = status.hasDownloadActivity
         state = .loaded(latest)
     }
 

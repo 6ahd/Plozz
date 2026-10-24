@@ -3,6 +3,16 @@
 Home rows, item detail, series/season experience, and the online-trailer
 fallback when the user's server has no attached trailer.
 
+## Request status
+
+Movie request statuses in Home and detail heroes use the same
+`Requested · Unreleased` wording as season requests. This is an approved request
+with a known future release day, not a prediction that downloading will start on
+that day. Pending approval stays Requested; library availability and reported
+queue activity take precedence, including queue items with no measurable progress.
+Release days use the viewer's local calendar day, and missing dates are not guessed.
+The UIKit and SwiftUI hero renderers share the localized status and calendar symbol.
+
 ## Responsibility
 
 Home Continue Watching failures use the existing Details / Try Again actions on

@@ -352,9 +352,9 @@ struct PlozziOSHeroRequestButton: View {
                             ?? Text("Request")
                     )
                 }
-            case .requested:
+            case .requested, .awaitingRelease:
                 statusPill {
-                    Label("Requested", systemImage: "clock")
+                    Label(request.cta.requestStatusTitle, systemImage: request.cta.requestStatusSystemImage)
                 }
             case let .downloading(progress):
                 statusPill {

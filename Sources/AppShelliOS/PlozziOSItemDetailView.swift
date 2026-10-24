@@ -253,10 +253,10 @@ private struct PlozziOSCanonicalItemDetailView: View {
             identitySources: identitySources
         )
         let discoveryStatusRefresh:
-            (@Sendable (MediaItem) async -> (MediaAvailabilityStatus, Double?)?)?
+            (@Sendable (MediaItem) async -> MediaRequestAvailability?)?
         if isDiscoveryItem {
             discoveryStatusRefresh = { [seerService] item in
-                await seerService?.availability(for: item)
+                await seerService?.requestAvailability(for: item)
             }
         } else {
             discoveryStatusRefresh = nil
@@ -741,7 +741,9 @@ private struct PlozziOSCanonicalItemDetailView: View {
                     item.hasPlayableLibraryTarget(
                         additionalSources: availableSources
                     ),
-                seerConnected: appModel.seerService.isConfigured
+                seerConnected: appModel.seerService.isConfigured,
+                releaseDate: item.releaseDate,
+                hasDownloadActivity: item.hasRequestDownloadActivity == true
             ),
             isRequesting: isRequesting,
             actingName: appModel.activeSeerrRequestActingName,
@@ -1475,6 +1477,15 @@ private struct PlozziOSRequestAction: View {
     let actingName: String?
     let onRequest: (MediaItem) -> Void
 
+    private var requestCTA: HeroCTA {
+        MediaItem.heroCTA(
+            availability: availability, downloadProgress: item.downloadProgress,
+            hasValidatedPlayableSource: item.hasPlayableLibraryTarget(), seerConnected: true,
+            releaseDate: item.releaseDate,
+            hasDownloadActivity: item.hasRequestDownloadActivity == true
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             switch availability {
@@ -1502,7 +1513,12 @@ private struct PlozziOSRequestAction: View {
                 Label("Requested — awaiting approval", systemImage: "clock")
                     .foregroundStyle(.orange)
             case .processing:
-                Label("Library Request Processing", systemImage: "arrow.down.circle")
+                Label(
+                    requestCTA == .awaitingRelease
+                        ? HeroCTA.awaitingRelease.requestStatusTitle : "Library Request Processing",
+                    systemImage: requestCTA == .awaitingRelease
+                        ? "calendar" : "arrow.down.circle"
+                )
                     .foregroundStyle(.blue)
             case .partiallyAvailable:
                 Label("Partially available", systemImage: "circle.lefthalf.filled")
