@@ -20,7 +20,7 @@ final class MetadataTextScalingTests: XCTestCase {
         let iconSize: CGFloat = 24
         let fontSize: CGFloat = 23
         #endif
-        for scale: CGFloat in [0.75, 1, 1.25] {
+        for scale: CGFloat in [0.75, 1, 1.25, 1.5] {
             for source in RatingSource.allCases {
                 let rating = ExternalRating(source: source, value: 84, scale: .percent)
                 let actual = size(of: RatingBadge(rating: rating)
@@ -46,7 +46,7 @@ final class MetadataTextScalingTests: XCTestCase {
         let border: CGFloat = 3
         let height: CGFloat = 36
         #endif
-        for scale: CGFloat in [0.75, 1, 1.25] {
+        for scale: CGFloat in [0.75, 1, 1.25, 1.5] {
             let badge = MediaBadgeChip(badge: MediaBadge("PG", style: .rating))
                 .environment(\.horizontalSizeClass, .regular)
                 .environment(\.dynamicTypeSize, .large)
@@ -75,7 +75,7 @@ final class MetadataTextScalingTests: XCTestCase {
 
     func testFamilyGuidanceScalesAndCompactBadgeStylingRemainsIndependent() {
         let baseline = size(of: FamilyGuidanceAgeBadge(age: 12))
-        for scale: CGFloat in [0.75, 1.25] {
+        for scale: CGFloat in [0.75, 1.25, 1.5] {
             let scaled = size(of: FamilyGuidanceAgeBadge(age: 12).environment(\.metadataTextScale, scale))
             XCTAssertEqual(scaled.height, baseline.height * scale, accuracy: 1)
             XCTAssertEqual(scaled.width, baseline.width * scale, accuracy: 3)

@@ -485,10 +485,10 @@ private struct FocusHeroDetailsFootprint: View {
             Color.clear
                 .frame(height: logoHeight)
                 .padding(.bottom, 6)
-            Text(verbatim: " ").font(.system(size: 23 * textScale, weight: .medium))
+            Text(verbatim: " ").font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
             Text(verbatim: " \n \n ")
-                .font(.system(size: 22 * textScale))
-                .lineSpacing(2 * textScale)
+                .font(.system(size: PlozzTypography.heroDescription.scaled(by: textScale).pointSize))
+                .lineSpacing(PlozzTypography.heroDescription.scaled(by: textScale).lineSpacing)
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(width: FocusHeroLayout.columnWidth, alignment: .leading)
@@ -1146,9 +1146,10 @@ struct FocusHeroColumn: View {
     @State var schedules = HeroScheduleLines()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
-    private var textScale: CGFloat { settings.showcaseTextSize.scale }
+    @Environment(\.plozzAppTextScale) private var appTextScale
+    private var textScale: CGFloat { PlozzTypography.scale(local: settings.showcaseTextSize.scale, app: appTextScale) }
     private var hasCustomSizing: Bool {
-        settings.showcaseLogoSize != .default || settings.showcaseTextSize != .default
+        settings.showcaseLogoSize != .default || settings.showcaseTextSize != .default || appTextScale != 1
     }
 
     var body: some View {
@@ -1295,25 +1296,25 @@ struct FocusHeroColumn: View {
         case .liveChannel(let channel):
             VStack(alignment: .leading, spacing: 12) {
                 Label("Live TV", systemImage: "antenna.radiowaves.left.and.right")
-                    .font(.system(size: 23 * textScale, weight: .semibold))
+                    .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .semibold))
                 Text(verbatim: channel.name)
-                    .font(.system(size: 64 * textScale, weight: .bold))
+                    .font(.system(size: PlozzTypography.heroFallbackTitle.scaled(by: textScale).pointSize, weight: .bold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                 Text(verbatim: channel.sourceName)
-                    .font(.system(size: 23 * textScale, weight: .medium))
+                    .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
         case .library(let library):
             VStack(alignment: .leading, spacing: 12) {
                 library.library.displayName
-                    .font(.system(size: 64 * textScale, weight: .bold))
+                    .font(.system(size: PlozzTypography.heroFallbackTitle.scaled(by: textScale).pointSize, weight: .bold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                 if !library.serverName.isEmpty {
                     Text(verbatim: library.serverName)
-                        .font(.system(size: 23 * textScale, weight: .medium))
+                        .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1342,7 +1343,7 @@ struct FocusHeroColumn: View {
             haloStyle: .showcase
         ) {
             title(for: item, hideText: spoilerSettings.shouldHideText(for: item))
-                .font(.system(size: 64 * textScale, weight: .bold))
+                .font(.system(size: PlozzTypography.heroFallbackTitle.scaled(by: textScale).pointSize, weight: .bold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.leading)
@@ -1379,9 +1380,9 @@ struct FocusHeroColumn: View {
                     // The ratings row takes the room of two description lines.
                     Text(description.overviewPlainText)
                         .accessibilityIdentifier("showcase-description")
-                        .font(.system(size: 22 * textScale))
+                        .font(.system(size: PlozzTypography.heroDescription.scaled(by: textScale).pointSize))
                         .foregroundStyle(.primary)
-                        .lineSpacing(2 * textScale)
+                        .lineSpacing(PlozzTypography.heroDescription.scaled(by: textScale).lineSpacing)
                         .lineLimit(showsRatings ? 1 : descriptionLines)
                         .frame(maxWidth: 820, alignment: .topLeading)
                         .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))

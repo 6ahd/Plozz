@@ -53,11 +53,11 @@ public struct HeroLogoSizeControl: View {
         HStack(spacing: SettingsFormMetrics.groupInset) {
             if surface == .detail || showsLibraryPreview {
                 Color.clear
-                    .frame(width: 320)
-                    .frame(minHeight: 180)
+                    .frame(width: surface == .detail ? 400 : 320)
+                    .frame(minHeight: surface == .detail ? 300 : 180)
                     .overlay {
                         preview
-                            .aspectRatio(16.0 / 9.0, contentMode: .fill)
+                            .aspectRatio(surface == .detail ? 4.0 / 3.0 : 16.0 / 9.0, contentMode: .fill)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius))
             }

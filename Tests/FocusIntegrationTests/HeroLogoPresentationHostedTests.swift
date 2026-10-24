@@ -13,6 +13,143 @@ import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testDescriptionColumnMeasuresTheLiveWrappingFactsRow() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        for (count, availableWidth, expectedWidth): (Int, CGFloat, CGFloat) in [
+            (2, 1400, 800), (5, 1400, 960), (8, 1400, 1200), (5, 900, 900), (2, 1400, 800)
+        ] {
+            fixture.window.rootViewController = UIHostingController(rootView:
+                HeroDescriptionFactsLayout {
+                    Color.red.frame(height: 80)
+                    WrappingHStackLayout(spacing: 20, lineSpacing: 8) {
+                        ForEach(0..<count, id: \.self) { _ in
+                            Color(red: 0, green: 1, blue: 0).frame(width: 176, height: 40)
+                        }
+                    }
+                    .frame(maxWidth: HeroDescriptionFactsLayout.maximumWidth, alignment: .leading)
+                }
+                .frame(width: availableWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(80)
+                .background(Color.black)
+            )
+            try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+            let description = try XCTUnwrap(redBounds(in: fixture.window))
+            let facts = try XCTUnwrap(colorBounds(in: fixture.window, channel: 1))
+            XCTAssertEqual(description.width, expectedWidth, accuracy: 1)
+            XCTAssertLessThanOrEqual(facts.maxX, description.maxX + 1)
+            XCTAssertGreaterThan(facts.minY, description.maxY)
+        }
+    }
+
+    func testDetailAdjustmentScalesEpisodeCaptionsWithoutResizingArtwork() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let url = try seedLogo(size: EpisodeColumnCard.artworkSize)
+        defer { removeSeededLogo(url) }
+        let item = MediaItem(
+            id: "episode-typography", title: "The Hidden Room", kind: .episode,
+            overview: "Across the stars.\nAn explorer follows\nThe final signal.",
+            episodeNumber: 4,
+            posterURL: url, allowsTitleBasedMetadataMatching: false
+        )
+        let suite = "EpisodeTypography.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = DetailPageSettingsModel(store: DetailPageSettingsStore(defaults: defaults))
+        let host = UIHostingController(rootView:
+            EpisodeColumnCard(item: item, action: {}).equatable()
+                .environment(\.detailHeaderSettings, settings)
+                .environment(\.plozzCardFocusStyle, .system)
+                .environment(\.themePalette, .dark)
+                .environment(\.colorScheme, .dark)
+                .frame(width: 496, height: SeriesEpisodeBrowserLayout.episodeRailHeight, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(80)
+                .background(Color.black)
+        )
+        fixture.window.rootViewController = host
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: fixture.window))
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+        var baseline: [String: CGRect] = [:]
+        var artwork: CGRect?
+        for step in [0, -5, 5] {
+            settings.settings.textSize = HeroTextSize(rawValue: step)
+            try await Task.sleep(for: .milliseconds(600))
+            fixture.window.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+            }
+            let terms = ["The Hidden Room", "Across the stars", "The final signal"]
+            let frames = try textInkFrames(in: image, terms: terms)
+            let currentArtwork = try XCTUnwrap(redBounds(in: fixture.window))
+            if step == 0 {
+                baseline = frames
+                artwork = currentArtwork
+            }
+            for term in terms {
+                let frame = try XCTUnwrap(frames[term])
+                XCTAssertEqual(frame.height, try XCTUnwrap(baseline[term]).height * settings.settings.textSize.scale,
+                               accuracy: 3, "\(term), \(step)")
+                XCTAssertGreaterThan(frame.minY, currentArtwork.maxY)
+                XCTAssertLessThan(
+                    frame.maxY, currentArtwork.minY + SeriesEpisodeBrowserLayout.episodeRailHeight,
+                    "All three caption lines must fit the existing rail."
+                )
+            }
+            XCTAssertEqual(currentArtwork.width, try XCTUnwrap(artwork).width, accuracy: 1)
+            XCTAssertEqual(currentArtwork.height, try XCTUnwrap(artwork).height, accuracy: 1)
+            attachPreview(in: fixture.window, name: "episode-text-\(step)")
+        }
+    }
+
+    func testDetailDescriptionHasFourLinesAtDefaultAndMaximum() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let suite = "DetailDescriptionLines.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = DetailPageSettingsModel(store: DetailPageSettingsStore(defaults: defaults))
+        let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore(
+            HeroBackgroundSettings(homeTrailerEnabled: false, detailMode: .off)
+        ))
+        let item = MediaItem(
+            id: "four-line-detail", title: "SIGNAL", kind: .movie,
+            overview: "First line.\nSecond line.\nThird line.\nFourth line.\nFifth line.",
+            allowsTitleBasedMetadataMatching: false
+        )
+        fixture.window.rootViewController = UIHostingController(rootView:
+            DetailHeroView(item: item, spoilerSettings: .default, playTitle: "Play", onPlay: {})
+                .environment(\.detailHeaderSettings, settings)
+                .environment(background)
+                .environment(HeroTrailerController())
+                .environment(\.colorScheme, .dark)
+                .environment(\.themePalette, .dark)
+                .background(Color.black)
+        )
+        for step in [0, 5] {
+            settings.settings.textSize = HeroTextSize(rawValue: step)
+            fixture.window.layoutIfNeeded()
+            try await waitUntil {
+                (try? colorBounds(in: fixture.window, channel: 0, minimumChannel: 220, maximumOtherChannel: 255)) != nil
+            }
+            try await Task.sleep(for: .milliseconds(450))
+            let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+            }
+            let request = VNRecognizeTextRequest()
+            request.recognitionLanguages = ["en-US"]
+            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            XCTAssertTrue(text.contains("Fourth line"), text)
+            XCTAssertFalse(text.contains("Fifth line"), text)
+            attachPreview(in: fixture.window, name: "detail-four-lines-\(step)")
+        }
+    }
+
     func testCombinedMaximumSizesFitTogetherWithoutCrossingNavigationOrRows() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -399,7 +536,8 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 fixture.window.layoutIfNeeded()
                 let card = try XCTUnwrap(findPreviewCard(in: host.view))
                 XCTAssertEqual(card.bounds.width, 900, accuracy: 1)
-                XCTAssertLessThanOrEqual(card.bounds.height, 300, "Keep the complete TV card compact.")
+                XCTAssertLessThanOrEqual(card.bounds.height, surface == .detail ? 360 : 300,
+                                         "Only Detail gains space for the episode-caption preview.")
                 let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
                     XCTAssertTrue(fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true))
                 }
@@ -419,7 +557,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 HeroLogoSizePreview(
                     size: .default, surface: surface, layout: surface == .showcase ? .showcase : .television
                 )
-                .frame(width: 640, height: 360)
+                .frame(width: 640, height: surface == .detail ? 480 : 360)
                 .background(PreviewCardFrame())
                 .background(Color.black)
             )

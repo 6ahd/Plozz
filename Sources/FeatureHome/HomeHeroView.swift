@@ -25,17 +25,8 @@ import MetadataKit
 /// change here (`index` + `lastPageForward`); the backdrop reacts to the fronted
 /// slide's id/URLs and entering direction on its own.
 struct HomeHeroView: View {
-    /// Reports the hero action-button row's measured width up the view tree so the
-    /// overview/description can cap itself to the same width. Takes the max of any
-    /// reported values in a pass (there is only one pills row, so this is just a
-    /// straightforward carry-up).
-    private struct HeroButtonsWidthKey: PreferenceKey {
-        static var defaultValue: CGFloat { 0 }
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = max(value, nextValue())
-        }
-    }
-
+    @Environment(\.plozzAppTextScale) private var appTextScale
+    private var textScale: CGFloat { PlozzTypography.scale(local: settings.textSize.scale, app: appTextScale) }
     let items: [MediaItem]
     let settings: HeroSettings
     let backgroundSettings: HeroBackgroundSettings
@@ -239,12 +230,6 @@ struct HomeHeroView: View {
     /// faded back in once the backdrop wipe has landed — so the old show's text
     /// never lingers over the new artwork.
     @State private var metadataVisible = true
-    /// Measured width of the action-button row (the visible pills), used to cap the
-    /// overview/description to the same width so the text block never runs wider
-    /// than the buttons beneath it. `0` until first measured (overview falls back to
-    /// its default cap). Varies per slide as the button set changes.
-    @State private var actionButtonsWidth: CGFloat = 0
-
     /// The nominal box handed to `HeroLogoArtwork`.
     ///
     /// A fixed shared box rather than the measured button-row width: the pill set
@@ -878,7 +863,10 @@ struct HomeHeroView: View {
                 alignsArtworkToLeadingEdge: navigationStyle == .rail,
                 scrimOpacity: isFrontmost ? 1 : 0
             )
-            .environment(\.heroScrimHeightScale, settings.textSize.scrimHeightScale(logoSize: settings.logoSize))
+            .environment(\.heroScrimHeightScale, PlozzTypography.heroScrimScale(
+                textScale: textScale, logoSize: settings.logoSize,
+                lines: settings.textSize.descriptionLineLimit(base: 3)
+            ))
             .heroArtworkSource(
                 id: item.id,
                 isActive: isFrontmost
@@ -969,14 +957,6 @@ struct HomeHeroView: View {
                     heroButtonVisual(button, for: item, selected: focus != nil && selectedButton == offset)
                 }
             }
-            // Report the pills' natural width up so the overview above can cap itself
-            // to the button row (see `actionButtonsWidth`). Measured on the pills
-            // themselves — NOT the enclosing action row, which is `maxWidth: .infinity`.
-            .background {
-                GeometryReader { geo in
-                    Color.clear.preference(key: HeroButtonsWidthKey.self, value: geo.size.width)
-                }
-            }
             .opacity(metadataVisible ? 1 : 0)
             // Snap the pills' hide instantly (matches the metadata above); the
             // delayed fade-IN still animates.
@@ -999,6 +979,7 @@ struct HomeHeroView: View {
     @ViewBuilder
     private func swiftUIContent(for item: MediaItem) -> some View {
         let hideText = spoilerSettings.shouldHideText(for: item)
+        let textWidth = HeroLogoSizing.homeTextWidth(for: .television, logoSize: settings.logoSize)
         VStack(alignment: .leading, spacing: 12) {
             // Absorbs the vertical slack at the TOP of the (fixed-height) column so
             // the bottom block — logo/metadata/overview + buttons + dots — is pinned
@@ -1040,14 +1021,11 @@ struct HomeHeroView: View {
                     presentationPolicy: .onArrival(maximumWait: 0.2)
                 ) {
                     heroTitleText(for: item, hideText: hideText)
-                        .font(.system(size: 64 * settings.textSize.scale, weight: .bold))
+                        .font(.system(size: PlozzTypography.heroFallbackTitle.scaled(by: textScale).pointSize, weight: .bold))
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
                         .multilineTextAlignment(.leading)
-                        // Cap the text title to the action-button row width (measured
-                        // below) so it wraps to fit within the buttons, like the
-                        // overview. Falls back to the old cap until first measured.
-                        .frame(maxWidth: actionButtonsWidth > 0 ? actionButtonsWidth : 1200, alignment: .leading)
+                        .frame(maxWidth: textWidth, alignment: .leading)
                         .contentTransition(.opacity)
                 }
                 .id("logo-\(item.id)")
@@ -1055,6 +1033,7 @@ struct HomeHeroView: View {
                 .padding(.bottom, 14)
 
                 metadataLine(for: item)
+                    .frame(maxWidth: textWidth, alignment: .leading)
                     .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
 
                 if !hideText, let heroText = item.tagline ?? item.overview {
@@ -1063,14 +1042,11 @@ struct HomeHeroView: View {
                     // or a URL into the hero. (iPadOS renders tappable links; this
                     // hero is tvOS-only.)
                     Text(heroText.overviewPlainText)
-                        .font(.system(size: 22 * settings.textSize.scale))
+                        .font(.system(size: PlozzTypography.heroDescription.scaled(by: textScale).pointSize))
                         .foregroundStyle(.primary)
-                        .lineSpacing(2 * settings.textSize.scale)
+                        .lineSpacing(PlozzTypography.heroDescription.scaled(by: textScale).lineSpacing)
                         .lineLimit(settings.textSize.descriptionLineLimit(base: 3), reservesSpace: true)
-                        // Cap the tagline to the action-button row width (measured
-                        // below) so it never runs wider than the buttons beneath it.
-                        // Falls back to the previous fixed cap until first measured.
-                        .frame(maxWidth: actionButtonsWidth > 0 ? actionButtonsWidth : 960, alignment: .topLeading)
+                        .frame(maxWidth: textWidth, alignment: .topLeading)
                         // Subtle legibility shadow so the description reads clearly
                         // over the (now more dissolved) lower hero — see modifier.
                         .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
@@ -1087,11 +1063,11 @@ struct HomeHeroView: View {
                             from: presentation.familyGuidanceAge, hidesRatings: false
                         )
                     )
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: textWidth, alignment: .leading)
                         .contentTransition(.opacity)
                 }
             }
-            .environment(\.metadataTextScale, settings.textSize.scale)
+            .environment(\.metadataTextScale, textScale)
             .opacity(metadataVisible ? 1 : 0)
             // Snap the metadata *hide* instantly (so the outgoing text vanishes as
             // the wipe starts instead of fading out over the incoming art) while
@@ -1142,10 +1118,6 @@ struct HomeHeroView: View {
         // stack re-run full layout every animation frame, which is what made the
         // slow recede stutter; a transform is free at any duration.
         .modifier(HomeVerticalMotion(y: receded ? -Self.recedeContentLift : 0))
-        // Cap the overview to the button-row width: adopt the pills' measured width.
-        .onPreferenceChange(HeroButtonsWidthKey.self) { width in
-            if width > 0 { actionButtonsWidth = width }
-        }
     }
 
     /// Env-gated (``HeroForegroundConfig``) imperative **UIKit** visual foreground.
@@ -2551,7 +2523,7 @@ struct HeroMetadataLine: View {
                 }
                 if !metadata.isEmpty {
                     Text(metadata.joined(separator: "  ·  "))
-                        .font(.system(size: 23 * textScale, weight: .medium))
+                        .font(.system(size: PlozzTypography.heroMetadata.scaled(by: textScale).pointSize, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .contentTransition(.opacity)
@@ -2569,7 +2541,7 @@ struct HeroScheduleBadge: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 14 * textScale, style: .continuous)
         Text(text)
-            .font(.system(size: 24 * textScale, weight: .semibold))
+            .font(.system(size: PlozzTypography.heroSchedule.scaled(by: textScale).pointSize, weight: .semibold))
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 18 * textScale)
             .padding(.vertical, 10 * textScale)

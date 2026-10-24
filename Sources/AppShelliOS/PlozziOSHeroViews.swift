@@ -158,6 +158,13 @@ enum PlozziOSPageLayout {
         style == .compactPortrait ? 500 : 480
     }
 
+    static func homeTextMaxWidth(for style: HeroArtworkStyle, logoSize: HeroLogoSize) -> CGFloat {
+        HeroLogoSizing.homeTextWidth(
+            for: style == .compactPortrait ? .compact : .regular,
+            logoSize: logoSize, minimumWidth: heroTextMaxWidth(for: style)
+        )
+    }
+
     /// The hero's title logo, capped so it can never be wider than the column it
     /// sits in. A logo wider than `heroTextMaxWidth` used to overhang the column
     /// and, because the column centres oversized content, drag every row of the
@@ -211,6 +218,7 @@ enum PlozziOSPageLayout {
 /// two must derive from the same code, not from matching numbers.
 struct PlozziOSHeroForegroundPlacement: ViewModifier {
     let style: HeroArtworkStyle
+    var logoSize: HeroLogoSize = .default
 
     func body(content: Content) -> some View {
         content
@@ -224,7 +232,7 @@ struct PlozziOSHeroForegroundPlacement: ViewModifier {
             // too wide to fit, so an oversized child overhangs both edges and
             // moves the column's origin instead of just its own trailing edge.
             .frame(
-                maxWidth: PlozziOSPageLayout.heroTextMaxWidth(for: style),
+                maxWidth: PlozziOSPageLayout.homeTextMaxWidth(for: style, logoSize: logoSize),
                 alignment: style == .compactPortrait ? .center : .leading
             )
             .frame(
@@ -239,8 +247,8 @@ struct PlozziOSHeroForegroundPlacement: ViewModifier {
 
 extension View {
     /// See ``PlozziOSHeroForegroundPlacement``.
-    func plozziOSHeroForegroundPlacement(style: HeroArtworkStyle) -> some View {
-        modifier(PlozziOSHeroForegroundPlacement(style: style))
+    func plozziOSHeroForegroundPlacement(style: HeroArtworkStyle, logoSize: HeroLogoSize = .default) -> some View {
+        modifier(PlozziOSHeroForegroundPlacement(style: style, logoSize: logoSize))
     }
 }
 
@@ -1757,6 +1765,10 @@ struct PlozziOSHomeHeroForeground: View {
                     actionButtons(resumeTrailingStyle: .full, wrapsText: true)
                 }
             }
+            .frame(
+                maxWidth: PlozziOSPageLayout.heroTextMaxWidth(for: style),
+                alignment: style == .compactPortrait ? .center : .leading
+            )
             .controlSize(.large)
         }
         // Width fill / alignment now come from the shared placement modifier.
@@ -2724,9 +2736,9 @@ private struct PlozziOSHeroMetadata: View {
                         .plozzForeground(.secondary)
                         .lineLimit(textSize.descriptionLineLimit(base: mode == .home ? 2 : 3))
                         .frame(
-                            maxWidth: PlozziOSPageLayout.heroTextMaxWidth(
-                                for: style
-                            ),
+                            maxWidth: mode == .home
+                                ? PlozziOSPageLayout.homeTextMaxWidth(for: style, logoSize: logoSize)
+                                : PlozziOSPageLayout.heroTextMaxWidth(for: style),
                             alignment: style == .compactPortrait
                                 ? .center
                                 : .leading

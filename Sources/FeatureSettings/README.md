@@ -37,10 +37,13 @@ profile-scoped **Logo size** controls. Thirteen stops span 0.5x to 1.5x, with fi
 adjustments around the unchanged 1x default, marked at the center. Previously
 saved intermediate sizes keep their exact scale until adjusted.
 These areas also have independent **Text size** controls:
-eleven 5% stops from 0.75x to 1.25x, preserving current typography by default.
+eleven stops with a centered default. Apple TV spans 0.75x to 1.5x (24pt
+descriptions by default, 18–36pt overall); mobile retains 0.75x to 1.25x.
 They scale title fallbacks, metadata, descriptions, and the corresponding badge
 icons, padding, and borders together, not actions, cards, or menus.
-Home and Detail may use one additional description line with larger text, with
+On Apple TV, Detail text sizing also controls episode titles and synopses beneath
+the artwork. Detail hero descriptions are capped at four lines; Home may gain
+one line when enlarged. Mobile retains its existing line limits, with
 scrim coverage extended upward to suit the enlarged content. Showcase and
 Recommended retain their available space: if needed, logo and text fit down
 together while preserving their requested proportions and saved preferences.
@@ -50,8 +53,9 @@ Labels, ticks, and adjustment glyphs share a vertical center; there is no Defaul
 caption or Reset button. VoiceOver still announces the default value.
 Long labels can wrap rather than shrink. Home and Showcase update their existing
 layout-choice previews live instead of adding a second preview to the control.
-Recommended and Detail Page retain a 320-point-wide preview using the shared
-group inset and inner corner radius.
+Recommended retains its 320-point-wide preview. Detail Page uses a 400-by-300
+preview showing the hero, right-side credits, and episode captions scaling
+together. Both retain the shared group inset and inner corner radius.
 Artwork shares the layout picker's backdrop: Showcase fades in from the right,
 while Home and detail previews use edge-to-edge artwork.
 Mobile Home keeps native sliders beside their labels and one stacked preview.

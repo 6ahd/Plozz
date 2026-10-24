@@ -45,4 +45,17 @@ public enum HeroLogoSizing {
             height: min(base.height * scale, maximumHeight / heightFlex)
         )
     }
+
+    /// Home copy shares the logo's allowed width, without narrowing existing copy for smaller logos.
+    public static func homeTextWidth(
+        for layout: Layout,
+        logoSize: HeroLogoSize = .default,
+        minimumWidth: CGFloat = 0,
+        availableWidth: CGFloat = .infinity
+    ) -> CGFloat {
+        min(
+            max(1, availableWidth),
+            max(minimumWidth, layout.budget.width * max(1, CGFloat(logoSize.scale)))
+        )
+    }
 }

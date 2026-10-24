@@ -19,18 +19,27 @@ final class HeroTextSizeTests: XCTestCase {
         XCTAssertEqual(HeroTextSize.default.scrimHeightScale(logoSize: .default), 1)
         XCTAssertEqual(HeroTextSize(rawValue: -5).scrimHeightScale(logoSize: HeroLogoSize(rawValue: -10)), 1)
         XCTAssertEqual(HeroTextSize(rawValue: 5).scrimHeightScale(logoSize: HeroLogoSize(rawValue: 10)),
-                       5.0 / 3.0, accuracy: 0.0001)
+                       HeroTextSize(rawValue: 5).scale * 4 / 3, accuracy: 0.0001)
     }
 
-    func testSizesAreBoundedSymmetricAndRoundTrip() throws {
+    func testSizesAreBoundedWithACenteredDefaultAndRoundTrip() throws {
         XCTAssertEqual(HeroTextSize.default.scale, 1)
         XCTAssertEqual(HeroTextSize.default.position, 5)
         XCTAssertEqual(HeroTextSize.allSizes.count, 11)
         XCTAssertEqual(HeroTextSize(rawValue: .min).scale, 0.75)
+        #if os(tvOS)
+        XCTAssertEqual(HeroTextSize(rawValue: .max).scale, 1.5)
+        #else
         XCTAssertEqual(HeroTextSize(rawValue: .max).scale, 1.25)
+        #endif
         for (index, size) in HeroTextSize.allSizes.enumerated() {
             XCTAssertEqual(size.position, index)
-            XCTAssertEqual(size.scale, 0.75 + Double(index) * 0.05, accuracy: 0.0001)
+            #if os(tvOS)
+            let increment = size.rawValue > 0 ? 0.1 : 0.05
+            #else
+            let increment = 0.05
+            #endif
+            XCTAssertEqual(size.scale, 1 + Double(size.rawValue) * increment, accuracy: 0.0001)
             XCTAssertEqual(try JSONDecoder().decode(HeroTextSize.self, from: JSONEncoder().encode(size)), size)
         }
         XCTAssertEqual(try JSONDecoder().decode(HeroTextSize.self, from: Data("100".utf8)).rawValue, 5)

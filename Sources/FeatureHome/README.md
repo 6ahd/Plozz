@@ -8,14 +8,28 @@ fallback when the user's server has no attached trailer.
 Home text sizing applies to both SwiftUI and persistent UIKit foregrounds.
 Detail Page, Showcase, and library Recommended have independent profile-scoped sizes.
 Title fallbacks, descriptions, metadata, and badge details scale together;
-artwork sizing, action controls, and row/card labels remain independent.
-Home and Detail descriptions may gain one line when text grows. Their scrims
+artwork sizing and action controls remain independent. On Apple TV, Detail Page
+text sizing also scales the episode titles and three-line synopses below episode
+artwork, including loading placeholders; other row/card labels remain independent.
+Home's text column can use the same wider budget as an enlarged logo, even at
+default Text size. Smaller logos retain the original reading width; changing
+Text size alone never widens it. Both TV foreground renderers share this rule,
+and mobile Home remains capped by its available screen width. Apple TV Detail
+descriptions can grow to the live facts/badges row's width, within the shared
+reading-width limit and the space reserved for right-side credits. Showcase
+and Recommended keep their existing column widths.
+Apple TV descriptions default to 24pt with 3pt additional line spacing; the
+slider spans 18–36pt. Detail descriptions stay capped at four lines, while Home
+may gain a fourth line when enlarged. Mobile typography is unchanged. Their scrims
 extend upward by the larger of the requested logo growth and description-height
 growth, without weakening default coverage or resizing the artwork.
 Showcase and Recommended keep their row positions and description budgets.
 Custom sizes fit the complete logo/metadata block down by one shared factor only
 when it exceeds the space above the row; the requested proportions stay intact.
 Default Recommended sizing retains its existing constrained layout.
+
+Shared typography and future app-wide scale composition are owned by
+[`CoreUI/PlozzTypography`](../CoreUI/README.md#responsibility), not individual heroes.
 
 Home Continue Watching failures use the existing Details / Try Again actions on
 TV (including focus-following layouts), iPhone and iPad. The report follows the

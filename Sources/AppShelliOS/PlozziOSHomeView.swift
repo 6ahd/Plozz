@@ -214,6 +214,7 @@ struct PlozziOSHomeView: View {
                         settings: appModel.settings.hero.effectiveSettings,
                         hasItems: false, recomputeComplete: false
                     ) != .hidden,
+                    logoSize: appModel.settings.hero.settings.logoSize,
                     showsPosterCaptions: appModel.settings.cardStyle.captions.showsLabels(in: .home),
                     continueWatchingLayout: appModel.settings.homeVisibility.continueWatchingLayout,
                     continueWatchingShowsSeriesArtwork: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
@@ -484,7 +485,7 @@ struct PlozziOSHomeView: View {
             case .hidden:
                 EmptyView()
             case .placeholder:
-                PlozziOSHomeHeroSkeleton(style: heroStyle)
+                PlozziOSHomeHeroSkeleton(style: heroStyle, logoSize: appModel.settings.hero.settings.logoSize)
             case .content:
                 PlozziOSHomeHeroCarousel(
                     items: displayHeroItems,
@@ -1463,7 +1464,7 @@ struct PlozziOSHomeHeroCarousel: View {
                     )
                     // Shared with the loading placeholder — see
                     // `PlozziOSHeroForegroundPlacement`.
-                    .plozziOSHeroForegroundPlacement(style: style)
+                    .plozziOSHeroForegroundPlacement(style: style, logoSize: appModel.settings.hero.settings.logoSize)
                     .animation(
                         .easeInOut(duration: 0.24),
                         value: currentItem.id

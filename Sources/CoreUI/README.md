@@ -6,6 +6,22 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+`PlozzTypography` owns semantic text metrics, including additional line spacing,
+and composes local adjustments with `plozzAppTextScale` once at a surface boundary.
+SwiftUI text and the UIKit Home foreground resolve the same styles; badge children
+receive the resolved `metadataTextScale`, not another multiplier. Episode captions,
+loading placeholders, and the Detail preview use the same episode styles.
+Persisted preferences remain raw `CoreModels/HeroTextSize` values, not point sizes.
+The app multiplier currently defaults to 1 and has no settings UI. A future
+app-wide preference can supply it at the root while additional surfaces adopt
+semantic styles; unmigrated app text is not implicitly covered.
+
+`HeroDescriptionFactsLayout` measures the live facts row during layout and gives
+its description the same reading width, with an 800pt baseline and 1200pt cap.
+The Detail hero reserves the separate credits column before proposing this width.
+Changes to badges, text size, or the focused episode remeasure in the same pass,
+without geometry state or an extra hidden copy of the badge views.
+
 `SettingsCheckableRow` is shared by Settings and channel-library selection.
 Its prominence controls the common row metrics; `.contained` keeps focus inside
 a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Independent of artwork size; the default preserves the existing typography.
+/// A profile-scoped adjustment, independent of artwork and any app-wide scale.
 public struct HeroTextSize: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: Int
     public static let steps = -5...5
@@ -11,7 +11,14 @@ public struct HeroTextSize: RawRepresentable, Codable, Hashable, Sendable {
         self.rawValue = min(max(rawValue, Self.steps.lowerBound), Self.steps.upperBound)
     }
 
-    public var scale: Double { 1 + Double(rawValue) * 0.05 }
+    public var scale: Double {
+        #if os(tvOS)
+        let increment = rawValue > 0 ? 0.1 : 0.05
+        #else
+        let increment = 0.05
+        #endif
+        return 1 + Double(rawValue) * increment
+    }
     public var position: Int { rawValue - Self.steps.lowerBound }
 
     public func descriptionLineLimit(base: Int) -> Int {
