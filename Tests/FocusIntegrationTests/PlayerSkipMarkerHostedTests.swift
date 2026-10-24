@@ -75,7 +75,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
         }
     }
 
-    func testTinyOpeningSectionFlattensItsJoinButKeepsRoomyJoinsRounded() async throws {
+    func testTinyOpeningSectionUsesSoftMatchingCornersAndKeepsRoomyJoinsRounded() async throws {
         try await withWindow { window in
             for performance in [false, true] {
                 for focused in [false, true] {
@@ -87,7 +87,9 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                     let frame = try await render(in: window)
                     let top = focused ? 580 : 584
                     XCTAssertNotEqual(frame.color(330, top + 1), frame.color(330, 450),
-                                      "The wide section beside the tiny opening needs a nearly flat join.")
+                                      "The wide section must not use an oversized cap beside the tiny opening.")
+                    XCTAssertEqual(frame.color(328, top), frame.color(328, 450),
+                                   "The constrained join must still have a visibly rounded top corner.")
                     for y in frame.pixels(top..<(focused ? 600 : 596)) {
                         for x in frame.pixels(326..<327) {
                             XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))
@@ -96,7 +98,7 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
                     XCTAssertEqual(frame.color(643, top), frame.color(643, 450),
                                    "The other intro boundary still has room for maximum rounding.")
                     XCTAssertNotEqual(frame.color(643, 590), frame.color(643, 450))
-                    attach(frame.image, name: "Adaptive opening cut - \(performance ? "flat" : "glass") - \(focused ? "focused" : "normal")")
+                    attach(frame.image, name: "Soft matching opening cut - \(performance ? "flat" : "glass") - \(focused ? "focused" : "normal")")
                 }
             }
         }

@@ -97,26 +97,28 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         }
     }
 
-    func testBoundaryCornersFlattenTogetherOnlyWhenEitherSectionIsNarrowerThanTheTrackHeight() {
+    func testBoundaryCornersSoftenTheSliverAndItsNeighborWithoutExceedingTheirBounds() {
         for height in [CGFloat(8), 12, 20] {
             for (widthFraction, radiusFraction) in [
-                (CGFloat(0.05), CGFloat(0.0025)), (0.25, 0.0625), (0.5, 0.25),
-                (0.75, 0.5625), (1, 1), (2, 1)
+                (CGFloat(0.05), CGFloat(0.0625)), (0.25, 0.3125), (0.5, 0.625),
+                (0.75, 0.9375), (1, 1), (2, 1)
             ] {
                 let narrowWidth = height * widthFraction
-                let radius = SkipMarkerTrackLayout.boundaryCornerRadius(
-                    leftWidth: narrowWidth, rightWidth: 200, height: height
+                let narrow = SkipMarkerTrackLayout.cornerSize(
+                    sectionWidth: narrowWidth, neighborWidth: 200, height: height
                 )
-                XCTAssertEqual(radius, height / 2 * radiusFraction, accuracy: 0.000001)
-                XCTAssertLessThanOrEqual(radius, narrowWidth / 2)
-                XCTAssertEqual(radius, SkipMarkerTrackLayout.boundaryCornerRadius(
-                    leftWidth: 200, rightWidth: narrowWidth, height: height
-                ))
+                let wide = SkipMarkerTrackLayout.cornerSize(
+                    sectionWidth: 200, neighborWidth: narrowWidth, height: height
+                )
+                XCTAssertEqual(narrow.height, height / 2 * radiusFraction, accuracy: 0.000001)
+                XCTAssertEqual(narrow.width, min(narrowWidth, height) / 2, accuracy: 0.000001)
+                XCTAssertEqual(narrow.height, wide.height, "Facing corners meet the gap at the same height.")
+                XCTAssertEqual(wide.width, wide.height, "The wider section has room for a circular corner.")
             }
         }
     }
 
-    func testNarrowOpeningMiddleAndEndingJoinsRenderAsThinCuts() throws {
+    func testNarrowOpeningMiddleAndEndingJoinsStaySoftWithoutMovingTheCuts() throws {
         let height: CGFloat = 20
         for (start, end, filledPixels, gapPixels) in [
             (5.0, 90.0, [7, 8], [4, 5]),
@@ -133,7 +135,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
             )
             for x in filledPixels {
                 XCTAssertEqual(frame.red(x: x, y: 13), 255,
-                               "A narrow neighboring section must flatten this side of the cut too.")
+                               "A narrow neighboring section must constrain this side of the cut too.")
             }
             for x in gapPixels {
                 for y in 12..<32 {
@@ -147,6 +149,38 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                               "No short section is erased or shifted.")
             }
         }
+    }
+
+    func testShortOpeningAndEndingPiecesKeepSymmetricRoundedCorners() throws {
+        let size = CGSize(width: 320, height: 20)
+        for ranges in [[0.025..<0.5], [0.5..<0.975]] {
+            let sections = SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size)
+            let section = try XCTUnwrap(sections.first { $0.width < size.height })
+            let mask = SkipMarkerTrackLayout.maskPath(ranges: ranges, size: size)
+            let actual = try pixels(mask.fill(.white).frame(width: size.width, height: size.height).background(.black))
+            for offset in 0..<Int(section.width) {
+                let left = Int(section.minX) + offset
+                let right = Int(section.maxX) - 1 - offset
+                for y in 0..<Int(size.height) {
+                    // Antialiased coverage can differ by one 8-bit step at mirrored curve edges.
+                    for channel in 0..<3 {
+                        XCTAssertEqual(
+                            Int(actual.rgb(x: left, y: y)[channel]), Int(actual.rgb(x: right, y: y)[channel]),
+                            accuracy: 1, "The short end piece needs symmetric inner and outer corners at \(left),\(y)."
+                        )
+                        XCTAssertEqual(
+                            Int(actual.rgb(x: left, y: y)[channel]),
+                            Int(actual.rgb(x: left, y: Int(size.height) - 1 - y)[channel]),
+                            accuracy: 1, "The short end piece needs symmetric top and bottom corners at \(left),\(y)."
+                        )
+                    }
+                }
+            }
+        }
+        let mask = SkipMarkerTrackLayout.maskPath(ranges: [0.025..<0.5], size: size)
+        XCTAssertFalse(mask.contains(CGPoint(x: 10.5, y: 0.5)),
+                       "The adjoining long section must keep visibly soft corners, not a nearly square cut.")
+        XCTAssertTrue(mask.contains(CGPoint(x: 10.5, y: 10)))
     }
 
     func testRoomySectionsAndMobileSuppressionKeepTheOriginalRoundedMask() throws {

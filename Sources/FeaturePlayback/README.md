@@ -1501,10 +1501,12 @@ There are no internal cutouts, patterns, or user-selectable marker styles.
 The 4pt gaps are centered on the original time boundaries. Each half-gap is
 capped at a quarter of either neighboring section's width so a tiny range is
 not consumed or enlarged. Outer timeline ends remain unchanged.
-Both sides of each gap share a corner radius based on the narrower rendered
-section. Sections at least as wide as the bar is tall keep maximum rounding;
-shorter sections progressively flatten the join into a thin cut, including the
-facing edge of a wider neighbor. Live programme tracks use the same geometry.
+Both sides of each gap use the narrower rendered section to size their corners,
+with a small amount of extra rounding capped at half the bar height. Slivers use
+slightly taller elliptical corners without exceeding their available width;
+wider neighbors can use the corresponding circular corner. Facing corners meet
+the gap at the same height. Roomy joins retain full rounding, and rounding never
+removes a divider. Live programme tracks use the same geometry.
 Touch timelines retain their existing minimum-width suppression, so expanding
 the bar does not introduce tiny sections or change its established rounded caps.
 The mask applies to the base, buffered, and played fills and glass backing

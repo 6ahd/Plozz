@@ -71,10 +71,10 @@ enum SkipMarkerTrackLayout {
         }
     }
 
-    static func boundaryCornerRadius(leftWidth: CGFloat, rightWidth: CGFloat, height: CGFloat) -> CGFloat {
-        let available = min(1, min(leftWidth, rightWidth) / height)
-        // Both sides of a tight cut flatten together; roomy sections retain full caps.
-        return height / 2 * available * available
+    static func cornerSize(sectionWidth: CGFloat, neighborWidth: CGFloat, height: CGFloat) -> CGSize {
+        let radius = min(height / 2, min(sectionWidth, neighborWidth) / 2 * 1.25)
+        // An elliptical corner softens the sliver without consuming its width.
+        return CGSize(width: min(sectionWidth / 2, radius), height: radius)
     }
 
     static func maskPath(
@@ -84,23 +84,62 @@ enum SkipMarkerTrackLayout {
         var mask = Path()
         for index in sections.indices {
             let section = sections[index]
-            let outerRadius = min(section.width, section.height) / 2
-            let leading = index == 0 ? outerRadius : boundaryCornerRadius(
-                leftWidth: sections[index - 1].width, rightWidth: section.width, height: section.height
+            let leading = cornerSize(
+                sectionWidth: section.width,
+                neighborWidth: index == 0 ? section.width : sections[index - 1].width,
+                height: section.height
             )
-            let trailing = index == sections.count - 1 ? outerRadius : boundaryCornerRadius(
-                leftWidth: section.width, rightWidth: sections[index + 1].width, height: section.height
+            let trailing = cornerSize(
+                sectionWidth: section.width,
+                neighborWidth: index == sections.count - 1 ? section.width : sections[index + 1].width,
+                height: section.height
             )
             if leading == trailing {
-                mask.addRoundedRect(in: section, cornerSize: CGSize(width: leading, height: leading))
+                mask.addRoundedRect(in: section, cornerSize: leading)
             } else {
-                mask.addPath(UnevenRoundedRectangle(
-                    topLeadingRadius: leading, bottomLeadingRadius: leading,
-                    bottomTrailingRadius: trailing, topTrailingRadius: trailing, style: .circular
-                ).path(in: section))
+                mask.addPath(sectionPath(section, leading: leading, trailing: trailing))
             }
         }
         return mask
+    }
+
+    private static func sectionPath(_ rect: CGRect, leading: CGSize, trailing: CGSize) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + leading.width, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - trailing.width, y: rect.minY))
+        path.addArc(
+            center: .zero, radius: 1, startAngle: .degrees(-90), endAngle: .zero, clockwise: false,
+            transform: CGAffineTransform(
+                a: trailing.width, b: 0, c: 0, d: trailing.height,
+                tx: rect.maxX - trailing.width, ty: rect.minY + trailing.height
+            )
+        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - trailing.height))
+        path.addArc(
+            center: .zero, radius: 1, startAngle: .zero, endAngle: .degrees(90), clockwise: false,
+            transform: CGAffineTransform(
+                a: trailing.width, b: 0, c: 0, d: trailing.height,
+                tx: rect.maxX - trailing.width, ty: rect.maxY - trailing.height
+            )
+        )
+        path.addLine(to: CGPoint(x: rect.minX + leading.width, y: rect.maxY))
+        path.addArc(
+            center: .zero, radius: 1, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false,
+            transform: CGAffineTransform(
+                a: leading.width, b: 0, c: 0, d: leading.height,
+                tx: rect.minX + leading.width, ty: rect.maxY - leading.height
+            )
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + leading.height))
+        path.addArc(
+            center: .zero, radius: 1, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false,
+            transform: CGAffineTransform(
+                a: leading.width, b: 0, c: 0, d: leading.height,
+                tx: rect.minX + leading.width, ty: rect.minY + leading.height
+            )
+        )
+        path.closeSubpath()
+        return path
     }
 }
 
