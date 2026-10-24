@@ -22,6 +22,9 @@ supported capability remains at parity.
   parameterised by whether the on-device decode engine (Plozzigen) is linked
   so the server allows MKV / DTS / TrueHD / etc. to direct play when we can
   decode them locally.
+  Aether-enabled profiles use `PlozzigenMediaFormats` for linked container,
+  video and audio families rather than native hardware-only restrictions.
+  Native-only profiles and server conversion limits remain independent.
 - `JellyfinMusicProvider` — music-library queries (artists, albums, tracks)
   surfaced through the shared provider abstraction.
 

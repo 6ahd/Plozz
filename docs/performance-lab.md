@@ -130,6 +130,14 @@ Noise above the larger of 20% of baseline or 1 ms is inconclusive.
 Do not repeatedly rerun until a favorable sample passes. Diagnose contention or
 capture a deliberately new controlled experiment, retaining the failed/noisy one.
 
+`playback-journal-disabled` and `playback-journal-enabled` are an explicit
+off/on control for the new persistent journal, not a historical baseline.
+Each sample handles 10,000 synthetic lifecycle notifications. The enabled case
+awaits encoding and persistence and verifies retained plus discarded counts;
+`enqueueMicroseconds` separately measures synchronous notification handling.
+Both retain the same notification/UUID workload. Wall/CPU include completion;
+neither is a rendered-frame or physical-device energy measurement.
+
 `within-budget` is **not** proof of improvement. Read the deltas and their
 dispersion. Work counts are reported separately and bounded by XCTest
 assertions, not statistical timing allowances. Resident snapshots/deltas are

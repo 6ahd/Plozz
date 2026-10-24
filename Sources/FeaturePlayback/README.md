@@ -1,6 +1,6 @@
 # FeaturePlayback
 
-`AVPlayer` view-model/view, engine-agnostic playback surface, resume
+Aether-primary playback coordination, engine-agnostic playback surface, resume
 reporting back to the server, caption style rules, trickplay scrubbing,
 and the diagnostics overlay.
 
@@ -26,6 +26,11 @@ bounded language-match/accessibility flags without track titles or URLs.
     AetherEngine) is injected here as a closure, so `FeaturePlayback`
     never imports `EnginePlozzigen` directly. This keeps the dependency on
     the FFmpeg xcframeworks out of the rest of the app.
+  - `EngineSelection` chooses Aether without codec/container/subtitle gates.
+    Native owns OS-managed download packages, separate trailer audio, and the
+    constrained HEVC-HLS initialization repair; bounded recovery is retained.
+    The adapter loads the server-selected source, never a preview-only original.
+    See [playback engines](../../docs/playback-engines.md#routing-logic).
 - **View model / view** —
   - `PlayerViewModel` orchestrates engine lifecycle, audio/subtitle
     selection, scrub state, resume, and progress reporting.
@@ -35,7 +40,7 @@ bounded language-match/accessibility flags without track titles or URLs.
   sidecars, Plozzigen decoders, and `NativeSubtitleCueOutput` for native legible
   tracks. `SubtitleStyleRules` remains the reduced AVPlayer styling adapter
   for system-owned external presentation.
-- **Native video assets** — tvOS feeds the resolved original URL directly to
+- **Native-only video assets** — when that engine is selected, tvOS feeds the resolved URL directly to
   AVPlayer even when sidecars are available. Track menus still use provider
   tracks; the owned overlay authorizes and fetches selected SRT/WebVTT sidecars.
   Embedded captions retain native cue extraction. iOS keeps the existing
@@ -59,6 +64,9 @@ bounded language-match/accessibility flags without track titles or URLs.
   dropped frames, etc. The Aether adapter supplies `AetherEngine v<version>`
   from the linked engine's public version API for both VOD and Live TV.
   Delivery stays a separate Direct Play/Remux/Transcode fact.
+  `PlaybackDiagnosticJournal` separately retains bounded lifecycle and typed
+  failure evidence for Settings' consent-gated Send diagnostics action. Recording
+  is event-driven, disk work is off-main, and no HUD polling is enabled by it.
 - **Display matching** — `DolbyVisionDisplayCriteria` /
   `IdleSleepGuard`: AVKit display-criteria match + platform-specific keep-awake.
   Mobile playback owns a foreground presentation lease through startup and

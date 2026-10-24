@@ -248,6 +248,15 @@ public final class PlayerViewModel {
     /// Short id used only to pair a construction with its deallocation in the
     /// lifecycle log.
     private let instanceID = String(UUID().uuidString.prefix(4))
+    @ObservationIgnored let diagnosticSession = UUID()
+    @ObservationIgnored private var diagnosticAttempt = UUID()
+    @ObservationIgnored private var diagnosticStartedAt = ProcessInfo.processInfo.systemUptime
+    @ObservationIgnored private var diagnosticFacts: PlaybackDiagnosticJournal.Facts
+    @ObservationIgnored private var diagnosticFailure: PlaybackDiagnosticJournal.Failure?
+    @ObservationIgnored private var diagnosticPhase: PlaybackDiagnosticJournal.Phase?
+    @ObservationIgnored private var diagnosticFirstFrameAttempt: UUID?
+    @ObservationIgnored private var diagnosticServerAttempts: [String: UUID] = [:]
+    @ObservationIgnored private let diagnosticJournal: PlaybackDiagnosticJournal
     /// The chosen `MediaVersion.id` (Jellyfin `MediaSourceId` / Plex `Media` id)
     /// to play when the title has multiple versions; `nil` plays the default.
     private let mediaSourceID: String?
@@ -622,9 +631,12 @@ public final class PlayerViewModel {
         onPlaybackCheckpoint: @escaping @Sendable (_ position: TimeInterval, _ watchedPercent: Double) -> Void = { _, _ in },
         checkpointInterval: TimeInterval = 60,
         adoptedResolved: PrefetchedPlayback? = nil,
-        nowPlayingPublisher: (any NowPlayingPublishing)? = nil
+        nowPlayingPublisher: (any NowPlayingPublishing)? = nil,
+        diagnosticJournal: PlaybackDiagnosticJournal = .shared
     ) {
         self.provider = provider
+        self.diagnosticJournal = diagnosticJournal
+        self.diagnosticFacts = .init(provider: provider.kind)
         self.offlinePlaybackResolver = offlinePlaybackResolver
         self.itemID = itemID
         self.offlineItem = offlineItem
@@ -763,6 +775,19 @@ public final class PlayerViewModel {
 
     private func configureEngineCallbacks() {
         let callbackEngineToken = engineToken
+        let callbackAttempt = diagnosticAttempt
+        engine.onDiagnosticPhaseChanged = { [weak self] phase in
+            guard let self, !self.didStop, self.engineToken == callbackEngineToken,
+                  self.diagnosticAttempt == callbackAttempt, self.request != nil,
+                  self.diagnosticPhase != phase else { return }
+            self.diagnosticPhase = phase
+            self.diagnosticJournal.record(
+                .phaseChanged, session: self.diagnosticSession, attempt: self.diagnosticAttempt,
+                facts: self.diagnosticFacts,
+                elapsed: ProcessInfo.processInfo.systemUptime - self.diagnosticStartedAt,
+                route: self.engine.diagnosticRoute, phase: phase
+            )
+        }
         engine.onProgress = { [weak self] in
             guard let self, self.engineToken == callbackEngineToken else { return }
             // Jellyfin (non-idempotent) next-episode prefetch fires once the
@@ -772,10 +797,14 @@ public final class PlayerViewModel {
             self.progressReporter.reportProgress()
         }
         engine.onFailure = { [weak self] error in
-            guard let self, self.engineToken == callbackEngineToken else { return }
+            guard let self, !self.didStop, self.engineToken == callbackEngineToken,
+                  self.diagnosticAttempt == callbackAttempt else { return }
             self.endTemporarySpeedBoost()
             let failureGeneration = self.streamingLoadGeneration
             let failureEvidence = self.engine.streamingFailure
+            self.recordPlaybackFailure(
+                Self.streamingFailure(error, evidence: failureEvidence) ?? .playback(.init(kind: .unknown))
+            )
             // Re-weaken for the Task. The enclosing closure is [weak self], but
             // `guard let self` makes it strong again, and a bare `Task { self }`
             // then keeps the whole player alive for as long as the task lives —
@@ -801,6 +830,7 @@ public final class PlayerViewModel {
         }
         engine.onEnded = { [weak self] in
             guard let self, self.engineToken == callbackEngineToken else { return }
+            self.recordPlayback(.ended)
             self.handlePlaybackEnded()
         }
         // Engines that discover tracks asynchronously (Plozzigen) tell us to
@@ -1086,6 +1116,10 @@ public final class PlayerViewModel {
     /// `resumeOverride` carries the position the failed attempt reached so the
     /// retry resumes there instead of the provider's stale resume point.
     private func startPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
+        beginDiagnosticAttempt()
+        let attempt = diagnosticAttempt
+        diagnosticFacts = .init(provider: provider.kind)
+        recordPlayback(.requested)
         let streamingGeneration = streamingLoadGeneration
         streamingQuality.error = nil
         streamingQuality.failureReport = nil
@@ -1131,19 +1165,22 @@ public final class PlayerViewModel {
                     itemID: itemID, mediaSourceID: mediaSourceID, forceTranscode: forceTranscode,
                     startPosition: resumeOverride ?? startPositionOverride.map {
                         playbackSettings.resumeRewindInterval.applied(to: $0)
-                    })
+                    }, attempt: attempt)
                 HandoffDiagnostics.emit("bringup RESOLVED on-demand item=\(itemID) engine=\(resolved.engineKind.rawValue) playbackInfo=\(HandoffDiagnostics.ms(resolveStart)) provider=\(provider.kind.rawValue) transcode=\(forceTranscode)")
             }
             // A user-initiated Back during playbackInfo resolution should NOT
             // proceed to bring up an engine that will immediately be torn down —
             // short-circuit cleanly without going through the failure path.
+            if let sessionID = resolved.request.streamingSessionID { diagnosticServerAttempts[sessionID] = attempt }
             if Task.isCancelled || didStop || streamingGeneration != streamingLoadGeneration {
-                await releaseStreamingSession(resolved.request)
+                await releaseStreamingSession(resolved.request, reason: .superseded)
                 throw CancellationError()
             }
 
             let request = resolved.request
             self.request = request
+            diagnosticFacts = .init(provider: provider.kind, engine: resolved.engineKind, request: request)
+            recordPlayback(.resolved)
             progressReporter.beginSession()
             HandoffDiagnostics.emit(
                 "session OWNED vm=\(instanceID) provider=\(provider.kind.rawValue)"
@@ -1239,7 +1276,8 @@ public final class PlayerViewModel {
         mediaSourceID: String?,
         forceTranscode: Bool,
         startPosition: TimeInterval? = nil,
-        offlineCandidate: MediaItem? = nil
+        offlineCandidate: MediaItem? = nil,
+        attempt: UUID = UUID()
     ) async throws -> PrefetchedPlayback {
         let streamingGeneration = streamingLoadGeneration
         if let offlineItem = offlineCandidate ?? self.offlineItem,
@@ -1276,7 +1314,7 @@ public final class PlayerViewModel {
                 preferredLanguages: request.preferredAudioLanguages,
                 tracks: request.audioTracks
             )
-            let kind = routeEngine(for: request, forceTranscode: false)
+            let kind = routeEngine(for: request)
             return PrefetchedPlayback(
                 itemID: itemID,
                 request: request,
@@ -1346,8 +1384,13 @@ public final class PlayerViewModel {
             request = try await provider.playbackInfo(
                 for: itemID, mediaSourceID: mediaSourceID, forceTranscode: forceTranscode)
         }
+        if let sessionID = request.streamingSessionID { diagnosticServerAttempts[sessionID] = attempt }
         if Task.isCancelled {
-            await nextEpisodeCoordinator.releaseSession(request)
+            if request.streamingSessionID != nil, provider is any StreamingQualityProviding {
+                await releaseStreamingSession(request, reason: .superseded)
+            } else {
+                await nextEpisodeCoordinator.releaseSession(request)
+            }
             throw CancellationError()
         }
         // Offline choke point: if a completed download exists for this item,
@@ -1358,7 +1401,7 @@ public final class PlayerViewModel {
         let local = await offlinePlaybackResolver?
             .localPlaybackAsset(for: request.item, versionID: mediaSourceID)
         if local != nil {
-            await releaseStreamingSession(request)
+            await releaseStreamingSession(request, reason: .offlineSelection)
         }
         request = Self.applyingOfflineRewrite(to: request, localURL: local?.fileURL)
         if let local {
@@ -1389,7 +1432,7 @@ public final class PlayerViewModel {
             request,
             originalLanguage: originalLanguage
         )
-        let kind = routeEngine(for: request, forceTranscode: forceTranscode)
+        let kind = routeEngine(for: request)
         return PrefetchedPlayback(itemID: itemID, request: request, engineKind: kind)
     }
 
@@ -1467,6 +1510,7 @@ public final class PlayerViewModel {
         origin: String = #function
     ) {
         endTemporarySpeedBoost()
+        recordPlayback(.renditionRestart)
         HandoffDiagnostics.emit(
             "session RESTART vm=\(instanceID) origin=\(origin)"
                 + " session=\(HandoffDiagnostics.correlationID(request?.playSessionID)) generation=\(streamingLoadGeneration)"
@@ -1484,6 +1528,7 @@ public final class PlayerViewModel {
             streamingTrackSnapshot = tracks ?? subtitleController.streamSnapshot()
         }
         let position = resumeOverride ?? streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
+        streamingResumePosition = position
         let outgoing = request
         let outgoingReport = progressReporter.finishSession(
             position: position, duration: progressReporter.knownPlaybackDuration(), scrobble: false
@@ -1510,7 +1555,7 @@ public final class PlayerViewModel {
                         + " session=\(HandoffDiagnostics.correlationID(outgoing.playSessionID)) generation=\(generation)"
                 )
                 await outgoingReport?.value
-                await self.releaseStreamingSession(outgoing)
+                await self.releaseStreamingSession(outgoing, reason: .replacement)
             }
             await self.nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
             guard !Task.isCancelled, !self.didStop, generation == self.streamingLoadGeneration else { return }
@@ -1532,12 +1577,15 @@ public final class PlayerViewModel {
                 alreadyRetried: streamingQuality.fallbackCodec != nil
               ) else { return false }
         streamingQuality.fallbackCodec = retry
+        recordPlayback(.codecRetry)
         HandoffDiagnostics.emit("streaming CODEC_RETRY requested=\(retry.rawValue) quality=\(options.quality.diagnosticName)")
         restartStreamingRendition()
         return true
     }
 
-    private func releaseStreamingSession(_ request: PlaybackRequest, origin: String = #function) async {
+    private func releaseStreamingSession(
+        _ request: PlaybackRequest, reason: PlaybackDiagnosticJournal.StopReason, origin: String = #function
+    ) async {
         guard let sessionID = request.streamingSessionID,
               let provider = provider as? any StreamingQualityProviding else { return }
         await streamingSessionMaintenance.cancel(sessionID: sessionID)?.value
@@ -1546,10 +1594,18 @@ public final class PlayerViewModel {
             await cleanup.value
             return
         }
+        let attempt = diagnosticServerAttempts.removeValue(forKey: sessionID) ?? diagnosticAttempt
+        let facts = PlaybackDiagnosticJournal.Facts(provider: provider.kind, request: request)
+        diagnosticJournal.record(
+            .releaseStarted, session: diagnosticSession, attempt: attempt, facts: facts, stopReason: reason
+        )
         HandoffDiagnostics.emit("session RELEASE_INTENT vm=\(instanceID) origin=\(origin) session=\(HandoffDiagnostics.correlationID(sessionID))")
         let cleanup = Task { await provider.releaseStreamingSession(request) }
         streamingSessionCleanups[sessionID] = cleanup
         await cleanup.value
+        diagnosticJournal.record(
+            .releaseFinished, session: diagnosticSession, attempt: attempt, facts: facts, stopReason: reason
+        )
     }
 
     private func restoreStreamingTracks() {
@@ -1560,15 +1616,10 @@ public final class PlayerViewModel {
     /// Picks the engine for a resolved request — the pure routing decision, no
     /// engine mutation or network. Extracted so the current-item load and the
     /// next-episode prefetch pick the engine the same way.
-    private func routeEngine(for request: PlaybackRequest, forceTranscode: Bool) -> PlaybackEngineKind {
+    private func routeEngine(for request: PlaybackRequest) -> PlaybackEngineKind {
         EngineSelection.route(
             request: request,
-            forceTranscode: forceTranscode,
-            plozzigenAvailable: engineFactory.plozzigenAvailable,
-            capabilities: capabilities,
-            subtitleRule: effectiveSubtitleRule(for: request.item),
-            hearingImpairedPreference: behavior.hearingImpairedPreference,
-            audioRouteIsAirPlay: AirPlayAudioSession.isActiveRoute
+            plozzigenAvailable: engineFactory.plozzigenAvailable
         )
     }
 
@@ -1750,7 +1801,13 @@ public final class PlayerViewModel {
             return
         }
         let actualEngineKind = engineHandoff.commitEngineForPlayback(engineKind)
+        streamingResumePosition = startPosition
+        configureEngineCallbacks()
+        diagnosticFacts = .init(provider: provider.kind, engine: actualEngineKind, request: request)
+        if let sessionID = request.streamingSessionID { diagnosticServerAttempts[sessionID] = diagnosticAttempt }
+        recordPlayback(.loading)
         if actualEngineKind != engineKind {
+            recordPlayback(.engineUnavailable)
             inheritedPreservedDynamicRange = nil
             effectiveDynamicRange = .native(metadata: request.sourceMetadata)
             dynamicRangeTransitionToken = UUID()
@@ -1775,6 +1832,7 @@ public final class PlayerViewModel {
         // can already be failed before that task updates the view-model phase.
         if case .failed = engine.status { return }
         if case .failed = phase { return }
+        recordPlayback(.loaded)
         updateChapters(for: request)
         if engineKind != .native, let facts = engine.probedSourceFacts {
             applyEngineProbedSourceFacts(facts)
@@ -1804,12 +1862,14 @@ public final class PlayerViewModel {
         readySpeedBoostLoadGeneration = rangeLoadGeneration
         phase = .ready
         streamingQuality.preparation = .waitingForVideo
-        restoreStreamingTracks()
         // Hold the bring-up spinner until the engine actually presents its first
         // frame, so `.loading` → `.ready` is one continuous indicator rather than
         // a spinner that vanishes here (before the picture is up) and then a black
         // gap / second in-player spinner while frames arrive.
         nextEpisodeCoordinator.beginAwaitingFirstFrame(resumeClock: startPosition)
+        restoreStreamingTracks()
+        subtitleController.applyImportedAudioIfPossible()
+        guard !didStop, dynamicRangeLoadGeneration == rangeLoadGeneration, !Task.isCancelled else { return }
         // Publish diagnostics after the engine load attempt returns, so the
         // diagnostics sampler doesn't churn SwiftUI layout during Plozzigen init.
         diagnosticsToken = UUID()
@@ -2317,6 +2377,7 @@ public final class PlayerViewModel {
         guard !didStop else { return }
         endTemporarySpeedBoost()
         let suspendedPosition = foregroundReload.preservedPosition
+        recordPlayback(.stopped, stopReason: .requested)
         HandoffDiagnostics.emit(
             "session STOP_INTENT origin=player-stop vm=\(instanceID)"
                 + " session=\(HandoffDiagnostics.correlationID(request?.playSessionID))"
@@ -2400,7 +2461,7 @@ public final class PlayerViewModel {
                 positionOverride: finalPosition,
                 durationOverride: finalDuration
             )
-            if let request { await releaseStreamingSession(request) }
+            if let request { await releaseStreamingSession(request, reason: .requested) }
             onPlaybackStopped(finalPosition, percent)
         }
         stopTask = task
@@ -2594,10 +2655,8 @@ public final class PlayerViewModel {
     public func selectAudioOption(id: Int) {
         if streamingOptions != nil, request?.isTranscoding == true,
            let track = request?.audioTracks.first(where: { $0.id == id }) {
-            var snapshot = subtitleController.streamSnapshot()
-            snapshot.audio = track
             recordSeriesAudioSelection(language: track.language)
-            restartStreamingRendition(tracks: snapshot)
+            trackSelectAudioTrack(track)
             return
         }
         subtitleController.selectAudioOption(id: id)
@@ -2854,6 +2913,24 @@ extension PlayerViewModel: SubtitleTrackControllerHost {
         recordSeriesAudioSelection(language: language)
     }
 
+    @discardableResult
+    func trackSelectAudioTrack(_ track: MediaTrack) -> Bool {
+        guard phase == .ready, !didStop else { return false }
+        if streamingOptions != nil, let request, request.isTranscoding {
+            if request.streamingOptions?.selectedAudio(in: request.audioTracks)?.id == track.id { return true }
+            var snapshot = subtitleController.streamSnapshot()
+            snapshot.audio = track
+            restartStreamingRendition(
+                tracks: snapshot,
+                resumeOverride: nextEpisodeCoordinator.awaitingFirstFrame && currentResumePosition() == 0
+                    ? streamingResumePosition : nil
+            )
+        } else {
+            engine.selectAudioTrack(track)
+        }
+        return true
+    }
+
     func trackRecordSubtitleSelection(_ selection: RememberedSubtitleSelection?) {
         recordSeriesSubtitleSelection(selection)
     }
@@ -2900,11 +2977,14 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
         engineKind: PlaybackEngineKind,
         startPosition: TimeInterval
     ) async {
+        recordPlayback(.compatibilityRetry)
+        beginDiagnosticAttempt()
         await playResolved(request, engineKind: engineKind, startPosition: startPosition)
     }
 
     func handoffStartPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
         guard !Task.isCancelled, !didStop else { return }
+        recordPlayback(.compatibilityRetry)
         if forceTranscode, request != nil {
             restartStreamingRendition(forceTranscode: true, resumeOverride: resumeOverride)
             return
@@ -2917,7 +2997,7 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
             dynamicRangeLoadGeneration &+= 1
             streamingSessionMaintenance.cancel()
             if let request, request.streamingSessionID != nil {
-                Task { @MainActor [self] in await releaseStreamingSession(request) }
+                Task { @MainActor [self] in await releaseStreamingSession(request, reason: .failure) }
             }
         }
         if case .failed(let error) = phase {
@@ -2942,6 +3022,7 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     }
 
     private func capturePlaybackFailure(stage: PlaybackDiagnosticReport.Stage) {
+        recordPlaybackFailure(streamingQuality.error ?? .playback(.init(kind: .unknown)))
         let retryCodec: DirectPlayVideoCodec?
         switch streamingQuality.fallbackCodec {
         case .preferHEVC: retryCodec = .hevc
@@ -2959,10 +3040,55 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
         guard !didStop else { return false }
         HandoffDiagnostics.emit("streaming STARTUP_TIMEOUT provider=\(provider.kind.rawValue) suppliedStream=\(request != nil)")
         let evidence = engine.streamingFailure
+        recordPlayback(.startupTimedOut)
+        recordPlaybackFailure(evidence.map(StreamingQualityError.playback) ?? .startupTimedOut)
         if (evidence?.allowsCodecFallback != false || evidence?.kind == .hdrConversion),
            retryStreamingCodecIfNeeded(failure: evidence) { return true }
         streamingQuality.error = evidence.map(StreamingQualityError.playback) ?? .startupTimedOut
         return false
+    }
+
+    private func beginDiagnosticAttempt() {
+        diagnosticAttempt = UUID()
+        diagnosticStartedAt = ProcessInfo.processInfo.systemUptime
+        diagnosticFailure = nil
+        diagnosticPhase = nil
+    }
+
+    private func recordPlayback(
+        _ event: PlaybackDiagnosticJournal.Event, stopReason: PlaybackDiagnosticJournal.StopReason? = nil
+    ) {
+        diagnosticJournal.record(
+            event, session: diagnosticSession, attempt: diagnosticAttempt, facts: diagnosticFacts,
+            elapsed: ProcessInfo.processInfo.systemUptime - diagnosticStartedAt, route: engine.diagnosticRoute,
+            stopReason: stopReason
+        )
+    }
+
+    private func recordPlaybackFailure(_ error: StreamingQualityError) {
+        let failure = PlaybackDiagnosticJournal.Failure(error)
+        guard diagnosticFailure != failure else { return }
+        diagnosticFailure = failure
+        refreshDiagnosticOutputFacts()
+        diagnosticJournal.record(
+            .failed, session: diagnosticSession, attempt: diagnosticAttempt, facts: diagnosticFacts,
+            elapsed: ProcessInfo.processInfo.systemUptime - diagnosticStartedAt,
+            route: engine.diagnosticRoute, failure: failure
+        )
+    }
+
+    func upNextDidPresentFirstFrame() {
+        guard !didStop, request != nil, diagnosticFirstFrameAttempt != diagnosticAttempt else { return }
+        diagnosticFirstFrameAttempt = diagnosticAttempt
+        refreshDiagnosticOutputFacts()
+        recordPlayback(.firstFrame)
+    }
+
+    private func refreshDiagnosticOutputFacts() {
+        diagnosticFacts = .init(
+            provider: provider.kind, engine: request == nil ? nil : currentEngineKind, request: request,
+            outputCodec: engine.streamingOutputVideoCodec, outputRange: engine.streamingOutputDynamicRange
+        )
     }
 
     static func streamingFailure(

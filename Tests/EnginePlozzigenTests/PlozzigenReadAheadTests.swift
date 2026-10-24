@@ -95,5 +95,13 @@ final class PlozzigenReadAheadTests: XCTestCase {
     }
 
     private var item: MediaItem { MediaItem(id: "movie", title: "Fixture", kind: .movie) }
+    func testVODHLSLeavesCarriageClassificationToAether() throws {
+        let engine = try PlozzigenVideoEngine()
+        let request = PlaybackRequest(item: item, streamURL: URL(string: "https://example.test/master.m3u8")!)
+        let options = engine.onDemandLoadOptions(for: request)
+        XCTAssertFalse(options.nativeRemoteHLS, "An explicit bypass skips finite HEVC-in-TS classification.")
+        XCTAssertFalse(options.isLive)
+    }
+
     private var remoteURL: URL { URL(string: "https://example.invalid/movie.mkv")! }
 }

@@ -559,81 +559,122 @@ HDR10+ output.
 
 | Engine | Internal name | Underlying tech | Primary use case |
 |--------|--------------|-----------------|------------------|
-| **Plozzigen** | `.plozzigen` | AetherEngine (FFmpeg demux → HLS-fMP4 → localhost → AVPlayer) | MKV library content — the workhorse (~95% of local files) |
-| **Native** | `.native` | AVPlayer directly | Server-delivered HLS/fMP4 (transcodes, direct-play manifests) |
+| **Plozzigen** | `.plozzigen` | AetherEngine: native HLS, local remux/AVPlayer, or software decoding | Primary owner for library video, selected server renditions, ordinary downloads, and live channels |
+| **Native** | `.native` | AVPlayer / AVComposition | OS-managed download packages, separate trailer audio, constrained HEVC-HLS initialization repair, and bounded compatibility recovery |
 
 > `.hybrid` is a legacy routing value meaning "this item needs on-device
 > decode." It historically selected a libmpv-backed `EngineMPV`, which has been
-> **retired** (recoverable at the `archive/mpv-engine` git tag). The router still
-> emits `.hybrid` as its abstract "needs on-device decode" signal, but it now
-> resolves to **Plozzigen** — the sole on-device decode engine.
+> **retired** (recoverable at the `archive/mpv-engine` git tag). The current router
+> no longer emits `.hybrid`; retained compatibility values resolve to Plozzigen.
 
 ## Routing Logic
 
-Engine selection happens in `PlayerViewModel` at playback start:
+`EngineSelection` chooses the owner, not the decoder:
 
 ```
-1. Is there a localRemuxSource descriptor?
-   NO  → Native (server is delivering a ready-to-play stream)
-   YES → continue
-
-2. Is plozzigenEligibility == .eligible?
-   NO  → Native (Plozzigen can't handle this container/codec)
-   YES → Plozzigen ✓
+1. Credential-scoped network file -> Aether transport, never a native URL loader.
+2. Constrained, transcoded HEVC HLS -> native AVAsset initialization repair.
+3. Separate trailer audio or an OS-managed .movpkg directory -> native asset.
+4. Otherwise -> Aether when linked; native on native-only hosts.
 ```
 
-When the router asks for on-device decode (`.hybrid`), it resolves to Plozzigen
-if that engine is linked in; otherwise it falls back to Native (AVPlayer).
+Missing codec metadata, MP4/MOV, Dolby Vision profiles, and subtitle classes do
+not reintroduce host-side format gates. Aether probes the selected source and
+chooses its supported decode/render path. A progressive file with a legacy
+`.movpkg` extension is not an OS-managed asset package.
 
-## Plozzigen Eligibility Gate
+The adapter loads `PlaybackRequest.playbackSource`, **not**
+`localRemuxSource.originalSource`. The latter retains original-file facts and
+preview access; substituting it would bypass server-selected quality, audio,
+subtitle and conversion choices. Resume and server-session ownership remain
+with the existing playback coordinator. VOD uses Aether's ordinary load path,
+which classifies finite HEVC-in-TS HLS; forcing `nativeRemoteHLS` would bypass
+that classification. Live HLS keeps its separately configured engine path.
 
-Plozzigen accepts content when ALL of these are true:
+Managed server renditions retain the provider's source audio choices, even when
+the delivered stream contains only one audio track. Manual picks, imported
+language preferences and restored selections renegotiate through the playback
+coordinator. Source track IDs are never passed as rendition-local demux indexes.
 
-- **Container:** MKV / Matroska
-- **Video codec:** HEVC, H.264, VP9, or AV1
-- **Audio codec:** Any (fMP4-legal codecs are stream-copied; incompatible audio
-  uses spatial conversion when eligible, otherwise the FLAC/E-AC-3 channel bridge)
-- **Byte-range readable:** HTTP range requests or local file access
-- **NOT Dolby Vision Profile 7** (dual-layer BL+EL+RPU — unsupported everywhere)
+This follows the single-player, server-selected-input pattern in
+[Sodalite's player](https://github.com/superuser404notfound/Sodalite/blob/31799bde53e2d93384216b3f9b2523600896ef2b/Sodalite/Player/PlayerViewModel.swift).
+It does not assume that another app's profile or comments override Plozz's
+pinned engine API or provider contracts.
 
-## Edge Cases the Engines Don't Fully Cover
+## Provider input capabilities
 
-The retired mpv engine used to absorb these cases. They now route to Plozzigen
-(when eligible) or fall back to Native (AVPlayer):
+`PlozzigenMediaFormats` is the shared decoder-backed input list for Plex and
+Jellyfin/Emby negotiation. It includes MP4, Matroska/WebM, transport/program
+streams, AVI, ASF, Ogg, FLV and RealMedia, with their linked video/audio families.
+MPEG-2, MPEG-4 Part 2, VC-1, WMV/WMA, Theora, RealMedia and supported FLV-era
+codecs are not rejected merely because the old native-remux path lacked them.
+The list is not a promise that every file or arbitrary codec/container pairing
+works. Decoder availability, actual stream validity, transport, output and
+provider policy still matter. DASH is not advertised: compiled demuxers alone
+do not establish a supported remote-input path.
 
-| Scenario | Current handling |
-|----------|------------------|
-| PGS bitmap subtitles active | AVPlayer has no bitmap subtitle renderer; server-side burn-in/transcode is the path |
-| External audio URL | Plozzigen/AVPlayer play the primary track; server-side mux is the path |
-| Non-MKV containers (rare edge cases) | Native AVPlayer / server transcode |
-| DV Profile 7 dual-layer | Can't be remuxed to single-layer fMP4 |
-| Exotic video codecs (MPEG-2, VC-1) | Native AVPlayer / server transcode |
+Native-only capability profiles remain separate. Server conversion profiles,
+quality budgets, selected versions/tracks and session maintenance are unchanged.
 
-## When Native AVPlayer Is Used
+## Deliberate native exceptions
 
-Native handles content the server has already prepared:
+- An `AVAssetDownload` package is an OS-managed asset, not an ordinary file.
+- Separate trailer audio needs the existing `AVComposition`; Aether's single
+  URL/reader load is not that composition.
+- Constrained HEVC HLS retains the tested empty-`sdtp` fMP4 initialization repair.
+  It uses Plozz's custom AVAsset resource loader, which Aether's URL load cannot
+  accept. `HEVCInitializationPlaybackHostedTests` exercises the original
+  rejection and actual decoded frames after repair, including seeking.
+- Existing bounded alternate-engine/server-conversion recovery remains.
+  A transcoded request is not eligible for arbitrary alternate-engine recovery;
+  that ladder is not a substitute for preserving the initialization repair.
 
-- Server-transcoded HLS streams (`.m3u8`)
-- Direct-play of natively compatible MP4/MOV files
-- YouTube trailers (no `localRemuxSource` — just a URL)
+These are asset/API compatibility boundaries, not a blanket MP4, HEVC, HLS,
+Dolby Vision or subtitle exclusion. Aether's AVPlayer-backed routes are still
+native decoding; consolidation does not force software decoding or establish
+lower CPU, I/O or energy use.
+
+## Persistent playback diagnostics
+
+`PlaybackDiagnosticJournal` records event-driven request/load/first-frame,
+phase-change, failure, retry, stop and server-release evidence. Random
+session/attempt IDs correlate retries without persisting server session IDs.
+Typed failures are captured before teardown; output codec/range are separate
+from source metadata and negotiated output. Live playback records the existing
+typed failure evidence even when there is no server reporting callback; unknown
+live provider identity remains unknown rather than being labelled IPTV.
+
+Recording neither reads AVPlayer logs nor performs disk I/O. A utility queue
+coalesces writes, retaining at most 256 entries and 128 KiB for 48 hours.
+No new per-frame observation or polling loop is added. URLs, headers, titles,
+account identifiers and arbitrary error descriptions are excluded. Storage
+failures are explicit. `releaseFinished` means the provider release API returned,
+not proof that the server deleted the session.
+
+Settings' existing consent-gated diagnostic submission asynchronously appends
+the journal to its attachment, rechecking reporting availability after export.
+This is not an automatic per-event upload. The HUD remains separate.
+The `playback-journal-disabled/enabled` performance-lab controls measure 10,000
+notifications, synchronous admission separately, and completed persistence with
+retention assertions; they do not establish physical-device frame pacing.
 
 ## Quality Capabilities by Engine
 
 | Feature | Plozzigen | Native |
 |---------|-----------|--------|
-| Dolby Vision | ✅ (Profile 5/8) | ✅ (if server delivers DV) |
+| Dolby Vision | ✅ (Profile 5/8; optional dual-layer path, see above) | ✅ (if server delivers DV) |
 | Directly compatible spatial audio | ✅ (E-AC-3 JOC stream-copy on the native path; FEL uses channel PCM) | ✅ (if stream has E-AC-3 JOC) |
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
-| PGS subtitles | ❌ | ❌ |
+| PGS subtitles | ✅ (engine-owned subtitle paths) | ❌ (server burn-in needed) |
 | Spatial audio conversion with heights | ✅ (supported native-path tracks on tvOS 26+, lossy; not FEL) | ❌ |
 | DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery
 
-The Plozzigen and Native engines both output audio through `AVPlayer` +
-`AVAudioSession`, so they are subject to the **AirPlay 2 / HomePod silent-drop**
+Native and Aether's AVPlayer-backed routes use `AVPlayer` +
+`AVAudioSession`, so they can encounter the **AirPlay 2 / HomePod silent-drop**
 that was root-caused and fixed for music. The cure (a full audio-session
 deactivate→reactivate cycle — `setActive(true)` alone is a no-op), plus what
 did/didn't work and how to port it to video seek/route-change handling, is
@@ -641,11 +682,11 @@ documented in **[airplay-audio-recovery.md](./airplay-audio-recovery.md)**.
 
 ## Source Code References
 
-- Eligibility gate: `Sources/CoreModels/LocalRemuxModels.swift` → `plozzigenEligibility`
-- Engine routing: `Sources/FeaturePlayback/PlayerViewModel.swift` → engine selection block
+- Provider input formats: `Sources/CoreModels/PlozzigenMediaFormats.swift`
+- Engine routing: `Sources/FeaturePlayback/EngineSelection.swift`
 - Plozzigen adapter: `Sources/EnginePlozzigen/PlozzigenVideoEngine.swift`
 - Engine factory: `Sources/FeaturePlayback/EngineFactory.swift`
-- AetherEngine dependency: `Package.swift` → `superuser404notfound/AetherEngine`
+- AetherEngine dependency: `Package.swift` → `brandomoore/AetherEngine` (patched upstream fork)
 
 ## History
 

@@ -171,6 +171,20 @@ SCENARIOS = {
         "description": "100 full bounded snapshots including serialization at event-capture boundaries.",
         "counters": ["snapshots", "records", "serializedBytes"],
     },
+    "playback-journal-disabled": {
+        "suite": "diagnostics", "target": "CoreModelsTests",
+        "test": "PerformanceDiagnosticsProbeTests/testPerformancePlaybackJournalDisabled",
+        "file": "Tests/CoreModelsTests/PerformanceDiagnosticsProbeTests.swift",
+        "description": "10,000 lifecycle notifications without recording; control for journal overhead.",
+        "counters": ["notifications", "retained", "discarded", "persistedBytes", "enqueueMicroseconds"],
+    },
+    "playback-journal-enabled": {
+        "suite": "diagnostics", "target": "CoreModelsTests",
+        "test": "PerformanceDiagnosticsProbeTests/testPerformancePlaybackJournalEnabled",
+        "file": "Tests/CoreModelsTests/PerformanceDiagnosticsProbeTests.swift",
+        "description": "The same notifications with bounded recording and completed encoding/persistence.",
+        "counters": ["notifications", "retained", "discarded", "persistedBytes", "enqueueMicroseconds"],
+    },
     "skeletons-idle": {
         "suite": "ui", "test": "ShimmerPerformanceTests/testPerformanceLoadingCards",
         "file": "Tests/PerformancePresentationSupport/ShimmerPerformanceTests.swift",
