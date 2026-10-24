@@ -406,7 +406,7 @@ public protocol StreamingSessionMaintaining: MediaProvider {
 }
 
 public enum StreamingQualityError: Error, Equatable, Sendable {
-    public enum RefusalReason: String, Sendable {
+    public enum RefusalReason: String, Codable, Sendable {
         case sessionExpired = "session_expired"
         case transcodingDisabled = "transcoding_disabled"
         case conversionToolUnavailable = "conversion_tool_unavailable"
@@ -496,13 +496,13 @@ public enum StreamingQualityError: Error, Equatable, Sendable {
 }
 
 public struct StreamingPlaybackFailure: Equatable, Sendable {
-    public enum Kind: String, Sendable {
+    public enum Kind: String, Codable, Sendable {
         case network, timedOut, accessDenied, unavailable, unsupportedFormat
         case hdrConversion, hdrConversionUnconfirmed, server, unknown
         case rateLimited, accessRestricted, storageExhausted, audioOutputFailed
         case readinessTimedOut, processingFailed
     }
-    public enum Domain: String, Sendable { case avFoundation = "AVFoundation", url = "URL", coreMedia = "CoreMedia" }
+    public enum Domain: String, Codable, Sendable { case avFoundation = "AVFoundation", url = "URL", coreMedia = "CoreMedia" }
     public let kind: Kind
     public let domain: Domain?
     public let code: Int?

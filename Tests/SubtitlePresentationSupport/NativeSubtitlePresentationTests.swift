@@ -978,6 +978,10 @@ private final class SidecarTrackHost: SubtitleTrackControllerHost, SubtitleOverl
     func trackRememberedSubtitle(for item: MediaItem) -> RememberedSubtitleSelection? { .off }
     func trackEffectiveSubtitleRule(for item: MediaItem) -> SubtitlePolicy.Rule { .init() }
     func trackRecordAudioSelection(language: String?) {}
+    func trackSelectAudioTrack(_ track: MediaTrack) -> Bool {
+        engine.selectAudioTrack(track)
+        return true
+    }
     func trackRecordSubtitleSelection(_ selection: RememberedSubtitleSelection?) {}
     func trackRefreshSubtitleDelayAvailability() {}
     func trackPlayResolvedForImageSubtitleSwap(_ request: PlaybackRequest, startPosition: TimeInterval) async {

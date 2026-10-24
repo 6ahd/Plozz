@@ -84,7 +84,7 @@ struct LiveTVSetupWelcome: View {
                         }
                         if let retryLibrary {
                             Button("Retry Plozz channels", action: retryLibrary)
-                                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                                .plozzActionButton(role: .secondary)
                         }
                     }
                     ForEach(serverStatuses) { status in
@@ -92,7 +92,7 @@ struct LiveTVSetupWelcome: View {
                     }
                     if serverStatuses.contains(where: { $0.failure != nil }), let retryServers {
                         Button("Retry", action: retryServers)
-                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            .plozzActionButton(role: .secondary)
                     }
                 }
                 .frame(maxWidth: maximumWidth, alignment: .leading)

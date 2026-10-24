@@ -1821,9 +1821,13 @@ final class PlayerViewModelEOFTests: XCTestCase {
         gate.releaseNext()
         await loadTask.value
 
-        XCTAssertTrue(plozzigenEngines.isEmpty)
+        XCTAssertEqual(plozzigenEngines.count, 1, "Only the idle bootstrap engine should exist.")
+        let initial = try XCTUnwrap(plozzigenEngines.first)
+        XCTAssertEqual(initial.loadCount, 0)
+        XCTAssertEqual(initial.stopCount, 1)
+        XCTAssertNil(initial.onProbedSourceFactsChanged)
         XCTAssertEqual(native.loadCount, 0)
-        XCTAssertEqual(native.stopCount, 1)
+        XCTAssertEqual(native.stopCount, 0)
         XCTAssertEqual(native.status, .idle)
         XCTAssertNil(native.onProbedSourceFactsChanged)
     }
@@ -1855,7 +1859,8 @@ final class PlayerViewModelEOFTests: XCTestCase {
 
         gate.releaseNext()
         await staleLoad.value
-        XCTAssertTrue(plozzigenEngines.isEmpty)
+        XCTAssertEqual(plozzigenEngines.count, 1, "The stale load must not replace the bootstrap engine.")
+        XCTAssertEqual(plozzigenEngines[0].loadCount, 0)
         XCTAssertEqual(native.stopCount, 0)
 
         gate.releaseNext()
@@ -1863,7 +1868,7 @@ final class PlayerViewModelEOFTests: XCTestCase {
         XCTAssertEqual(plozzigenEngines.count, 1)
         XCTAssertEqual(plozzigenEngines[0].loadCount, 1)
         XCTAssertNotNil(plozzigenEngines[0].onProbedSourceFactsChanged)
-        XCTAssertEqual(native.stopCount, 1)
+        XCTAssertEqual(native.stopCount, 0)
         await viewModel.stop()
     }
 

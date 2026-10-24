@@ -90,9 +90,9 @@ let package = Package(
         // Powers the native HLS-fMP4 remux path for MKV → DoVi + Atmos + seek.
         // See docs/playback-engines.md for integration and fork corrections.
         //
-        // Pinned to the playback-corrected fork at
-        // deb90eb3f740fe1ddda74301a64e3937e480877d, integrating upstream main
-        // 3721cec573478bf82bc5056417f13b76d644517b (7.42.0 plus unreleased changes).
+        // Pinned to the playback-corrected fork integrating upstream 7.47.0
+        // (a1a70cd63c1fef89cffcf0e8110456807d0fab05). This retains Plozz's
+        // AAC timing, ASS duration and dynamic-linking corrections.
         //
         // Everything the old `plozz-pin-*` stack existed for is upstream
         // as of 5.23.2:
@@ -119,7 +119,7 @@ let package = Package(
         // claimed over a playhead with nothing resident ahead of it). 5.23.7 bounds
         // the anchor to the fetch sequence and falls back to the playhead outside
         // it. Never take 5.23.4 without 5.23.7.
-        // Tracking upstream releases directly is now strictly better than the fork.
+        // Later fork-only corrections are retained below.
         //
         // Still pinned by exact SHA rather than a version range: the engine is the
         // playback path, so a bump is a deliberate, device-tested change.
@@ -246,7 +246,7 @@ let package = Package(
         // bridge; the engine's legacy SMB URL product is not linked.
         .package(
             url: "https://github.com/brandomoore/AetherEngine",
-            revision: "32f5c5b24c6c1e63c8f036020af8a49dc9d76570",
+            revision: "5fe2d42d68524dcfbcfacf07cbefe5b28b618155",
             traits: [
                 "TrueHDObjectAudio", "DTSXObjectAudio",
                 "DualLayerDolbyVision", "DolbyVisionStillReshaping",

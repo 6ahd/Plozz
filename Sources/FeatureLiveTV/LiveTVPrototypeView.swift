@@ -1184,7 +1184,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         if let sources {
             switch destination {
             case .addPlaylist:
-                LiveTVSourceAccessGate(model: sources) {
+                LiveTVSourceAccessGate(model: sources) { _ in
                     LiveTVPlaylistEditor { input in
                         let previous = Set(sources.configuration.playlists.map(\.id))
                         try sources.savePlaylist(input: input)
@@ -1195,7 +1195,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     }
                 }
             case .serverSetup:
-                LiveTVSourceAccessGate(model: sources) {
+                LiveTVSourceAccessGate(model: sources) { _ in
                     LiveTVServerSetupView(
                         sources: sources, choices: serverChoices,
                         resolver: serverProviderResolver,
@@ -1230,7 +1230,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     }
                 }
                 .navigationDestination(isPresented: $showsScanSources) {
-                    LiveTVSourceAccessGate(model: sources) {
+                    LiveTVSourceAccessGate(model: sources) { _ in
                         if scanBinding.issue != nil {
                             LiveTVSettingsPage(title: "Check channels") {
                                 SettingsSectionGroup {
@@ -1661,8 +1661,20 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             libraryCatalog: libraryCatalogRevision,
             loadLibraryGuide: publishLibraryGuide,
             openLibraryItem: onOpenTitle == nil ? nil : openLibraryItem,
-            leadingExit: leadingExit
+            leadingExit: leadingExit,
+            previewChannel: previewChannelSelection
         )
+    }
+
+    private var previewChannelSelection: ((LiveTVGuideRowID) -> Void)? {
+        #if os(iOS)
+        { row in
+            if isSearching { closeSearch() }
+            tune(row.channelID, origin: row, expandsPlayer: false)
+        }
+        #else
+        nil
+        #endif
     }
 
     private func revealCategories() {
@@ -2102,7 +2114,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         if settings != current { viewSettingsStore.save(settings) }
     }
 
-    private func tune(_ id: String, origin: LiveTVGuideRowID? = nil) {
+    private func tune(_ id: String, origin: LiveTVGuideRowID? = nil, expandsPlayer: Bool = true) {
         guard activity.acceptsInteraction else {
             let phase = scenePhase == .active ? "active" : scenePhase == .background ? "background" : "inactive"
             HandoffDiagnostics.emit(
@@ -2135,11 +2147,17 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             channelSequence = LiveTVChannelSequence(channels: channels)
         }
         let selectedOrigin = !preview.isExpanded && selectedRowID?.channelID == id ? selectedRowID : nil
-        playback.watch(id, origin: origin ?? selectedOrigin)
+        playback.watch(id, origin: origin ?? selectedOrigin, expandsPlayer: expandsPlayer)
     }
 
     private func handleWatchAcceptance() {
-        guard isActive, preview.isExpanded, let current = playback.preparation.current else { return }
+        guard isActive, let current = playback.preparation.current else { return }
+        if preview.isWatchingInline {
+            selectedChannelID = current.channel.id
+            if selectedRowID?.channelID != current.channel.id { selectedRowID = preview.watchOrigin }
+            return
+        }
+        guard preview.isExpanded else { return }
         #if os(tvOS)
         onExpandedChange(true)
         #endif

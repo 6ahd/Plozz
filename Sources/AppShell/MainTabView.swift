@@ -42,7 +42,7 @@ private struct LiveTVSettingsSourcesScope<Content: View>: View {
         didConfigurePlaylist: @escaping () -> Void
     ) {
         self.content = content
-        _sources = State(initialValue: LiveTVSettingsSources {
+        _sources = State(initialValue: LiveTVSettingsSources { preferences in
             AnyView(LiveTVShellSourcesDestination(
                 profileID: profileID,
                 preferencesNamespace: preferencesNamespace,
@@ -50,7 +50,8 @@ private struct LiveTVSettingsSourcesScope<Content: View>: View {
                 connectServer: connectServer,
                 didConfigurePlaylist: didConfigurePlaylist,
                 isPresented: isPresented(),
-                isProfileAuthorized: { isPresented() && isProfileAuthorized() }
+                isProfileAuthorized: { isPresented() && isProfileAuthorized() },
+                settingsPreferences: preferences
             ))
         })
     }

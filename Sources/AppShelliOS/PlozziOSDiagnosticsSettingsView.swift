@@ -13,6 +13,7 @@ struct PlozziOSDiagnosticsSettingsView: View {
     @Bindable var crashReporting: CrashReportingSettingsModel
     @State private var diagnosticNote = ""
     @State private var sendStatus: String?
+    @State private var isSending = false
 
     private var report: DiagnosticsReport {
         let version = AppVersionIdentity.current
@@ -74,19 +75,23 @@ struct PlozziOSDiagnosticsSettingsView: View {
                     .lineLimit(2...4)
                 Button {
                     appModel.applyCrashReportingPreference()
-                    let sent = CrashDiagnostics.send(
-                        logText: PlozzLog.recentLogText(limit: 200),
-                        note: diagnosticNote.trimmingCharacters(in: .whitespacesAndNewlines)
-                    )
-                    sendStatus = sent
-                        ? "Diagnostics sent. Thank you."
-                        : "Diagnostics could not be sent. Enable crash reports and try again."
+                    let note = diagnosticNote.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let log = PlozzLog.recentLogText(limit: 200)
+                    isSending = true
+                    Task {
+                        defer { isSending = false }
+                        let sent = await CrashDiagnostics.send(logText: log, note: note)
+                        sendStatus = sent
+                            ? "Diagnostics sent. Thank you."
+                            : "Diagnostics could not be sent. Enable crash reports and try again."
+                    }
                 } label: {
                     Label("Send to Developer", systemImage: "paperplane")
                 }
                 .disabled(
                     !appModel.crashReportingController.isConfigured
                         || !crashReporting.isEnabled
+                        || isSending
                 )
 
                 if let sendStatus {

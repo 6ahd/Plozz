@@ -2070,8 +2070,10 @@ private struct LiveChannelTimeline: View {
                     }
                 }
                 .mask {
-                    LiveChannelProgrammeTrack(ranges: layout.maskRanges, height: barHeight)
-                        .equatable()
+                    LiveChannelProgrammeTrack(
+                        ranges: layout.maskRanges, height: barHeight, restingHeight: Self.restingBarHeight
+                    )
+                    .equatable()
                 }
                 #endif
                 if scrubbing, showsScrubThumbnail {
@@ -2315,17 +2317,14 @@ private struct LiveChannelProgrammeTrack: View, Equatable {
     let ranges: [Range<Double>]
     let height: CGFloat
     var minimumSectionWidth: CGFloat = 0
+    var restingHeight: CGFloat? = nil
 
     var body: some View {
         Canvas { context, size in
-            guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
-            var mask = Path()
-            for section in SkipMarkerTrackLayout.segmentedSections(
-                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
-            ) {
-                let radius = min(section.width, section.height) / 2
-                mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
-            }
+            let mask = SkipMarkerTrackLayout.maskPath(
+                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth,
+                restingHeight: restingHeight
+            )
             context.fill(mask, with: .color(.white))
         }
         .frame(height: height)

@@ -547,15 +547,40 @@ the profile. Playlist addresses, optional guide
 addresses and their order, source names, and enabled states are stored securely
 per profile. Server sources store an account reference, not duplicate credentials.
 View preferences and source management live in **Settings > Live TV**.
-On Apple TV, Sources stays inside the Settings detail pane. Saved sources use
-compact icon/name/status rows instead of repeating every control and hostname.
+**TV sources** is the first section on the Live TV settings page on both
+platforms, with a regular-sized **Add source** button in its header. Saved
+sources open directly from this page; there is no separate Sources drill-in or
+truncated list with an All sources row. Up to four sources use their natural
+height. Longer lists reuse `FadingScrollView`, measuring the rows to show four
+complete sources and half the fifth with the existing directional edge fade.
+Long names and source errors contribute to the measured height rather than
+being clipped. Scrolling or remote focus reaches every source without moving
+the following settings down by the full list height.
+Saved sources use icon/name/status rows instead of repeating every control and hostname.
+Provider/type and status share one secondary line, with compact row insets rather
+than another full layer of group padding. Long content can still wrap.
 Playlist icons optionally load the source origin's favicon, with a generic
 fallback; no playlist credentials or third-party favicon service are used.
+Connected media servers reuse `ProviderBrandMark`, including the same Plex,
+Jellyfin, and Emby logos and focus-aware colors used elsewhere in Settings.
+Their identity comes from the active profile's account metadata, not their
+user-entered name or a credential lookup while rendering. Unavailable account
+metadata retains the generic server icon.
 Each source opens its controls and diagnostics on a child page with Back.
-Plozz channels and Check channel availability are disclosure actions, not
-enabled-state indicators. They open sibling child pages through the Settings
-workspace; the Plozz channels page contains the actual enable switch. Custom
-channel creation/editing and save dismissal use the same page navigation.
+**Plozz channels** follows the sources, with the guarded **Auto-create channels from
+your libraries** switch and a separate **Manage channels** action. The toggle label
+explains the action directly, without a detached section footer. Turning automatic
+channels off leaves custom channels available. **Guide & browsing** labels its root picker
+**Live TV opens to**, with Categories or Guide as its value. **Channel order** is
+also a root-level menu, offering Channel number or Name without opening a child
+page. Guide preferences and channel visibility have child pages. Single-line
+TV navigation and menu rows share the standard form height; configured source
+rows retain their compact sizing. Mobile retains its network playback preference. **Tools** contains
+source refresh, channel availability checks, and guide coverage when applicable.
+Source management remains PIN-protected while ordinary browsing preferences stay
+available without unlocking source mutations. On Apple TV, child pages stay
+inside the Settings workspace. Custom channel creation/editing and save dismissal
+use the same page navigation.
 The guide's separate Sources presentation also opens channel checks directly,
 without requiring Plozz channels to be available or open first.
 On tvOS, Generated channels is a bounded scrolling group with focusable,
@@ -611,8 +636,8 @@ Each tap pushes only its selected destination, and Back returns one level.
 This applies to both Settings and the Live TV toolbar's Sources entry.
 Channel, guide and access failures appear beside the affected enabled source,
 using the shared theme-aware inline error style and naming failed guides.
-On mobile, the source row, error and Retry share one group item; dividers
-separate sources, never a source from its own error.
+On mobile, the source row, error and Retry stay together as one item, including
+inside the bounded settings list.
 Retry shows an inline loading spinner and label, prevents duplicate taps, and
 briefly retains feedback even when the provider refuses the request immediately.
 During a source Retry, that inline indicator replaces the source's loading
@@ -1263,6 +1288,14 @@ IPTV links, not network discovery or tuner-consuming Plex/Jellyfin/Emby streams,
 and do not commandeer the playing engine.
 
 ### Audible previews and seamless viewing
+
+On iPhone and iPad, tapping a station, programme, or empty guide cell starts that
+channel in the upper preview without opening fullscreen. The preview sits below
+the top safe area. This is explicit playback, independent of the TV auto-preview
+preference; channel preparation, authorization and stale-request cancellation
+still use the shared Watch coordinator. Watch and the channel's Play action open
+fullscreen without replacing an already prepared channel. Long-pressing a station
+retains its channel actions, and programme selection still updates the info bar.
 
 On Apple TV, resting on a different channel for **600 ms** requests its preview.
 Rapid scrolling cancels pending requests; moving between programs on the same

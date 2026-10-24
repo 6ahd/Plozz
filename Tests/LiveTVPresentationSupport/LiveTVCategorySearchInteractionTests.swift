@@ -7,6 +7,57 @@ import UIKit
 @MainActor
 final class LiveTVCategorySearchInteractionTests: XCTestCase {
     #if os(iOS)
+    func testChannelAndProgrammeTapsStartTheTopPreviewWithoutOpeningFullscreen() {
+        let app = launch(guideFirst: true)
+        defer { app.terminate() }
+        let arena = channel("Arena One", in: app)
+        XCTAssertTrue(arena.waitForExistence(timeout: 15), app.debugDescription)
+        let preview = app.otherElements["category-search-playback"]
+        XCTAssertFalse(preview.exists)
+        arena.tap()
+        XCTAssertTrue(preview.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(preview.label, "Arena One")
+        XCTAssertEqual(preview.value as? String, "Preview")
+        XCTAssertTrue(channel("Daily News", in: app).isHittable)
+        XCTAssertGreaterThanOrEqual(preview.frame.minY, app.frame.minY + 40)
+        let programme = app.buttons["Championship Highlights"].firstMatch
+        XCTAssertTrue(programme.waitForExistence(timeout: 5))
+        programme.tap()
+        let tuned = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Stadium Live"), object: preview
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [tuned], timeout: 10), .completed)
+        XCTAssertEqual(preview.value as? String, "Preview")
+        XCTAssertTrue(channel("Arena One", in: app).isHittable)
+        capture("channel-tap-starts-top-preview", in: app)
+        app.buttons["Watch channel"].tap()
+        let expanded = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", "Fullscreen"), object: preview
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed)
+        XCTAssertFalse(channel("Arena One", in: app).isHittable)
+    }
+
+    func testChannelSearchSelectionClosesSearchAndStartsVisiblePreview() {
+        let app = launchSearch(guideFirst: true)
+        defer { app.terminate() }
+        let field = searchField(in: app)
+        field.typeText("Daily")
+        let news = channel("Daily News", in: app)
+        XCTAssertTrue(news.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.otherElements["category-search-playback"].exists)
+        field.typeText("\n")
+        news.tap()
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), app.debugDescription)
+        let preview = app.otherElements["category-search-playback"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(preview.label, "Daily News")
+        XCTAssertEqual(preview.value as? String, "Preview")
+        XCTAssertGreaterThanOrEqual(preview.frame.minY, app.frame.minY + 40)
+        XCTAssertTrue(channel("Arena One", in: app).isHittable)
+        capture("channel-search-starts-top-preview", in: app)
+    }
+
     func testNativeToolbarGroupsProfileAndBrowseActions() {
         let app = launch()
         defer { app.terminate() }

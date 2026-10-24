@@ -197,6 +197,8 @@ limits and refuses an incompatible plan rather than quietly using Maximum.
 - **Choose download quality separately** — streaming preferences don't change
   your saved download settings. Available renditions and background-transfer
   behavior depend on the provider. Apple TV does not offer offline downloads.
+  User-requested downloads check the same usable device capacity shown in
+  Downloads, including space iOS can reclaim, before starting the transfer.
 - **Follow downloads outside Plozz** — on iOS/iPadOS 26 or later, user-started
   downloads request the system's continued-processing Live Activity, including
   Dynamic Island on supported iPhones. One activity tracks the active queue

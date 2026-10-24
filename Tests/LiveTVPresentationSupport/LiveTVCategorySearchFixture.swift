@@ -25,8 +25,11 @@ struct LiveTVCategorySearchFixture: View {
                 preferencesNamespace: namespace,
                 sourceApprovalContext: { [profiles] in LiveTVSourceApprovalContext(profiles: profiles) },
                 topBarAccessory: profileAction
-            ) { _ in
-                Color.black.accessibilityIdentifier("category-search-playback")
+            ) { playback in
+                Color.black
+                    .accessibilityIdentifier("category-search-playback")
+                    .accessibilityLabel(Text(playback.channel.name))
+                    .accessibilityValue(Text(verbatim: playback.isExpanded ? "Fullscreen" : "Preview"))
             }
         }
         .environment(profiles)

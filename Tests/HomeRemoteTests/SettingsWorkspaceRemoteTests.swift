@@ -1729,6 +1729,128 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         return app
     }
 
+    func testLiveTVOverviewKeepsAllSourcesReachableAndAddInTheHeader() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--sources-navigation-fixture", "--settings-overview-fixture",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        defer { app.terminate() }
+        let first = app.buttons["live-tv-source-details-fixture"]
+        XCTAssertTrue(first.waitForExistence(timeout: 15), app.debugDescription)
+        let add = app.buttons["live-tv-add-source"]
+        XCTAssertTrue(add.exists)
+        let lineup = app.descendants(matching: .any)["live-tv-sources-list"].firstMatch
+        try focus(first, in: app)
+        let viewport = lineup.frame.intersection(app.frame)
+        for index in 0..<4 {
+            let suffix = index == 0 ? "fixture" : "fixture-\(index)"
+            let row = app.buttons["live-tv-source-details-\(suffix)"]
+            XCTAssertGreaterThanOrEqual(row.frame.minY, viewport.minY - 1)
+            XCTAssertLessThanOrEqual(row.frame.maxY, viewport.maxY + 1)
+        }
+        let fifth = app.buttons["live-tv-source-details-fixture-4"].frame
+        XCTAssertEqual(viewport.intersection(fifth).height / fifth.height, 0.5, accuracy: 0.08)
+        capture("live-tv-overview-entry", in: app)
+        for index in 1..<6 {
+            XCUIRemote.shared.press(.down)
+            XCTAssertTrue(hasFocus(app.buttons["live-tv-source-details-fixture-\(index)"]),
+                          "Down must reach each source without escaping the bounded list.")
+        }
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.switches["live-tv-source-enabled-fixture-5"].waitForExistence(timeout: 5))
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        try focus(add, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["live-tv-add-server"].waitForExistence(timeout: 5))
+        for identifier in ["live-tv-add-playlist", "live-tv-add-server"] {
+            let action = app.buttons[identifier]
+            try focus(action, in: app)
+            XCTAssertEqual(try assertStandardFormFocusFill(action), 74, accuracy: 1)
+        }
+        let rootHidden = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                let automatic = app.switches["live-tv-automatic-enabled"]
+                return !automatic.exists || !automatic.isEnabled
+            },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [rootHidden], timeout: 5), .completed,
+                       "The retained root must not accept input behind Add source.\n\(app.debugDescription)")
+        capture("live-tv-add-source-page", in: app)
+        XCUIRemote.shared.press(.menu)
+        let automatic = app.switches["live-tv-automatic-enabled"]
+        try focus(automatic, in: app)
+        XCTAssertTrue(automatic.label.contains("Auto-create channels from your libraries"))
+        let automaticTitle = automatic.staticTexts["Auto-create channels from your libraries"].firstMatch
+        XCTAssertTrue(automaticTitle.exists)
+        XCTAssertLessThanOrEqual(automaticTitle.frame.height, 40,
+                                "The TV label should fit on one line without shrinking.")
+        XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].label.contains("Manage channels"))
+        XCTAssertFalse(app.staticTexts["Channels made from your movies and shows."].exists)
+        capture("live-tv-automatic-action-label", in: app)
+        for identifier in [
+            "live-tv-manage-library-channels", "live-tv-start-view", "live-tv-channel-order",
+            "live-tv-guide-preferences", "live-tv-channel-visibility"
+        ] {
+            let row = app.buttons[identifier]
+            try focus(row, in: app)
+            XCTAssertEqual(try assertStandardFormFocusFill(row), 74, accuracy: 1,
+                           "Single-line navigation and menu controls must share their painted height.")
+        }
+        let order = app.buttons["live-tv-channel-order"]
+        for choice in ["Name", "Channel number"] {
+            try focus(order, in: app)
+            XCUIRemote.shared.press(.select)
+            let option = app.cells.containing(.any, identifier: choice).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            let changed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in order.value as? String == choice }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
+            XCTAssertTrue(hasFocus(order), "Changing channel order must return to the root menu row.")
+            XCTAssertTrue(app.buttons["live-tv-manage-library-channels"].isEnabled)
+        }
+        try focus(app.buttons["live-tv-guide-preferences"], in: app)
+        capture("live-tv-standard-form-controls", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.switches["Auto preview"].waitForExistence(timeout: 5))
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(add.waitForExistence(timeout: 5))
+    }
+
+    @discardableResult
+    private func assertStandardFormFocusFill(_ row: XCUIElement) throws -> CGFloat {
+        let image = try XCTUnwrap(row.screenshot().image.cgImage)
+        var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        var longest = 0
+        var current = 0
+        for y in 0..<image.height {
+            let pixel = (y * image.width + image.width / 2) * 4
+            if bytes[pixel] > 230 && bytes[pixel + 1] > 230 && bytes[pixel + 2] > 230 {
+                current += 1
+                longest = max(longest, current)
+            } else {
+                current = 0
+            }
+        }
+        let scale = CGFloat(image.width) / row.frame.width
+        XCTAssertGreaterThanOrEqual(CGFloat(longest) / scale, 70,
+                                   "The painted focus fill, not just outer padding, must span a standard form row.")
+        return CGFloat(longest) / scale
+    }
+
     func testCompactIPTVSourcesAndChildBackNavigation() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar", sources: true)
@@ -1742,30 +1864,50 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.menu)
         try focus(section("liveTV", in: app), in: app)
         XCUIRemote.shared.press(.select)
-        XCTAssertLessThan(
-            app.staticTexts["Preview the focused channel as you browse."].firstMatch.frame.height,
-            app.staticTexts["Auto preview"].firstMatch.frame.height,
-            "Helper text must render smaller than the control label, not just use a different text style."
-        )
-        capture("compact-guide-settings", in: app)
-        try focus(app.buttons["settings-page-sources"], in: app)
-        XCUIRemote.shared.press(.select)
         let first = app.buttons["live-tv-source-details-settings-review-0"]
         XCTAssertTrue(first.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(app.buttons["settings-page-sources"].exists,
+                       "Sources belong directly on the Live TV settings page.")
+        let add = app.buttons["live-tv-add-source"]
+        XCTAssertTrue(add.exists)
+        XCTAssertTrue(app.switches["live-tv-automatic-enabled"].exists)
+        let lineup = app.descendants(matching: .any)["live-tv-sources-list"].firstMatch
+        try focus(first, in: app)
+        let viewport = lineup.frame.intersection(app.frame)
+        for index in 0..<4 {
+            let row = app.buttons["live-tv-source-details-settings-review-\(index)"]
+            XCTAssertGreaterThanOrEqual(row.frame.minY, viewport.minY - 1)
+            XCTAssertLessThanOrEqual(row.frame.maxY, viewport.maxY + 1)
+        }
+        let fifth = app.buttons["live-tv-source-details-settings-review-4"].frame
+        XCTAssertEqual(viewport.intersection(fifth).height / fifth.height, 0.5, accuracy: 0.08,
+                       "The shared fade must reveal part of the fifth source.")
         for index in 0..<6 {
             let row = app.buttons["live-tv-source-details-settings-review-\(index)"]
             XCTAssertTrue(row.exists)
-            XCTAssertLessThanOrEqual(row.frame.height, 110, "Sources must be compact summary rows.")
+            if index > 0 { XCUIRemote.shared.press(.down) }
+            XCTAssertTrue(hasFocus(row), "Every source must be reachable in order.")
         }
+        capture("live-tv-sources-scrolled", in: app)
         XCTAssertFalse(app.buttons["live-tv-remove-source-settings-review-0"].exists)
-        capture("compact-iptv-sources", in: app)
-        try focus(app.buttons["live-tv-add-server"], in: app)
-        capture("iptv-sources-scrolled", in: app)
+        try focus(add, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["live-tv-add-server"].waitForExistence(timeout: 5))
+        capture("live-tv-add-source", in: app)
         let detailScroll = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
             $0.buttons["live-tv-add-server"].exists
         })
-        XCTAssertLessThanOrEqual(detailScroll.frame.minY, 1, "The scroll viewport must reach the screen edge.")
         let detailMaxX = detailScroll.frame.maxX
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(add.waitForExistence(timeout: 5))
+        try focus(app.buttons["live-tv-guide-preferences"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertLessThan(
+            app.staticTexts["Preview the focused channel as you browse."].firstMatch.frame.height,
+            app.staticTexts["Auto preview"].firstMatch.frame.height
+        )
+        capture("live-tv-guide-preferences", in: app)
+        XCUIRemote.shared.press(.menu)
         try focus(first, in: app)
         XCUIRemote.shared.press(.select)
         let back = pageBack("live-tv-settings-back", in: app)

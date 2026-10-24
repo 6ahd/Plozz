@@ -90,6 +90,8 @@ public protocol VideoEngine: AnyObject {
     var streamingFailure: StreamingPlaybackFailure? { get }
     var streamingOutputDynamicRange: SourceDynamicRange? { get }
     var streamingOutputVideoCodec: DirectPlayVideoCodec? { get }
+    var diagnosticRoute: PlaybackFailureEvidence.Route? { get }
+    var onDiagnosticPhaseChanged: (@MainActor (PlaybackDiagnosticJournal.Phase) -> Void)? { get set }
 
     // MARK: Lifecycle
 
@@ -372,6 +374,11 @@ public extension VideoEngine {
     var streamingFailure: StreamingPlaybackFailure? { nil }
     var streamingOutputDynamicRange: SourceDynamicRange? { nil }
     var streamingOutputVideoCodec: DirectPlayVideoCodec? { nil }
+    var diagnosticRoute: PlaybackFailureEvidence.Route? { nil }
+    var onDiagnosticPhaseChanged: (@MainActor (PlaybackDiagnosticJournal.Phase) -> Void)? {
+        get { nil }
+        set {}
+    }
     var needsBackgroundReload: Bool { true }
     var maximumPlaybackSpeed: Double { 4 }
     var nowPlayingPlayer: AVPlayer? { nil }

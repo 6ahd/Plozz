@@ -75,6 +75,50 @@ final class PlayerSkipMarkerHostedTests: XCTestCase {
         }
     }
 
+    func testTinyOpeningSectionUsesSoftMatchingCornersAndKeepsRoomyJoinsRounded() async throws {
+        try await withWindow { window in
+            for performance in [false, true] {
+                for focused in [false, true] {
+                    let background = Color(red: 0.15, green: 0.35, blue: 0.6)
+                    let model = showTrack(
+                        in: window, focused: focused, performance: performance, background: background
+                    )
+                    model.skipSegments.segments = [.init(kind: .intro, start: 0.5, end: 25)]
+                    let frame = try await render(in: window)
+                    let top = focused ? 580 : 584
+                    let widerSectionStart = focused ? 330 : 329
+                    XCTAssertNotEqual(frame.color(widerSectionStart + 2, top + 1), frame.color(widerSectionStart + 2, 450),
+                                      "The wide section must not use an oversized cap beside the tiny opening.")
+                    XCTAssertEqual(frame.color(widerSectionStart, top), frame.color(widerSectionStart, 450),
+                                   "The constrained join must still have a visibly rounded top corner.")
+                    if focused {
+                        XCTAssertEqual(frame.color(widerSectionStart, top + 1), frame.color(widerSectionStart, 450),
+                                       "Focus must grow the corner curve vertically instead of leaving it boxy.")
+                        let backdrop = frame.color(widerSectionStart + 1, 450)
+                        let corner = frame.color(widerSectionStart + 1, top + 1)
+                        let solid = frame.color(widerSectionStart + 1, 590)
+                        for channel in 0..<3 {
+                            XCTAssertLessThan(
+                                2 * (Int(corner[channel]) - Int(backdrop[channel])),
+                                Int(solid[channel]) - Int(backdrop[channel]),
+                                "The wider corner should reveal more picture than track at its outer curve."
+                            )
+                        }
+                    }
+                    for y in frame.pixels(top..<(focused ? 600 : 596)) {
+                        for x in frame.pixels(326..<widerSectionStart) {
+                            XCTAssertEqual(frame.colorAtPixel(x, y), frame.colorAtPixel(x, frame.pixel(450)))
+                        }
+                    }
+                    XCTAssertEqual(frame.color(643, top), frame.color(643, 450),
+                                   "The other intro boundary still has room for maximum rounding.")
+                    XCTAssertNotEqual(frame.color(643, 590), frame.color(643, 450))
+                    attach(frame.image, name: "Soft matching opening cut - \(performance ? "flat" : "glass") - \(focused ? "focused" : "normal")")
+                }
+            }
+        }
+    }
+
     private func withWindow(_ body: (UIWindow) async throws -> Void) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),

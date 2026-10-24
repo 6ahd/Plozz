@@ -28,10 +28,7 @@ final class OfflineRequestRewriteTests: XCTestCase {
     private func route(_ request: PlaybackRequest) -> PlaybackEngineKind {
         EngineSelection.route(
             request: request,
-            forceTranscode: false,
-            plozzigenAvailable: true,
-            capabilities: .detected(),
-            subtitleRule: SubtitlePolicy.Rule())
+            plozzigenAvailable: true)
     }
 
     // MARK: prefers-local
