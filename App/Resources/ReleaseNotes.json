@@ -2,6 +2,77 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/063",
+      "version": "2026.10.24",
+      "marketingVersion": "2026.10.24",
+      "build": 63,
+      "releasedAt": "2026-10-24",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            {
+              "text": "Separate text sizing for Home, Showcase, library recommendations and detail pages, including episode descriptions.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Separate text sizing for Home and detail pages.",
+              "platforms": ["iOS"]
+            },
+            "Option to hide content ratings across the app.",
+            {
+              "text": "Press Play while title details are loading; playback begins when ready.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            {
+              "text": "Native page transitions when opening titles, with optional zoom in Settings.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Larger, roomier descriptions and more space for Showcase artwork and text.",
+              "platforms": ["tvOS"]
+            },
+            "Shorter content-rating labels, with warnings preserved.",
+            "Reorganized Screens & Navigation, separating shared options from individual-screen settings.",
+            "Card-label controls are now available in Home, Libraries and Detail Page settings.",
+            "Simplified theme music volume controls.",
+            "Reorganized Live TV settings, with sources and channel controls together.",
+            {
+              "text": "Tap a Live TV channel or programme to preview it before opening fullscreen.",
+              "platforms": ["iOS"]
+            },
+            "Updated video playback with broader format compatibility.",
+            "More useful playback details when sending diagnostics.",
+            "Clearer intro, credits and programme markers on the playback timeline.",
+            "Clearer status for requested films and seasons that have not been released.",
+            {
+              "text": "Play and Request keep focus while title details load.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "More consistent spacing and focus across Settings controls.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Live TV using the wrong aspect ratio after a channel starts.",
+            {
+              "text": "Downloads reporting insufficient space when usable storage is available.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/062",
       "version": "2026.10.23",
       "marketingVersion": "2026.9.25",
