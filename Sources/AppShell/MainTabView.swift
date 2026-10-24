@@ -919,7 +919,7 @@ struct MainTabView: View {
 
     private var navigationAvailability: NavigationContentAvailability {
         NavigationContentAvailability(
-            accounts: accounts.map(\.account),
+            accounts: accountsProviders.navigationAccounts,
             libraries: railLibraries,
             discoveredAccountIDs: navigationStyleModel.discoveredAccountIDs,
             disabledLibraryKeys: homeVisibility.visibility.disabledKeys,

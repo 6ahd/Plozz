@@ -42,6 +42,13 @@ registry.
 
 ## Invariants
 
+- **Signing in does not change the starting page.** TV and mobile navigation
+  availability uses the active profile's configured account metadata, not its
+  credential-ready playback providers. A pending Plex Home identity or another
+  unavailable credential must not make a media profile look Live-TV-only.
+  Provider access remains credential-gated; excluded accounts and explicitly
+  empty profile selections remain excluded from navigation availability too.
+
 - **The TV startup expression survives a fast restore.** Smile leads into wink,
   delight, or surprise, rotating on each cold launch. The launch logo stays mounted
   until its first 0.7 seconds of active animation and session bootstrap both
