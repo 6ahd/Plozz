@@ -1609,14 +1609,13 @@ struct PlozziOSAppearanceSettingsView: View {
     @State private var destination: Page?
 
     private enum Page: String, CaseIterable, Identifiable {
-        case theme, cards, artwork, spoilers, circadian
+        case theme, cards, artwork, circadian
         var id: Self { self }
         var title: LocalizedStringResource {
             switch self {
             case .theme: "Theme"
             case .cards: "Cards"
             case .artwork: "Artwork"
-            case .spoilers: "Spoiler Protection"
             case .circadian: "Circadian Mode"
             }
         }
@@ -1632,9 +1631,6 @@ struct PlozziOSAppearanceSettingsView: View {
                     .accessibilityIdentifier("appearance-\(page.rawValue)")
                 }
             }
-            SettingsSectionGroup {
-                ContentRatingToggle(model: appModel.settings.contentRatings)
-            }
         }
         .settingsPageSurface()
         .navigationTitle("Appearance")
@@ -1648,8 +1644,6 @@ struct PlozziOSAppearanceSettingsView: View {
                 PlozziOSArtworkSettingsView(
                     appModel: appModel, cardStyle: cardStyle, canManageProviders: canManageProviders
                 )
-            case .spoilers:
-                PlozziOSSpoilerSettingsView(model: appModel.settings.spoilers)
             case .circadian:
                 PlozziOSNightShiftSettingsView(model: appModel.settings.nightShift)
             }
@@ -1688,7 +1682,7 @@ private struct PlozziOSScreensNavigationSettingsView: View {
     @State private var destination: Page?
 
     private enum Page: String, CaseIterable, Identifiable {
-        case home, libraries, navigation, detail
+        case home, libraries, navigation, detail, spoilers
         var id: Self { self }
         var title: LocalizedStringResource {
             switch self {
@@ -1696,14 +1690,24 @@ private struct PlozziOSScreensNavigationSettingsView: View {
             case .libraries: "Customize Libraries"
             case .navigation: "Navigation"
             case .detail: "Detail Page"
+            case .spoilers: "Spoiler Protection"
             }
         }
     }
 
     var body: some View {
         List {
-            SettingsSectionGroup {
-                ForEach(Page.allCases) { page in
+            SettingsSectionGroup("All screens") {
+                ContentRatingToggle(model: appModel.settings.contentRatings)
+                ForEach([Page.spoilers, .navigation]) { page in
+                    Button { destination = page } label: {
+                        SettingsDisclosureLabel { Text(page.title) }
+                    }
+                    .accessibilityIdentifier("screens-\(page.rawValue)")
+                }
+            }
+            SettingsSectionGroup("Customize individual screens") {
+                ForEach([Page.home, .libraries, .detail]) { page in
                     Button { destination = page } label: {
                         SettingsDisclosureLabel { Text(page.title) }
                     }
@@ -1714,6 +1718,8 @@ private struct PlozziOSScreensNavigationSettingsView: View {
         .navigationTitle("Screens & Navigation")
         .navigationDestination(item: $destination) { page in
             switch page {
+            case .spoilers:
+                PlozziOSSpoilerSettingsView(model: appModel.settings.spoilers)
             case .home:
                 PlozziOSHomeSettingsView(
                     hero: appModel.settings.hero, heroBackground: appModel.settings.heroBackground,
@@ -1727,7 +1733,7 @@ private struct PlozziOSScreensNavigationSettingsView: View {
                 PlozziOSNavigationSettingsView(appModel: appModel)
             case .libraries:
                 LibraryPresentationSettingsView(
-                    model: appModel.settings.libraryPresentation,
+                    model: appModel.settings.libraryPresentation, cards: appModel.settings.cardStyle,
                     visibility: appModel.settings.homeVisibility,
                     accounts: appModel.accountsProviders.resolvedActiveAccounts,
                     loader: LibraryPresentationLoader(
@@ -1738,6 +1744,7 @@ private struct PlozziOSScreensNavigationSettingsView: View {
                 .id(ObjectIdentifier(appModel.settings.libraryPresentation))
             case .detail:
                 PlozziOSDetailPageSettingsView(
+                    cards: appModel.settings.cardStyle,
                     heroBackground: appModel.settings.heroBackground,
                     themeMusic: appModel.settings.themeMusic, detailPage: appModel.settings.detailPage
                 )
@@ -1932,12 +1939,16 @@ private struct HomeLibraryChoice {
 }
 
 private struct PlozziOSDetailPageSettingsView: View {
+    let cards: CardStyleSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     @Bindable var themeMusic: ThemeMusicSettingsModel
     @Bindable var detailPage: DetailPageSettingsModel
 
     var body: some View {
         List {
+            SettingsSectionGroup("Card labels") {
+                CardCaptionSettingsControls(cards: cards, scope: .detail)
+            }
             SettingsSectionGroup("Logo size") {
                 HeroLogoSizeControl(size: $detailPage.settings.logoSize, surface: .detail)
             }

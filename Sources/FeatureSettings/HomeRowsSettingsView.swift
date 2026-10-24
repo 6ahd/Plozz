@@ -96,6 +96,11 @@ public struct HomeRowsSettingsView: View {
             .accessibilityIdentifier("home-section-hero")
             .disabled(isReordering)
 
+            SettingsSectionGroup("Card labels") {
+                CardCaptionSettingsControls(cards: cards, scope: .home)
+            }
+            .disabled(isReordering)
+
             addSectionButton(identifier: "home-section-add")
 
             let catalog = reorderSession?.catalog ?? currentCatalog

@@ -19,7 +19,7 @@ struct AppearanceDetailView: View {
     /// Circadian Mode (night-warming) settings, folded in as sections here — it's
     /// a display concern, so it no longer earns its own top-level row.
     @Bindable var nightShift: NightShiftSettingsModel
-    /// Browsing protection belongs to this profile's Appearance preferences.
+    /// Profile-scoped browsing protection, presented under All screens.
     @Bindable var spoilers: SpoilerSettingsModel
     var section: AppearanceSettingsSection = .appearance
     #if os(tvOS)
@@ -68,24 +68,32 @@ struct AppearanceDetailView: View {
 
     private var rows: [SettingsSplitRow] {
         let availableRows = allRows
-        #if os(tvOS)
-        if inWorkspace {
-            if section == .screensNavigation {
-                return [
-                    SettingsSplitRow(id: "customize-home", title: "Customize Home") { EmptyView() }
-                        .destination(.customizeHome),
+        if section == .screensNavigation {
+            return [
+                SettingsSplitRow(
+                    id: "content-ratings", title: "Show content ratings",
+                    sectionStart: .heading(Text("All screens"))
+                ) {
+                    ContentRatingToggle(model: contentRatings)
+                }.labeledControl()
+            ] + SpoilerRowsBuilder(spoilers: spoilers).rows.map { $0.page() }
+                + availableRows.filter { $0.id == "navigation" }.map { $0.destination(.navigationLayout) } + [
+                    SettingsSplitRow(
+                        id: "customize-home", title: "Customize Home",
+                        sectionStart: .heading(Text("Customize individual screens"))
+                    ) { EmptyView() }.destination(.customizeHome),
                     SettingsSplitRow(id: "customize-libraries", title: "Customize Libraries") { EmptyView() }
-                        .destination(.customizeLibraries)
-                ] + availableRows.filter { $0.id == "navigation" }.map { $0.destination(.navigationLayout) } + [
+                        .destination(.customizeLibraries),
                     SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
                         .destination(.detailPage)
                 ] + availableRows.filter { $0.id == "music-player" }.map { $0.page() }
-            }
-            return ["theme", "cards", "artwork", "content-ratings", "spoilers", "night-shift"].flatMap { id in
+        }
+        #if os(tvOS)
+        if inWorkspace {
+            return ["theme", "cards", "artwork", "night-shift"].flatMap { id in
                 availableRows.filter { $0.id == id }.map { row in
                     switch id {
                     case "artwork": row.destination(.artwork)
-                    case "content-ratings": row
                     default: row.page()
                     }
                 }
@@ -106,9 +114,6 @@ struct AppearanceDetailView: View {
                     title: "Language"
                 ) {
                     AppLanguagePicker(model: appLanguage)
-                }.labeledControl(),
-                SettingsSplitRow(id: "content-ratings", title: "Show content ratings") {
-                    ContentRatingToggle(model: contentRatings)
                 }.labeledControl(),
                 SettingsSplitRow(
                     id: "theme",
@@ -177,7 +182,6 @@ struct AppearanceDetailView: View {
                     )
                 }.illustratedContent()
         ] + CircadianRowsBuilder(model: nightShift).rows
-            + SpoilerRowsBuilder(spoilers: spoilers).rows
     }
 
     /// Theme cards plus the transparency (liquid-glass) control folded in beneath
@@ -263,7 +267,7 @@ struct SpoilersDetailView: View {
     }
 }
 
-/// Shared spoiler controls for Appearance on tvOS and the legacy detail layout.
+/// Shared spoiler controls for Screens & Navigation and the legacy detail layout.
 @MainActor
 struct SpoilerRowsBuilder {
     let spoilers: SpoilerSettingsModel
@@ -310,6 +314,7 @@ struct SpoilerRowsBuilder {
 /// theme music. Kept separate from the Home hero (which lives in Customize Home)
 /// and from Playback (which is video-playback behaviour).
 struct DetailPageDetailView: View {
+    let cards: CardStyleSettingsModel
     @Bindable var themeMusic: ThemeMusicSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     @Environment(\.detailHeaderSettings) private var detailHeaderSettings
@@ -368,6 +373,9 @@ struct DetailPageDetailView: View {
                 DetailHeaderAgeSettingsForm(model: detailHeaderSettings)
             })
         }
+        rows.append(SettingsSplitRow(id: "detail-page-card-labels", title: "Card labels") {
+            CardCaptionSettingsControls(cards: cards, scope: .detail)
+        })
         return rows
     }
 }

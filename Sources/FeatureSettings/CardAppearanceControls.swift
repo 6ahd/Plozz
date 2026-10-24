@@ -185,6 +185,34 @@ private struct CardCaptionPicker: View {
     }
 }
 
+public enum CardCaptionSettingsScope: CaseIterable, Sendable {
+    case home, libraries, detail
+
+    public var views: [CardCaptionView] {
+        switch self {
+        case .home: [.home, .continueWatching]
+        case .libraries: [.recommended, .browse, .collections, .playlists, .continueWatching]
+        case .detail: [.episodes, .related, .extras]
+        }
+    }
+}
+
+public struct CardCaptionSettingsControls: View {
+    @Bindable private var cards: CardStyleSettingsModel
+    private let scope: CardCaptionSettingsScope
+
+    public init(cards: CardStyleSettingsModel, scope: CardCaptionSettingsScope) {
+        self.cards = cards
+        self.scope = scope
+    }
+
+    public var body: some View {
+        ForEach(scope.views, id: \.self) { view in
+            CardCaptionViewChoices(view: view, settings: $cards.captions)
+        }
+    }
+}
+
 public struct CardCaptionCustomizationView: View {
     @Bindable private var cards: CardStyleSettingsModel
 

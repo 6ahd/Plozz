@@ -506,10 +506,10 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(section("appearance", in: app), in: app)
         XCUIRemote.shared.press(.select)
         assertInlineSettingsHeader("Appearance", back: pageBack("settings-category-back", in: app), in: app)
-        for id in ["theme", "cards", "artwork", "spoilers", "night-shift"] {
+        for id in ["theme", "cards", "artwork", "night-shift"] {
             XCTAssertTrue(app.buttons["settings-page-\(id)"].exists)
         }
-        for id in ["display-size", "navigation", "music-player", "title-details", "customize-home"] {
+        for id in ["display-size", "navigation", "music-player", "title-details", "customize-home", "spoilers"] {
             XCTAssertFalse(app.buttons["settings-page-\(id)"].exists)
         }
         let cards = app.buttons["settings-page-cards"]
@@ -561,7 +561,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["card-label-customization"].waitForExistence(timeout: 5))
         XCUIRemote.shared.press(.menu)
-        for (page, heading) in [("spoilers", "Spoiler Protection"), ("night-shift", "Circadian Mode")] {
+        for (page, heading) in [("night-shift", "Circadian Mode")] {
             let link = app.buttons["settings-page-\(page)"]
             try focus(link, in: app)
             XCUIRemote.shared.press(.select)
@@ -575,15 +575,28 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(section("screensNavigation", in: app), in: app)
         XCUIRemote.shared.press(.select)
         assertInlineSettingsHeader("Screens & Navigation", back: pageBack("settings-category-back", in: app), in: app)
-        for id in ["customize-home", "navigation", "title-details", "music-player"] {
+        for id in ["customize-home", "customize-libraries", "navigation", "title-details", "music-player", "spoilers"] {
             XCTAssertTrue(app.buttons["settings-page-\(id)"].exists)
         }
         XCTAssertFalse(app.buttons["settings-page-cards"].exists)
+        XCTAssertTrue(app.staticTexts["All screens"].exists)
+        XCTAssertTrue(app.staticTexts["Customize individual screens"].exists)
+        let ratings = app.switches["settings-group-content-ratings"]
+        try focus(ratings, in: app)
+        capture("content-ratings-focused", in: app)
+        let ratingValue = ratings.value as? String
+        XCUIRemote.shared.press(.select)
+        XCTAssertNotEqual(ratings.value as? String, ratingValue)
+        XCTAssertTrue(app.buttons["settings-page-spoilers"].exists, "Toggling must not navigate away.")
+        capture("content-ratings-off", in: app)
+        XCUIRemote.shared.press(.select)
         capture("screens-navigation", in: app)
         let home = app.buttons["settings-page-customize-home"]
         try focus(home, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["home-section-hero"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["card-label-view-home"].exists)
+        XCTAssertTrue(app.buttons["card-label-view-continueWatchingPortrait"].exists)
         capture("customize-home", in: app)
         assertCenteredSettingsColumn(in: app)
         try focus(app.buttons["home-section-home-continueWatching"], in: app)
@@ -609,6 +622,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["settings-page-navigation"].waitForExistence(timeout: 5), app.debugDescription)
         for (page, heading) in [
+            ("spoilers", "Spoiler Protection"),
             ("music-player", "Music Player"),
             ("title-details", "Detail Page")
         ] {
@@ -616,6 +630,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             try focus(link, in: app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts[heading].waitForExistence(timeout: 5), app.debugDescription)
+            if page == "title-details" {
+                for title in ["Episode browser", "Related titles", "Extras"] {
+                    let labels = app.buttons.matching(identifier: "settings-group-detail-page-card-labels")
+                        .matching(NSPredicate(format: "label == %@", title)).firstMatch
+                    try focus(labels, in: app)
+                    let value = labels.value as? String
+                    XCUIRemote.shared.press(.select)
+                    XCTAssertNotEqual(labels.value as? String, value)
+                }
+            }
             capture(page, in: app)
             XCUIRemote.shared.press(.menu)
             XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
@@ -1944,6 +1968,11 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         if diagnostics { app.launchEnvironment["PLZHFOCUS"] = "1" }
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
+        let declineDiagnostics = app.buttons["Don't Share"]
+        if declineDiagnostics.waitForExistence(timeout: 2) {
+            try focus(declineDiagnostics, in: app)
+            XCUIRemote.shared.press(.select)
+        }
         if app.buttons["Looks good"].waitForExistence(timeout: 2) {
             try focus(app.buttons["Looks good"], in: app)
             XCUIRemote.shared.press(.select)

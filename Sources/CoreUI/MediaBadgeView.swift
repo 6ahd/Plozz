@@ -202,14 +202,15 @@ public struct MediaBadgeChip: View {
                     .font(.system(size: ratingFontSize * scale, weight: .semibold))
             }
         }
-            .foregroundStyle(palette.primaryText)
             .tracking(0.5 * scale)
             .padding(.horizontal, ratingHPadding * scale)
             .frame(height: ratingHeight * scale)
             .overlay {
                 RoundedRectangle(cornerRadius: 6 * scale, style: .continuous)
-                    .strokeBorder(palette.primaryText.opacity(0.65), lineWidth: ratingBorderWidth * scale)
+                    .strokeBorder(lineWidth: ratingBorderWidth * scale)
+                    .opacity(0.65)
             }
+            .plozzForeground(.primary)
     }
 
     private var ratingFontSize: CGFloat {

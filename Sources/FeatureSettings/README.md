@@ -4,15 +4,28 @@ Mobile customization lists apply the shared native switch style to both standard
 sections and grouped cards. Enabled switches keep the system green appearance
 instead of inheriting the page's monochrome navigation tint.
 
-The Settings screen and its detail pages. Profile-aware, integration-aware,
-and the single place caption customization lives.
+The Settings screen and its detail pages. Profile-aware and integration-aware.
 
-Appearance has one profile-wide **Show content ratings** switch, on by default.
+**Appearance** owns global visual styling: theme, cards, artwork, display size,
+and Circadian Mode. **Screens & Navigation → All screens** contains shared
+visibility and navigation preferences, including Spoiler Protection and the
+profile-wide **Show content ratings** switch, on by default.
 Its label includes small, noninteractive PG-13 and R examples using the actual
 classification badge style; the examples stay visible when the switch is off.
 The label adapts to narrow widths and accessibility text sizes. This controls
 Home/detail badges, featured-card metadata, title-information classifications,
 and exported Top Shelf classifications, not review scores or parental restrictions.
+On tvOS, the example lettering and outlines follow the native row's focus
+foreground so they remain visible on its inverted focused surface.
+
+Home, Libraries, and Detail Page expose the same card-label choices as
+Appearance → Cards → Customize by view. These are additional controls over the
+existing profile-scoped `CardCaptionSettings`, not independent preferences.
+Home exposes Home rows and Continue Watching; Libraries exposes Recommended,
+Browse, collections, playlists, and the shared Continue Watching choice.
+Detail Page exposes episodes, related titles, and extras. Central presets still
+replace all overrides; contextual edits preserve other views. Screen-specific
+sizing stays with its screen, while overall display size stays in Appearance.
 
 Server sign-ins offer **Sign In Again** without removing the saved account.
 Plex, Jellyfin, Emby, and Silo share the same guarded recovery contract; IPTV
