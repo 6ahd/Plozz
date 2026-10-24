@@ -21,6 +21,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     let themeArchiveResolver: @Sendable (String?) async -> URL?
     private let authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)?
     private let probeDescriptors: MediaBrowserProbeDescriptorStore
+    private let hybridEngineEnabled: Bool
     public var authenticatedHTTPOrigin: URL { client.baseURL }
 
     private var connectionAddresses: [URL] { client.addressResolver?.addresses ?? [session.server.baseURL] }
@@ -54,6 +55,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         self.credentialRevision = credentialRevision
         self.themeArchiveResolver = themeArchiveResolver
         self.authenticatedStreamProber = authenticatedStreamProber
+        self.hybridEngineEnabled = hybridEngineEnabled
         self.probeDescriptors = MediaBrowserProbeDescriptorStore()
         self.client = JellyfinClient(
             baseURL: session.server.baseURL,
@@ -216,13 +218,14 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// moment you finish an episode.
     ///
     /// Resume and NextUp run concurrently and fail independently: one successful
-    /// feed is still useful when the other endpoint is unavailable. Failures are
-    /// logged rather than silently swallowed. Results are deduped by id and
+    /// nonempty feed is still useful when the other endpoint is unavailable.
+    /// An empty companion feed must not hide a failed request. Results are deduped by id and
     /// ordered by effective recency. `Int.max` drains both feeds through bounded
     /// HTTP pages and deliberately applies no final cap.
     public func continueWatching(limit: Int) async throws -> [MediaItem] {
         let outcome = try await continueWatchingDTOs(limit: limit, parentID: nil)
-        guard outcome.successfulEndpointCount > 0 else {
+        guard outcome.successfulEndpointCount > 0,
+              !outcome.items.isEmpty || outcome.firstError == nil else {
             throw outcome.firstError ?? AppError.invalidResponse
         }
         let merged = outcome.items
@@ -242,7 +245,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let outcome = try await continueWatchingDTOs(
             limit: .max, parentID: seriesID, seriesID: seriesID
         )
-        guard outcome.successfulEndpointCount > 0 else {
+        guard outcome.successfulEndpointCount > 0,
+              !outcome.items.isEmpty || outcome.firstError == nil else {
             throw outcome.firstError ?? AppError.invalidResponse
         }
         let episodes = outcome.items.filter { $0.Type == "Episode" && $0.SeriesId == seriesID }
@@ -382,6 +386,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
 
         var seen = Set<String>()
         let merged = (resume + nextUp).filter { seen.insert($0.Id).inserted }
+        let scope = parentID == nil ? "account" : seriesID == nil ? "library" : "series"
+        PlozzLog.networking.info(
+            "\(kind.rawValue) history scope=\(scope) resume=\(resume.count) nextUp=\(nextUp.count) successfulFeeds=\(successfulEndpointCount)/2 items=\(merged.count)"
+        )
         return ContinueWatchingDTOOutcome(
             items: merged,
             successfulEndpointCount: successfulEndpointCount,
@@ -400,9 +408,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         parentID: String?,
         error: AppError
     ) {
-        let scope = parentID == nil ? "unscoped" : "library-scoped"
+        let scope = parentID == nil ? "account" : "scoped"
+        let diagnostic = LibraryLoadDiagnostic(
+            provider: kind, operation: .homeContinueWatching,
+            failures: [.init(section: .continueWatching, error: error)]
+        )
         PlozzLog.networking.error(
-            "Jellyfin Continue Watching \(endpoint) failed (\(scope)); preserving other feed results: \(String(describing: error))"
+            "History \(endpoint) failed (\(scope)): \(diagnostic.supportText)"
         )
     }
 
@@ -598,8 +610,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let successfulEndpointCount = perLibrary.reduce(0) {
             $0 + $1.successfulEndpointCount
         }
-        guard successfulEndpointCount > 0 else {
-            throw perLibrary.compactMap(\.firstError).first ?? AppError.invalidResponse
+        let firstError = perLibrary.compactMap(\.firstError).first
+        guard successfulEndpointCount > 0,
+              perLibrary.contains(where: { !$0.items.isEmpty }) || firstError == nil else {
+            throw firstError ?? AppError.invalidResponse
         }
 
         // Series play dates are user-global (not library-scoped), so fetch once and
@@ -1475,19 +1489,11 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         // rather than a quality-reducing re-encode.
         var didRemux = false
 
-        // Container-only remux to reach AVPlayer losslessly. Two cases:
-        //  1. True Dolby Vision: a DoVi MKV the server would direct-play only
-        //     reaches the on-device hybrid engine → HDR10. Remuxing to seekable
-        //     fMP4 HLS with the video **copied** (DoVi RPU/dvcC preserved, tagged
-        //     `dvh1`) reaches AVPlayer — the only tvOS engine that outputs true
-        //     Dolby Vision.
-        //  2. HEVC `hev1`: AVPlayer can't render HEVC tagged `hev1` (audio plays,
-        //     black screen). Jellyfin's fMP4 remux re-tags the copied bitstream to
-        //     `hvc1` (`-c copy -tag:v hvc1`), fixing it with no re-encode.
-        // Both route to AVPlayer automatically via `isTranscoding`. Best-effort: if
-        // the remux fails or the server offers no stream URL, fall back to direct
-        // play (the router then sends `hev1` to the on-device engine as a net).
-        if streaming == nil, !forceTranscode, Self.shouldRequestDoViRemux(source) || Self.shouldRequestHvc1Remux(source) {
+        // Native-only hosts still need container repair for DoVi MKV / hev1.
+        // Aether owns that repair locally; overriding its direct-play decision
+        // needlessly introduces another server negotiation and encoding session.
+        if !hybridEngineEnabled, streaming == nil, !forceTranscode,
+           Self.shouldRequestDoViRemux(source) || Self.shouldRequestHvc1Remux(source) {
             let selectedSourceID = source.Id ?? mediaSourceID
             if let remuxInfo = try? await client.playbackInfo(
                 userID: session.userID,
@@ -1866,8 +1872,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// it reaches AVPlayer for true Dolby Vision. True only for a **Dolby Vision
     /// HEVC stream in a Matroska container with Apple-compatible audio** that the
     /// server currently wants to direct-play (no `TranscodingUrl`). Those are the
-    /// sources where a container-only remux (video copied) lifts the file from the
-    /// on-device hybrid engine's HDR10 ceiling to native DoVi, with no re-encode.
+    /// sources where a container-only remux lets a native-only host open the file.
+    /// Decoder-backed hosts handle the container locally and do not use this path.
     /// HEVC + Apple-compatible audio is required so the server can stream-copy both
     /// tracks; otherwise forcing direct-play off would trigger a wasteful transcode.
     static func shouldRequestDoViRemux(_ source: MediaSourceInfo) -> Bool {
@@ -1894,8 +1900,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     /// Whether to ask the server to remux (rather than direct-play) an HEVC source
-    /// tagged `hev1`. AVPlayer/VideoToolbox only decode HEVC tagged `hvc1`; `hev1`
-    /// (in-band parameter sets) plays audio with a **black screen**. Jellyfin's
+    /// tagged `hev1` on a native-only host. AVPlayer's direct-file path can play
+    /// audio without video for in-band parameter sets. Jellyfin's
     /// fMP4 HLS remux stream-copies the bitstream and re-tags it to `hvc1`
     /// (`-c copy -tag:v hvc1`) — lossless, no re-encode — which AVPlayer then
     /// renders. True only for a **`hev1` HEVC stream in an Apple/MP4-family

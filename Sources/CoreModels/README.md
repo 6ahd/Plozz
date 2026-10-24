@@ -19,6 +19,11 @@ language every other module speaks.
   distinguish preparation/opening/playback, and never export raw error text.
   Non-video live responses use fixed HTML/JSON/XML/empty classifications and
   factual messages, not response snippets or inferred credential expiry.
+- `PlaybackDiagnosticJournal` retains up to 256 events / 128 KiB for 48 hours.
+  Optional typed quality, stage and native evidence fields preserve older
+  journals; validation applies both on admission and disk restore. The explicit
+  Send diagnostics action includes this local journal, without enabling
+  automatic on-demand failure uploads or claiming confirmed backend delivery.
 - Shared decode/encode helpers: `JSONDecoder.plozz`, `JSONEncoder.plozz`.
 - `HTTPDate` shares HTTP timestamp parsing/formatting and strict `Retry-After`
   interpretation across HTTP media transports and IPTV. Consumers convert

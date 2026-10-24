@@ -14,6 +14,9 @@ final class PlaybackDiagnosticJournalTests: XCTestCase {
         )
         request.streamingSessionID = "private-session"
         request.serverName = "Private server"
+        request.streamingOptions = .init(
+            quality: try .custom(maximumHeight: 720, bitrateKbps: 2_345), codec: .preferHEVC
+        )
         let facts = PlaybackDiagnosticJournal.Facts(provider: .plex, engine: .plozzigen, request: request)
         for event: PlaybackDiagnosticJournal.Event in [.requested, .loading, .firstFrame, .stopped] {
             journal.record(event, session: session, attempt: attempt, facts: facts, elapsed: 1.25)
@@ -29,11 +32,88 @@ final class PlaybackDiagnosticJournalTests: XCTestCase {
         XCTAssertEqual(entries.first?.elapsedMilliseconds, 1_250)
         XCTAssertEqual(entries.first?.facts.source, .serverHLS)
         XCTAssertEqual(entries.first?.facts.sourceVideo, "hevc")
+        XCTAssertEqual(entries.first?.facts.quality, request.streamingOptions?.quality)
+        XCTAssertEqual(entries.first?.facts.codecPreference, .preferHEVC)
         XCTAssertEqual(entries.last?.failure?.code, .serverRefusal)
         for privateValue in ["private", "Private", "https", "api_key"] {
             XCTAssertFalse(report.contains(privateValue), privateValue)
         }
         XCTAssertTrue(report.contains("storage=ok"))
+    }
+
+    func testNativeFailureEvidenceSurvivesRestartWithoutGuessingTheCause() async throws {
+        let url = try location()
+        let journal = PlaybackDiagnosticJournal(url: url)
+        let evidence = PlaybackFailureEvidence(
+            route: .nativeHLS, firstFrameReady: false, nativeCapture: .captured,
+            nativeErrors: [.init(domain: "CoreMediaErrorDomain", code: -12889)],
+            nativeLogErrors: [.init(domain: NSURLErrorDomain, code: -1001)],
+            nativeStatus: .failed,
+            nativeAccess: .init(
+                requests: 3, bytesTransferred: 123_456, stalls: 0, transferMilliseconds: 500,
+                startupMilliseconds: nil, observedBitrate: 2_000_000, indicatedBitrate: 4_000_000
+            )
+        )
+        journal.record(
+            .failureEvidence, session: UUID(), attempt: UUID(),
+            facts: .init(provider: .jellyfin, engine: .native),
+            failure: .init(.playback(.init(kind: .unknown, domain: .coreMedia, code: -12889))),
+            stage: .opening, evidence: evidence
+        )
+        await journal.flush()
+        let restored = PlaybackDiagnosticJournal(url: url)
+        let report = await restored.report()
+        let entry = try XCTUnwrap(decode(report).entries.first)
+        XCTAssertEqual(entry.stage, .opening)
+        XCTAssertEqual(entry.failure?.kind, .unknown)
+        XCTAssertEqual(entry.evidence, evidence)
+    }
+
+    func testOlderJournalWithoutOptionalEvidenceAndQualityStillRestores() async throws {
+        let url = try location()
+        let journal = PlaybackDiagnosticJournal(url: url)
+        journal.record(.failed, session: UUID(), attempt: UUID(), facts: .init(provider: .jellyfin))
+        await journal.flush()
+        let restored = PlaybackDiagnosticJournal(url: url)
+        let report = await restored.report()
+        let entry = try XCTUnwrap(decode(report).entries.first)
+        XCTAssertNil(entry.stage)
+        XCTAssertNil(entry.evidence)
+        XCTAssertNil(entry.facts.quality)
+    }
+
+    func testInvalidNativeEvidenceIsRejectedAtAdmissionAndRestore() async throws {
+        let url = try location()
+        let journal = PlaybackDiagnosticJournal(url: url)
+        let bad = PlaybackFailureEvidence(nativeErrors: [.init(domain: "private domain", code: Int.max)])
+        journal.record(
+            .failureEvidence, session: UUID(), attempt: UUID(), facts: .init(provider: .jellyfin), evidence: bad
+        )
+        let rejected = await journal.report()
+        XCTAssertTrue(rejected.contains("storage=invalidEvidence"))
+        XCTAssertTrue(try decode(rejected).entries.isEmpty)
+        let entry = PlaybackDiagnosticJournal.Entry(
+            timestamp: Date(), build: "62", session: UUID(), attempt: UUID(), event: .failureEvidence,
+            facts: .init(provider: .jellyfin), elapsedMilliseconds: 1, route: nil, failure: nil,
+            phase: nil, liveFailure: nil, stopReason: nil, stage: .opening, evidence: bad
+        )
+        try JSONEncoder().encode(PlaybackDiagnosticJournal.Journal(entries: [entry])).write(to: url)
+        let restored = PlaybackDiagnosticJournal(url: url)
+        let report = await restored.report()
+        XCTAssertTrue(report.contains("storage=invalidJournal"))
+        XCTAssertTrue(try decode(report).entries.isEmpty)
+    }
+
+    func testUnknownNativeCountersStayAbsentRatherThanBecomeSuccess() {
+        let counters = PlaybackFailureEvidence.NativeAccess(
+            requests: -1, bytesTransferred: Int.max, stalls: nil, transferMilliseconds: -1,
+            startupMilliseconds: -1, observedBitrate: -1, indicatedBitrate: 0
+        )
+        XCTAssertTrue(counters.isValid)
+        XCTAssertNil(counters.requests)
+        XCTAssertNil(counters.bytesTransferred)
+        XCTAssertNil(counters.startupMilliseconds)
+        XCTAssertEqual(counters.indicatedBitrate, 0)
     }
 
     func testUntrustedFormatNamesAndInvalidTimingAreNotStored() async throws {

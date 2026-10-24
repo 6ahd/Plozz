@@ -268,6 +268,11 @@ private struct NavigationRailShellContent<Content: View>: View {
                     destinationFocus.cancel()
                 }
                 chrome.resetForDestinationChange()
+                // Settings is hosted outside the rail, so its Back action bypasses
+                // selectDestination and needs the same presentation-gated handoff.
+                if previous == .settings, destination != .settings {
+                    destinationFocus.begin(destination)
+                }
                 isOpeningNavigation = false
                 hasEnteredSearchContent = false
                 pinnedSidebarInteraction.setSearchResultsFocused(false)

@@ -183,7 +183,7 @@ final class HomeRowTests: XCTestCase {
         XCTAssertEqual(rows.first?.items.map(\.id), ["lt"])
     }
 
-    func testContinueWatchingKeepsAllVisibleTitlesInOrder() {
+    func testContinueWatchingKeepsAllTitlesRegardlessOfCatalogVisibility() {
         let items = (0..<125).map {
             taggedItem("cw\($0)", account: "a", library: "L1")
         }
@@ -192,7 +192,7 @@ final class HomeRowTests: XCTestCase {
         ])
         let rows = HomeRow.rows(for: c) { $0 != "a:L2" }
         XCTAssertEqual(rows.first?.kind, .continueWatching)
-        XCTAssertEqual(rows.first?.items.map(\.id), items.map(\.id))
+        XCTAssertEqual(rows.first?.items.map(\.id), items.map(\.id) + ["hidden"])
     }
 
     func testHiddenLibrariesAreFilteredOut() {
@@ -239,16 +239,18 @@ final class HomeRowTests: XCTestCase {
         MediaItem(id: id, title: id, kind: .movie, sourceAccountID: account, libraryID: library)
     }
 
-    func testMediaRowItemsFromHiddenLibraryAreDropped() {
-        // Two Continue Watching items: one from a hidden library, one visible.
+    func testGlobalHistoryIsExemptFromLibraryHiding() {
         let c = content(continueWatching: [
             taggedItem("hidden", account: "a", library: "L2"),
             taggedItem("shown", account: "a", library: "L1")
         ])
         let rows = HomeRow.rows(for: c) { $0 != "a:L2" }
         XCTAssertEqual(rows.map(\.kind), [.continueWatching])
-        XCTAssertEqual(rows.first?.items.map(\.id), ["shown"],
-                       "A hidden library's item must be suppressed from Continue Watching, not just the tiles")
+        XCTAssertEqual(rows.first?.items.map(\.id), ["hidden", "shown"])
+        XCTAssertEqual(
+            HomeRow.rows(for: c) { _ in false }.first?.items.map(\.id),
+            ["hidden", "shown"]
+        )
     }
 
     func testUnattributedItemsStayVisibleFailOpen() {

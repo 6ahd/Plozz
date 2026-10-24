@@ -852,6 +852,10 @@ public final class NativeVideoEngine: VideoEngine {
 
     public var streamingOutputDynamicRange: SourceDynamicRange? { convertedVideoFormat?.dynamicRange }
     public var streamingOutputVideoCodec: DirectPlayVideoCodec? { convertedVideoFormat?.videoCodec }
+    public var diagnosticRoute: PlaybackFailureEvidence.Route? {
+        guard let request else { return nil }
+        return request.isManifestStream ? .nativeHLS : .nativeFile
+    }
 
     public var streamingFailure: StreamingPlaybackFailure? {
         guard let item = player?.currentItem else { return nil }

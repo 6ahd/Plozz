@@ -67,6 +67,16 @@ bounded language-match/accessibility flags without track titles or URLs.
   `PlaybackDiagnosticJournal` separately retains bounded lifecycle and typed
   failure evidence for Settings' consent-gated Send diagnostics action. Recording
   is event-driven, disk work is off-main, and no HUD polling is enabled by it.
+  On-demand failures retain quality/codec preference, source range, failure
+  stage, first-frame state and the selected route. A native item is pinned
+  before retry/teardown; the shared `NativePlaybackFailureCapture` reads its
+  numeric error chain, last four error-log codes and latest access counters
+  off-main, with a 500 ms deadline and at most two active readers. The initial
+  failure explicitly marks a pending capture; its `failureEvidence` event keeps
+  the original attempt even if playback has moved on. Missing, busy and timed-out
+  captures remain distinguishable. No descriptions, addresses, headers or
+  identifiers from player logs are retained. Export can report a still-pending
+  capture rather than block the UI or imply complete evidence.
 - **Display matching** — `DolbyVisionDisplayCriteria` /
   `IdleSleepGuard`: AVKit display-criteria match + platform-specific keep-awake.
   Mobile playback owns a foreground presentation lease through startup and

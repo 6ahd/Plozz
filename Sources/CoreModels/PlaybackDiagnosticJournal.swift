@@ -9,7 +9,7 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
     public enum Event: String, Codable, Sendable {
         case requested, resolved, loading, loaded, firstFrame, failed, startupTimedOut, ended
         case compatibilityRetry, codecRetry, renditionRestart, stopped, phaseChanged, engineUnavailable
-        case releaseStarted, releaseFinished
+        case releaseStarted, releaseFinished, failureEvidence
     }
     public enum Source: String, Codable, Sendable {
         case unknown, serverFile, serverHLS, localFile, assetPackage, networkFile, separateAudio, libraryChannel
@@ -87,11 +87,15 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
         public let hasServerSession: Bool
         public let outputCodec: DirectPlayVideoCodec?
         public let outputRange: SourceDynamicRange?
+        public let quality: StreamingQuality?
+        public let codecPreference: StreamingCodecPreference?
+        public let sourceRange: SourceDynamicRange?
 
         public init(
             provider: ProviderKind?, engine: PlaybackEngineKind? = nil, request: PlaybackRequest? = nil,
             content: PlaybackFailureDiagnostic.Content = .onDemand, source: Source? = nil,
-            outputCodec: DirectPlayVideoCodec? = nil, outputRange: SourceDynamicRange? = nil
+            outputCodec: DirectPlayVideoCodec? = nil, outputRange: SourceDynamicRange? = nil,
+            streamingOptions: StreamingPlaybackOptions? = nil
         ) {
             self.provider = provider
             self.content = content
@@ -111,6 +115,10 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
             hasServerSession = request?.streamingSessionID != nil
             self.outputCodec = outputCodec
             self.outputRange = outputRange
+            let options = request?.streamingOptions ?? streamingOptions
+            quality = options?.quality
+            codecPreference = options?.codec
+            sourceRange = SourceDynamicRange.providerHint(from: request?.sourceMetadata)
         }
 
         private static func token(_ value: String?, accepts: (String) -> Bool) -> String? {
@@ -139,6 +147,8 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
         let phase: Phase?
         let liveFailure: PlaybackFailureDiagnostic?
         let stopReason: StopReason?
+        let stage: PlaybackDiagnosticReport.Stage?
+        let evidence: PlaybackFailureEvidence?
     }
     struct Journal: Codable {
         var schema = 1
@@ -184,9 +194,11 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
         _ event: Event, session: UUID, attempt: UUID, facts: Facts,
         elapsed: TimeInterval? = nil, route: PlaybackFailureEvidence.Route? = nil,
         failure: Failure? = nil, phase: Phase? = nil, liveFailure: PlaybackFailureDiagnostic? = nil,
-        stopReason: StopReason? = nil
+        stopReason: StopReason? = nil, stage: PlaybackDiagnosticReport.Stage? = nil,
+        evidence: PlaybackFailureEvidence? = nil
     ) {
-        guard facts.isValid, failure?.isValid != false, liveFailure?.isValid != false else {
+        guard facts.isValid, failure?.isValid != false, liveFailure?.isValid != false,
+              evidence?.isValid != false else {
             queue.async { self.storageFailed(.invalidEvidence) }
             return
         }
@@ -197,7 +209,7 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
         let entry = Entry(
             timestamp: clock(), build: Self.build, session: session, attempt: attempt,
             event: event, facts: facts, elapsedMilliseconds: milliseconds, route: route, failure: failure,
-            phase: phase, liveFailure: liveFailure, stopReason: stopReason
+            phase: phase, liveFailure: liveFailure, stopReason: stopReason, stage: stage, evidence: evidence
         )
         lock.withLock {
             if pending.count == Self.maximumEntries {
@@ -286,6 +298,7 @@ public final class PlaybackDiagnosticJournal: @unchecked Sendable {
                   value.entries.allSatisfy({
                       Self.validBuild($0.build) && $0.facts.isValid && $0.failure?.isValid != false
                           && $0.liveFailure?.isValid != false
+                          && $0.evidence?.isValid != false
                           && $0.elapsedMilliseconds.map { (0...172_800_000).contains($0) } != false
                           && $0.timestamp <= clock().addingTimeInterval(300)
                   }) else { storageFailed(.invalidJournal); return }

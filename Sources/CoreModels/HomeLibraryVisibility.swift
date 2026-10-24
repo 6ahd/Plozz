@@ -9,8 +9,8 @@ import Foundation
 /// - `mergeLibrariesOnHome` — the all-or-nothing "merge every library's content
 ///   into unified cross-server rows" switch. `true` (the default) is the classic
 ///   behaviour; `false` lets each library contribute its own opt-in rows.
-/// - `disabledKeys` — libraries turned **off** (hidden everywhere: Home, Search,
-///   Music, browse). A library is either on or off; a video library that's on
+/// - `disabledKeys` — libraries turned **off** for discovery (Home, Search,
+///   Music, browse), not account-wide viewing history. A video library that's on
 ///   shows on Home + search, a music library that's on shows in the Music tab.
 /// - `disabledGlobalHomeRows` — the global Home rows (Continue Watching / Watchlist
 ///   / Recently Added) the user has turned **off** (opt-out; default all on). The
@@ -72,7 +72,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// opt-in rows (`false`).
     public var mergeLibrariesOnHome: Bool
 
-    /// Keys of libraries turned **off** — hidden from Home, Search, Music and
+    /// Keys of libraries turned **off** — hidden from discovery on Home, Search, Music and
     /// browse alike.
     public var disabledKeys: Set<String>
 

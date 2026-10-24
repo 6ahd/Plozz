@@ -42,6 +42,11 @@ registry.
 
 ## Invariants
 
+- **Returning from Settings restores pinned-page focus.** Settings is hosted
+  outside the navigation rail. Its Back action uses the same destination
+  presentation fence and native content-focus request as selecting a rail
+  destination, rather than relying on automatic focus after the overlay disappears.
+
 - **The TV startup expression survives a fast restore.** Smile leads into wink,
   delight, or surprise, rotating on each cold launch. The launch logo stays mounted
   until its first 0.7 seconds of active animation and session bootstrap both

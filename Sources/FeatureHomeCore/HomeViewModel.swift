@@ -319,16 +319,25 @@ public final class HomeViewModel {
         let content = state.value
         let visible = hasReceivedLiveContent ? content?.continueWatching ?? [] : []
         let native = accounts.flatMap { detailResumeByAccount[$0.account.id] ?? [] }
-        let nextUp = (content?.librarySections.flatMap { group in
-            group.sections.filter { $0.id == "nextUp" }.flatMap(\.items)
-        } ?? []) + (content?.serverRows.filter {
-            $0.definition.section.kind == .nextUp
-        }.flatMap(\.items) ?? [])
         let visibility = currentVisibility()
+        let libraryNextUp = (content?.librarySections ?? []).filter {
+            visibility.isVisibleOnHome($0.library.key)
+        }.flatMap { group in
+            group.sections.filter { $0.id == "nextUp" }.flatMap(\.items)
+        }.filter {
+            $0.isVisibleOnHome { visibility.isVisibleOnHome($0) }
+        }
+        let serverNextUp = (content?.serverRows ?? []).filter {
+            $0.definition.section.kind == .nextUp
+        }.flatMap { row in
+            row.items.filter {
+                row.definition.section.isAccountWideHistory
+                    || $0.isVisibleOnHome { visibility.isVisibleOnHome($0) }
+            }
+        }
         var seen = Set<String>()
-        return (visible + native + nextUp).filter { item in
-            item.isVisibleOnHome(isLibraryVisible: { visibility.isVisibleOnHome($0) })
-                && seen.insert("\(item.sourceAccountID ?? ""):\(item.id)").inserted
+        return (visible + native + libraryNextUp + serverNextUp).filter { item in
+            seen.insert("\(item.sourceAccountID ?? ""):\(item.id)").inserted
         }
     }
     /// A network aggregation is replacing the visible snapshot. Unlike `state`,
@@ -1046,7 +1055,7 @@ public final class HomeViewModel {
         }
         let visibility = currentVisibility()
         let isLibraryVisible: (String) -> Bool = { visibility.isVisible($0) }
-        let continueWatching = content.continueWatching.filter { $0.isVisibleOnHome(isLibraryVisible: isLibraryVisible) }
+        let continueWatching = content.continueWatching
         let latest = content.latest.filter { $0.isVisibleOnHome(isLibraryVisible: isLibraryVisible) }
         // Supersede any in-flight publish: the async per-item poster compositing
         // makes a publish take seconds, so two overlapping `load()`s would run two

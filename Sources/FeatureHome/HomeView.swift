@@ -401,12 +401,8 @@ public struct HomeView: View {
         ) { content in
             // The screen is a data-driven list of rows. Both this loaded view and
             // the skeleton render from the same ordered `HomeRow`/`HomeRowKind`
-            // structure, which keeps them 1:1 and makes the order the single thing
-            // a future row-customization feature edits. `HomeRow.rows` also applies
-            // per-library Home-visibility to *every* row's items (not just the
-            // Libraries tiles), so a hidden library's content is suppressed
-            // app-wide; passing the reactive `isVisible` here keeps toggles taking
-            // effect on the next render even before any re-fetch settles.
+            // structure. Discovery follows live library visibility; global
+            // viewing history remains account-wide.
             let rows = HomeRow.rows(
                 for: content,
                 isLibraryVisible: { visibility.isVisible($0) },

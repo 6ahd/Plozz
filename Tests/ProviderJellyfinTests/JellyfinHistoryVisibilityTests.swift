@@ -172,6 +172,72 @@ final class JellyfinHistoryVisibilityTests: XCTestCase {
         }
     }
 
+    func testOneFailedHistoryFeedCannotBecomeSuccessfulEmptyHistory() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            for failedPath in ["/Items/Resume", "/Shows/NextUp"] {
+                for scope: [String]? in [nil, ["visible"], ["visible", "second"]] {
+                    let http = StubHTTPClient()
+                    for path in ["/Items/Resume", "/Shows/NextUp"] {
+                        http.stub(
+                            pathSuffix: path,
+                            json: path == failedPath ? #"{"Items":"invalid"}"# : #"{"Items":[],"TotalRecordCount":0}"#
+                        )
+                    }
+                    let provider = provider(http, kind: kind)
+                    let captured = await HTTPResponseDiagnostics.capture {
+                        try await provider.continueWatching(limit: 20, inLibraries: scope)
+                    }
+                    switch captured.result {
+                    case .success:
+                        XCTFail("An empty companion feed cannot hide a failed history request.")
+                    case let .failure(error):
+                        XCTAssertEqual(error as? AppError, .decoding)
+                    }
+                    XCTAssertFalse(captured.responses.isEmpty)
+                    XCTAssertTrue(captured.responses.allSatisfy {
+                        $0.route == (failedPath == "/Items/Resume" ? .resumeItems : .nextUp)
+                    })
+                    XCTAssertEqual(historyQueries(http).count, (scope?.count ?? 1) * 2)
+                }
+            }
+        }
+    }
+
+    func testPartialHistoryFailurePreservesUsefulItemsInEitherFeed() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            for failedPath in ["/Items/Resume", "/Shows/NextUp"] {
+                let http = StubHTTPClient()
+                http.stub(
+                    pathSuffix: "/Items/Resume",
+                    json: failedPath == "/Items/Resume" ? #"{"Items":"invalid"}"# : resume
+                )
+                http.stub(
+                    pathSuffix: "/Shows/NextUp",
+                    json: failedPath == "/Shows/NextUp" ? #"{"Items":"invalid"}"# : nextUp
+                )
+                let provider = provider(http, kind: kind)
+                for scope: [String]? in [nil, ["visible"]] {
+                    let items = try await provider.continueWatching(limit: 20, inLibraries: scope)
+                    XCTAssertEqual(items.map(\.id), failedPath == "/Items/Resume" ? ["next"] : ["movie"])
+                }
+            }
+        }
+    }
+
+    func testSeriesResumeDoesNotHideAnEmptyPartialFailure() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/Items/Resume", json: #"{"Items":"invalid"}"#)
+            http.stub(pathSuffix: "/Shows/NextUp", json: #"{"Items":[],"TotalRecordCount":0}"#)
+            do {
+                _ = try await provider(http, kind: kind).resumeEpisode(inSeries: "series")
+                XCTFail("Unavailable resume history must not look like an unwatched series.")
+            } catch {
+                XCTAssertEqual(error as? AppError, .decoding)
+            }
+        }
+    }
+
     func testHistoryErrorsAndCancellationPropagateWithoutWideningScope() async throws {
         for kind: ProviderKind in [.jellyfin, .emby] {
             for failure: AppError in [.unauthorized, .invalidResponse, .cancelled] {

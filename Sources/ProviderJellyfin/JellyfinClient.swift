@@ -363,7 +363,9 @@ public struct JellyfinClient: Sendable {
             queryItems: queryItems,
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.resumeItems) {
+            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     /// `GET /Shows/NextUp` — the next unwatched episode for each series the user
@@ -432,7 +434,9 @@ public struct JellyfinClient: Sendable {
             queryItems: queryItems,
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.nextUp) {
+            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     /// Drains a MediaBrowser item feed in fixed-size pages. Some servers return

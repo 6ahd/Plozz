@@ -6,6 +6,7 @@ public struct ResponseDecodingDiagnostic: Equatable, Sendable {
         case movieRecommendations, libraryHubs, other
         case collectionCandidates, collectionLibraryScope, collectionMembers
         case continueWatching, continueWatchingItems, continueWatchingHub, onDeck
+        case resumeItems, nextUp
         case itemDetail, playbackInventory, serverDiscovery
     }
     public enum Payload: String, Sendable { case empty, object, array, scalar, nonJSON }

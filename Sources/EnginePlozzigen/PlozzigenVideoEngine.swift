@@ -1008,7 +1008,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         let firstFrameReady = stage != .response && engine.hasFirstFrameReadyForDisplay
         let delivery = liveDeliveryFailure
         liveFailureCaptureTask = Task { [weak self] in
-            var evidence = await PlozzigenNativeFailureCapture.shared.capture(
+            var evidence = await NativePlaybackFailureCapture.shared.capture(
                 item: item, fallbackError: fallbackError as NSError?
             )
             guard let self, !Task.isCancelled, self.liveAttemptGate.accepts(generation) else { return }

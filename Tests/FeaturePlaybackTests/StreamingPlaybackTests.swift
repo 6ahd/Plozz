@@ -1,4 +1,5 @@
 #if canImport(AVFoundation)
+@preconcurrency import AVFoundation
 @testable import CoreModels
 import Foundation
 import TraktService
@@ -10,6 +11,52 @@ import UIKit
 
 @MainActor
 final class StreamingPlaybackTests: XCTestCase {
+    func testFailureSnapshotPinsTheOldItemAndAttemptAcrossImmediateRetry() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let journal = PlaybackDiagnosticJournal(url: root.appendingPathComponent("playback.json"))
+        let engine = QualityEngine()
+        let model = PlayerViewModel(
+            provider: QualityPlaybackProvider(), itemID: "movie",
+            streamingOptions: .init(quality: .sd480, codec: .preferHEVC),
+            engineFactory: .init(makeNative: { _ in engine }), diagnosticJournal: journal
+        )
+        await model.load()
+        engine.nowPlayingPlayer = AVPlayer(playerItem: DiagnosticFailureItem(url: URL(fileURLWithPath: "/fixture")))
+        engine.streamingFailure = .init(kind: .unknown, domain: .coreMedia, code: -12889)
+        model.handoffSetPhase(.failed(.invalidResponse))
+        XCTAssertNil(engine.nowPlayingPlayer, "The engine has already torn down its failing item.")
+        engine.streamingFailure = nil
+        model.retryPlayback()
+        await wait { model.phase == .ready && engine.positions.count == 2 }
+        await model.stop()
+
+        var entries: [PlaybackDiagnosticJournal.Entry] = []
+        for _ in 0..<100 {
+            let report = await journal.report()
+            let json = try XCTUnwrap(report.split(separator: "\n", maxSplits: 2).last)
+            entries = try JSONDecoder().decode(PlaybackDiagnosticJournal.Journal.self, from: Data(json.utf8)).entries
+            if entries.contains(where: { $0.event == .failureEvidence }) { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        await journal.flush()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let failure = try XCTUnwrap(entries.first { $0.event == .failed })
+        let captured = try XCTUnwrap(entries.first { $0.event == .failureEvidence })
+        XCTAssertEqual(failure.evidence?.nativeCapture, .pending)
+        XCTAssertEqual(captured.evidence?.nativeCapture, .captured)
+        XCTAssertEqual(captured.evidence?.nativeStatus, .failed)
+        XCTAssertEqual(captured.evidence?.nativeErrors.map(\.code), [-12889, -1001])
+        XCTAssertEqual(captured.failure?.kind, .unknown, "Evidence is not a speculative new classification.")
+        XCTAssertEqual(captured.stage, .opening)
+        XCTAssertEqual(captured.facts.quality, .sd480)
+        XCTAssertEqual(captured.facts.codecPreference, .preferHEVC)
+        XCTAssertEqual(captured.attempt, failure.attempt)
+        XCTAssertNotEqual(captured.attempt, entries.last { $0.event == .loaded }?.attempt)
+        let report = await journal.report()
+        XCTAssertFalse(report.contains("private"))
+        XCTAssertFalse(report.contains("secret"))
+    }
+
     func testJournalKeepsAbandonedResolutionSeparateFromTheNewPlaybackAttempt() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let journal = PlaybackDiagnosticJournal(url: root.appendingPathComponent("playback.json"))
@@ -77,6 +124,9 @@ final class StreamingPlaybackTests: XCTestCase {
         let loaded = entries.filter { $0.event == .loaded }
         XCTAssertEqual(loaded.count, 2)
         XCTAssertEqual(failure.failure?.nativeCode, -11829)
+        XCTAssertEqual(failure.stage, .opening)
+        XCTAssertEqual(failure.facts.quality, .sd480)
+        XCTAssertEqual(failure.facts.codecPreference, .preferHEVC)
         XCTAssertEqual(failure.attempt, loaded.first?.attempt)
         XCTAssertNotEqual(failure.attempt, loaded.last?.attempt)
         XCTAssertTrue(entries.contains { $0.event == .codecRetry })
@@ -1473,6 +1523,7 @@ private final class QualityScrubStillExtractor: ScrubStillExtracting {
 
 @MainActor
 private final class QualityEngine: VideoEngine {
+    var nowPlayingPlayer: AVPlayer?
     var didLoad: (() -> Void)?
     var suppressActiveAudioID = false
     var loadGate: QualityDecisionGate?
@@ -1525,7 +1576,13 @@ private final class QualityEngine: VideoEngine {
     func play() { isPaused = false }
     func pause() { isPaused = true; onPause?() }
     func seek(to seconds: TimeInterval) async { currentTime = seconds }
-    func stop() { status = .idle; currentTime = 0; isPaused = true }
+    func stop() {
+        status = .idle
+        currentTime = 0
+        isPaused = true
+        nowPlayingPlayer?.replaceCurrentItem(with: nil)
+        nowPlayingPlayer = nil
+    }
     func drainTransport() async {
         if let gate = drainGate { drainGate = nil; await gate.suspend() }
     }
@@ -1537,5 +1594,15 @@ private final class QualityEngine: VideoEngine {
     #if canImport(UIKit)
     func makeVideoOutputView() -> UIView { UIView() }
     #endif
+}
+
+private final class DiagnosticFailureItem: AVPlayerItem, @unchecked Sendable {
+    override var status: AVPlayerItem.Status { .failed }
+    override var error: (any Error)? {
+        NSError(domain: "CoreMediaErrorDomain", code: -12889, userInfo: [
+            NSLocalizedDescriptionKey: "private https://fixture.test?token=secret",
+            NSUnderlyingErrorKey: NSError(domain: NSURLErrorDomain, code: -1001)
+        ])
+    }
 }
 #endif

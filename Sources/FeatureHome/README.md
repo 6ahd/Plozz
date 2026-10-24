@@ -1,5 +1,9 @@
 # FeatureHome
 
+Home history completion records returned, curated and visible item counts plus
+failed-account counts in the existing bounded recent-activity log. This separates
+an empty provider feed from local curation without recording media or account IDs.
+
 Home rows, item detail, series/season experience, and the online-trailer
 fallback when the user's server has no attached trailer.
 
@@ -29,6 +33,14 @@ Release days use the viewer's local calendar day, and missing dates are not gues
 The UIKit and SwiftUI hero renderers share the localized status and calendar symbol.
 
 ## Responsibility
+
+Global Continue Watching and account-wide server Next Up are the active accounts'
+viewing history, independent of library/catalog visibility. This applies to
+combined and individual-row layouts, detail resume hints, and Top Shelf. Hiding
+catalogs must not empty history or fan it out into catalog-scoped requests.
+Library-specific rows, discovery, account selection, server-user permissions,
+and parental authorization retain their existing boundaries. A catalog-load
+failure does not replace a successful history response with that failure.
 
 Home Continue Watching failures use the existing Details / Try Again actions on
 TV (including focus-following layouts), iPhone and iPad. The report follows the

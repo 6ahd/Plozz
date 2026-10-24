@@ -1118,7 +1118,9 @@ public final class PlayerViewModel {
     private func startPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
         beginDiagnosticAttempt()
         let attempt = diagnosticAttempt
-        diagnosticFacts = .init(provider: provider.kind)
+        diagnosticFacts = .init(
+            provider: provider.kind, streamingOptions: streamingOptions ?? .init(quality: .original)
+        )
         recordPlayback(.requested)
         let streamingGeneration = streamingLoadGeneration
         streamingQuality.error = nil
@@ -1179,7 +1181,10 @@ public final class PlayerViewModel {
 
             let request = resolved.request
             self.request = request
-            diagnosticFacts = .init(provider: provider.kind, engine: resolved.engineKind, request: request)
+            diagnosticFacts = .init(
+                provider: provider.kind, engine: resolved.engineKind, request: request,
+                streamingOptions: streamingOptions ?? .init(quality: .original)
+            )
             recordPlayback(.resolved)
             progressReporter.beginSession()
             HandoffDiagnostics.emit(
@@ -1803,7 +1808,10 @@ public final class PlayerViewModel {
         let actualEngineKind = engineHandoff.commitEngineForPlayback(engineKind)
         streamingResumePosition = startPosition
         configureEngineCallbacks()
-        diagnosticFacts = .init(provider: provider.kind, engine: actualEngineKind, request: request)
+        diagnosticFacts = .init(
+            provider: provider.kind, engine: actualEngineKind, request: request,
+            streamingOptions: streamingOptions ?? .init(quality: .original)
+        )
         if let sessionID = request.streamingSessionID { diagnosticServerAttempts[sessionID] = diagnosticAttempt }
         recordPlayback(.loading)
         if actualEngineKind != engineKind {
@@ -3070,11 +3078,33 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
         guard diagnosticFailure != failure else { return }
         diagnosticFailure = failure
         refreshDiagnosticOutputFacts()
-        diagnosticJournal.record(
-            .failed, session: diagnosticSession, attempt: diagnosticAttempt, facts: diagnosticFacts,
-            elapsed: ProcessInfo.processInfo.systemUptime - diagnosticStartedAt,
-            route: engine.diagnosticRoute, failure: failure
+        let journal = diagnosticJournal, session = diagnosticSession, attempt = diagnosticAttempt
+        let facts = diagnosticFacts
+        let elapsed = ProcessInfo.processInfo.systemUptime - diagnosticStartedAt
+        let stage: PlaybackDiagnosticReport.Stage = request == nil ? .preparation
+            : engine.hasPresentedVideoFrame ? .playback : .opening
+        let route = stage == .preparation ? nil : engine.diagnosticRoute
+        // Pin the failing item and attempt before a retry or teardown replaces either.
+        let item = stage == .preparation ? nil : engine.nowPlayingPlayer?.currentItem
+        let initialEvidence = PlaybackFailureEvidence(
+            route: route, firstFrameReady: stage == .playback,
+            nativeCapture: item == nil ? .noItem : .pending, nativeErrors: failure.underlyingErrors
         )
+        journal.record(
+            .failed, session: diagnosticSession, attempt: diagnosticAttempt, facts: diagnosticFacts,
+            elapsed: elapsed, route: route, failure: failure, stage: stage, evidence: initialEvidence
+        )
+        guard let item else { return }
+        Task {
+            var evidence = await NativePlaybackFailureCapture.shared.capture(item: item, fallbackError: nil)
+            evidence.route = route
+            evidence.firstFrameReady = initialEvidence.firstFrameReady
+            if evidence.nativeErrors.isEmpty { evidence.nativeErrors = initialEvidence.nativeErrors }
+            journal.record(
+                .failureEvidence, session: session, attempt: attempt, facts: facts, elapsed: elapsed,
+                route: route, failure: failure, stage: stage, evidence: evidence
+            )
+        }
     }
 
     func upNextDidPresentFirstFrame() {
@@ -3087,7 +3117,8 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     private func refreshDiagnosticOutputFacts() {
         diagnosticFacts = .init(
             provider: provider.kind, engine: request == nil ? nil : currentEngineKind, request: request,
-            outputCodec: engine.streamingOutputVideoCodec, outputRange: engine.streamingOutputDynamicRange
+            outputCodec: engine.streamingOutputVideoCodec, outputRange: engine.streamingOutputDynamicRange,
+            streamingOptions: streamingOptions ?? .init(quality: .original)
         )
     }
 

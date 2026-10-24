@@ -82,6 +82,11 @@ Provider-style Home separates `/Items/Resume` from each TV library's
 recommendation shelves per library. Resume-only Home requests do not call Next
 Up; disabled Next Up rows are not fetched. Other consumers of `continueWatching`
 retain the existing combined feed and its independent-endpoint failure handling.
+Useful items survive failure of the companion endpoint, but an empty successful
+feed cannot turn that failure into authoritative empty history. Home and
+series-resume callers receive the failure instead. Support details identify
+Resume and Next Up separately; bounded recent activity records only scope,
+endpoint counts and the number of successful feeds, without media or account IDs.
 
 Series-specific resume lookups allow resumable `/Shows/NextUp` candidates.
 Compatible bridges can return an empty series-scoped `/Items/Resume` even when
@@ -91,22 +96,22 @@ remain intact. Ordinary Home Next Up requests continue excluding resumable
 episodes. This does not bypass excluded libraries or change server-owned
 minimum-resume thresholds.
 
-Library availability applies uniformly to combined Continue Watching, resume-only
-Home, and provider-style Resume/Next Up rows on Jellyfin and Emby. Disabled
-libraries do not contribute history. Scoped requests use the standard `ParentId`
-parameter and stamp the returned items with that library; `nil` scope retains the
-server-owned unscoped feed, while an empty scope makes no history requests.
-The synthetic Collections directory is never treated as a media library.
-This is separate from hiding a navigation tile or an individual Home row.
+Global Home history is account-wide on every provider, including Jellyfin and
+Emby. Combined Continue Watching, resume-only Home, and account-wide server
+Resume/Next Up rows do not apply catalog visibility as a history filter.
+They use the signed-in server user's history even when catalogs are hidden or
+cannot be enumerated. Shared Home aggregation, not server-name or extension
+detection, selects that scope.
 
-No server-specific capability can override library availability, and an empty
-scoped feed never triggers an unscoped retry. A compatible server that cannot
-return library-scoped history may therefore show an empty row when libraries
-are disabled. History requests do not need a separate system-info probe.
+Explicit library-scoped callers still use the standard `ParentId` parameter
+and stamp returned items with that library; an empty scope makes no requests.
+An empty scoped feed never triggers an unscoped retry. The synthetic Collections
+directory is never treated as a media library. History requests need no separate
+system-info probe, catalog scan, or extra compatibility retry.
 Account, server-user, and profile boundaries, independent-endpoint error handling,
 and cancellation remain unchanged. `JellyfinHistoryVisibilityTests` covers these
-scope rules for both providers, alongside the library-scoping and Home-layout
-suites.
+explicit scope rules for both providers; the shared Home visibility tests cover
+account-wide selection independently of library availability.
 
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not
@@ -270,6 +275,21 @@ release the owned session. Best-effort remux pins the selected source and
 releases whichever decision is abandoned. Cleanup is awaited independently of
 the caller's cancellation and always includes both device and play-session IDs.
 Server/network cleanup failures remain diagnostic failures, not proof of release.
+
+Decoder-backed hosts keep a server-approved direct file on the local engine.
+The legacy extra server-remux negotiation for Dolby Vision MKV and `hev1` MP4
+is native-only: the linked engine already owns container repair and native
+display signaling. Server-required conversion, explicit forced conversion,
+quality limits, selected versions and tracks remain authoritative on both
+Jellyfin and Emby. Regression fixtures cover both affected file shapes, the
+native-only remux path, and required conversions.
+
+This ownership was cross-checked against
+[Sodalite's stream selection](https://github.com/superuser404notfound/Sodalite/blob/31799bde53e2d93384216b3f9b2523600896ef2b/Sodalite/Player/PlaybackStreamSelection.swift),
+[Swiftfin's playback builder](https://github.com/jellyfin/Swiftfin/blob/b0cb3127b1cef57b6508581be1cfe9addd5539a2/Shared/Objects/MediaPlayerManager/MediaPlayerItem/MediaPlayerItem%2BBuild.swift),
+and the [linked engine's pipeline contract](https://github.com/superuser404notfound/AetherEngine/blob/5fe2d42d68524dcfbcfacf07cbefe5b28b618155/docs/architecture.md).
+These are protocol/design references, not copied implementations. Client
+differences do not establish the cause of an individual playback failure.
 
 Protocol references: Jellyfin's pinned
 [`MediaInfoHelper`](https://github.com/jellyfin/jellyfin/blob/e53a6d3e6ae29cb05c55c7b8edf2d237a1f75c16/Jellyfin.Api/Helpers/MediaInfoHelper.cs),
