@@ -942,15 +942,22 @@ public final class TVDetailEntranceSession {
             guard let self else { return }
             do {
                 try await Task.sleep(for: .seconds(pause))
+                // An expired sleep can already be queued on this actor when
+                // finishImmediately cancels us and reveals the complete page.
+                try Task.checkCancellation()
                 stage = .logo
                 try await Task.sleep(for: .seconds(timing.stagger))
+                try Task.checkCancellation()
                 stage = .metadata
                 try await Task.sleep(for: .seconds(timing.stagger))
+                try Task.checkCancellation()
                 stage = .controls
                 try await Task.sleep(for: .seconds(timing.reveal))
+                try Task.checkCancellation()
                 if revealsEpisodesLast {
                     stage = .episodes
                     try await Task.sleep(for: .seconds(timing.episodeReveal))
+                    try Task.checkCancellation()
                 }
                 stage = .complete
                 backdropRequest = nil

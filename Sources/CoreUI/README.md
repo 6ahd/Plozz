@@ -10,6 +10,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 layout footprint. `PlayResumeButtonLabel.isLoading` uses it without changing the
 button's dimensions or the existing resume/placeholder layout.
 
+The tvOS detail entrance checks cancellation after every timed reveal. A sleep
+that expired before cancellation can still be waiting for the main actor; it
+must not overwrite a finished entrance and hide already-visible controls.
+
 `SettingsCheckableRow` is shared by Settings and channel-library selection.
 Its prominence controls the common row metrics; `.contained` keeps focus inside
 a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu
