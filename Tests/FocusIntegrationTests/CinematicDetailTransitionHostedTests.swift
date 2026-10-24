@@ -486,6 +486,161 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
         XCTAssertTrue(blocker.allowedTouchTypes.contains(NSNumber(value: UITouch.TouchType.indirect.rawValue)))
     }
 
+    func testReadyPrimaryEndsAnimationWithoutReleasingHeldInput() async throws {
+        final class SelectPress: UIPress {
+            override var type: UIPress.PressType { .select }
+        }
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let session = TVDetailEntranceSession()
+        defer { session.finishImmediately() }
+        session.attach(to: fixture.window, enabled: true, waitsForPageAppearance: true, waitsForBackdrop: true)
+        session.pageAppeared()
+        let guardView = try XCTUnwrap(inputGuards(in: fixture.window).first)
+        let press = SelectPress()
+        guardView.pressesBegan([press], with: UIPressesEvent())
+        session.finishOpeningForPrimaryAction()
+        XCTAssertFalse(session.blocksNavigation)
+        XCTAssertEqual(session.stage, .complete)
+        XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+        XCTAssertTrue(inputGuards(in: fixture.window).contains { $0 === guardView })
+        guardView.pressesEnded([press], with: UIPressesEvent())
+        try await waitUntil { self.inputGuards(in: fixture.window).isEmpty }
+    }
+
+    func testFinishingEntranceCannotBeUndoneByAnAlreadyAwakenedReveal() async throws {
+        try await assertCompletedEntranceSurvivesAwakenedReveals { $0.finishOpeningForPrimaryAction() }
+    }
+
+    func testDisappearanceCannotBeUndoneByAnAlreadyAwakenedReveal() async throws {
+        try await assertCompletedEntranceSurvivesAwakenedReveals { $0.disappeared() }
+    }
+
+    func testImmediateCompletionCannotBeUndoneByAnAlreadyAwakenedReveal() async throws {
+        try await assertCompletedEntranceSurvivesAwakenedReveals { $0.finishImmediately() }
+    }
+
+    private func assertCompletedEntranceSurvivesAwakenedReveals(
+        _ finish: (TVDetailEntranceSession) -> Void
+    ) async throws {
+        for stage in [DetailEntranceStage.artwork, .logo, .metadata, .controls, .episodes] {
+            let fixture = try await makeFixture()
+            defer { fixture.close() }
+            fixture.model.revealsEpisodesLast = true
+            fixture.model.open(in: fixture.window, usesCard: true)
+            try await waitUntil {
+                fixture.model.session?.isBackdropShadingVisible == true
+                    && fixture.model.session?.stage == stage
+            }
+            let session = try XCTUnwrap(fixture.model.session)
+            finishWhileRevealIsWaitingForMainActor(session, finish: finish)
+            XCTAssertEqual(session.stage, .complete)
+            try await Task.sleep(for: .seconds(session.timing.episodeReveal + 0.1))
+            XCTAssertEqual(session.stage, .complete, "A cancelled \(stage) reveal must not hide completed content.")
+            XCTAssertFalse(session.blocksNavigation)
+            XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+            XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+            try assertForegroundIsPainted(in: fixture, name: "completed-entrance-after-\(stage)")
+        }
+    }
+
+    private func finishWhileRevealIsWaitingForMainActor(
+        _ session: TVDetailEntranceSession, finish: (TVDetailEntranceSession) -> Void
+    ) {
+        let delay: TimeInterval = switch session.stage {
+        case .artwork: session.timing.artworkPause
+        case .logo, .metadata: session.timing.stagger
+        case .controls: session.timing.reveal
+        case .episodes: session.timing.episodeReveal
+        case .complete: 0
+        }
+        // Let the sleep expire while its continuation is waiting for this actor,
+        // then finish before the already-awakened reveal can resume.
+        Thread.sleep(forTimeInterval: delay + 0.1)
+        finish(session)
+    }
+
+    func testSourceChangeDuringEntranceCannotHideDestinationForeground() async throws {
+        for usesCard in [false, true] {
+            let fixture = try await makeFixture()
+            defer { fixture.close() }
+            fixture.model.open(in: fixture.window, usesCard: usesCard)
+            try await waitUntil { fixture.model.session != nil }
+            let session = try XCTUnwrap(fixture.model.session)
+            let retainedArtwork = session.returnArtwork
+            // The source carousel can reconfigure or remove its selected slide
+            // after navigation has captured the target.
+            fixture.model.source.itemKey = "next-carousel-item"
+            fixture.model.source.view = nil
+            try await waitUntil { session.stage == .complete && fixture.model.stages.last == .complete }
+            XCTAssertTrue(session.returnArtwork === retainedArtwork)
+            XCTAssertFalse(session.blocksNavigation)
+            XCTAssertTrue(overlays(in: fixture.window).isEmpty)
+            try assertForegroundIsPainted(in: fixture, name: "detail-after-source-change-card-\(usesCard)")
+            session.close { fixture.model.path.removeLast() }
+            try await waitUntil { self.overlays(in: fixture.window).isEmpty }
+            XCTAssertTrue(fixture.model.path.isEmpty)
+            XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+        }
+    }
+
+    private func assertForegroundIsPainted(in fixture: CinematicFixtureWindow, name: String) throws {
+        let image = DetailTransitionSnapshot.image(of: fixture.window)
+        let shot = XCTAttachment(image: image)
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+        let metadata = try pixel(fixture.window, at: XCTUnwrap(fixture.model.frames[.metadata]))
+        XCTAssertGreaterThan(metadata[0], 240, "The yellow metadata must be painted, not just present in layout.")
+        XCTAssertGreaterThan(metadata[1], 240)
+        let frame = try XCTUnwrap(fixture.model.frames[.controls])
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: frame.integral))
+        var bytes = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        try bytes.withUnsafeMutableBytes {
+            let context = try XCTUnwrap(CGContext(
+                data: $0.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        let backdrop = try pixel(fixture.window, at: CGRect(x: 960, y: 540, width: 1, height: 1))
+        let paintedPixels = stride(from: 0, to: bytes.count, by: 4).filter {
+            abs(Int(bytes[$0]) - backdrop[0])
+                + abs(Int(bytes[$0 + 1]) - backdrop[1])
+                + abs(Int(bytes[$0 + 2]) - backdrop[2]) > 80
+        }.count
+        XCTAssertGreaterThan(
+            paintedPixels, 100,
+            "The native Play label/fill must differ from the bare backdrop: frame=\(frame), crop=\(crop.width)x\(crop.height)."
+        )
+    }
+
+    func testOpeningSelectOnlyForwardsFreshCompletedPresses() {
+        final class SelectPress: UIPress {
+            override var type: UIPress.PressType { .select }
+        }
+        let blocker = DetailTransitionInputGuard()
+        var activations = 0
+        blocker.onOpeningSelect = { activations += 1 }
+        let press = SelectPress()
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 0, "The opening press must not be replayed into the destination.")
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesCancelled([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1)
+        blocker.setPhase(.returning)
+        blocker.pressesBegan([press], with: UIPressesEvent())
+        blocker.pressesEnded([press], with: UIPressesEvent())
+        XCTAssertEqual(activations, 1, "Return-transition input must remain suppressed.")
+    }
+
     func testLateDestinationDoesNotRestartTheAlreadyRunningZoom() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -1301,8 +1456,11 @@ private struct CinematicFixturePage: View {
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                     model.frames[.logo] = $0
                 }
-            Color.yellow.frame(width: 400, height: 60)
+            Color(red: 1, green: 1, blue: 0).frame(width: 400, height: 60)
                 .detailEntranceStage(.metadata)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                    model.frames[.metadata] = $0
+                }
             Button("Play") {}
                 .detailEntranceStage(.controls)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {

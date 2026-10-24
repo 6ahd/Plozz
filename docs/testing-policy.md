@@ -611,9 +611,9 @@ frames, artwork-only pause, ordered foreground stages, early Back, direct-play
 bypass, missing/replaced source fallback, nested-page ownership, and removal of
 input guards and visual covers. Real framed and borderless poster tests also
 check that the source crop excludes the caption under Reduce Transparency.
-The entrance uses 400ms for the zoom, a 250ms visible-artwork pause, and overlapping
-240ms foreground reveals spaced 120ms apart. Shows reveal the episode browser
-after the controls, retaining the navigation guard through its final 240ms fade;
+The entrance uses 400ms for the zoom, a 100ms visible-artwork pause, and overlapping
+450ms foreground reveals spaced 90ms apart. Shows reveal the episode browser
+after the controls, retaining the navigation guard through its final 720ms fade;
 movies do not acquire that extra stage. Back uses a 280ms return without
 the pause. Reduce Motion bypasses the custom sequence and its input wait.
 Source snapshots are per-activation, not per-frame; full-window covers are
@@ -623,6 +623,12 @@ without overshoot. The early artwork blend belongs to that same property animato
 so pausing or canceling the zoom also pauses or cancels the blend. Foreground
 reveals use the matching curve with 10-point travel; timings and reveal order are
 unchanged. Hosted checks cover curve monotonicity and coordinated pause behavior.
+Cancellation regressions deliberately keep the main actor occupied until each
+reveal sleep expires, then finish the entrance before its continuation resumes.
+Ready actions, disappearance, and immediate completion must retain `.complete`,
+paint the metadata and controls, and release covers/input guards. This is an
+ordering test, not a frame-pacing benchmark. Source replacement during entry
+must neither hide the destination nor return to the replacement's artwork.
 
 `DetailTransitionVisualRegressionTests` uses the production show page and real
 poster cards. It asserts that the outgoing thumbnail is transparent within the
@@ -661,7 +667,7 @@ stack change without a second native navigation animation. Unprepared routes
 retain their normal animation. A UIKit appearance observer keeps the opening
 cover until both the artwork has landed and the destination has appeared.
 Production detail pages also wait for a displayed backdrop preview before
-starting the 250ms pause and title/button reveals. Full-resolution upgrades do
+starting the artwork pause and title/button reveals. Full-resolution upgrades do
 not restart that sequence. Exhausted artwork candidates release the cover and
 controls without a picture; Back remains available while artwork is pending,
 and a playing trailer satisfies backdrop readiness without waiting for a still.

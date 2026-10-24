@@ -40,6 +40,36 @@ final class MediaBadgeSizingTests: XCTestCase {
         #endif
     }
 
+    func testFrenchWarningBadgeIsCompactAndUnknownDescriptionsAreBounded() {
+        let short = size(of: MediaBadgeChip(badge: .init("TP", style: .rating)))
+        let warning = size(of: MediaBadgeChip(badge: .init(
+            "FR/Tous publics avec avertissement", style: .rating
+        )))
+        XCTAssertGreaterThan(warning.width, short.width, "The warning must retain a visible indicator.")
+        XCTAssertLessThan(warning.width, 100, "The screenshot's full description must not fill the hero row.")
+        XCTAssertEqual(warning.height, short.height)
+        let unknown = size(of: MediaBadgeChip(badge: .init(
+            String(repeating: "Unrecognized classification ", count: 10), style: .rating
+        )))
+        XCTAssertLessThanOrEqual(unknown.width, 180, "Unknown descriptions must not recreate the overflow.")
+    }
+
+    func testVisibilityRemovesClassificationButKeepsTechnicalBadges() {
+        let hidden = size(of: MediaBadgeChip(badge: .init("PG-13", style: .rating))
+            .environment(\.plozzShowsContentRatings, false))
+        XCTAssertEqual(hidden, .zero)
+        let technical = MediaBadge("4K", style: .prominent)
+        XCTAssertEqual(
+            size(of: MediaBadgeChip(badge: technical).environment(\.plozzShowsContentRatings, false)),
+            size(of: MediaBadgeChip(badge: technical))
+        )
+        var source = EnvironmentValues()
+        source.plozzShowsContentRatings = false
+        var destination = EnvironmentValues()
+        destination.copyHostedPresentation(from: source)
+        XCTAssertFalse(destination.plozzShowsContentRatings)
+    }
+
     func testMetadataBadgesUsePlatformCompactScale() {
         for badge in badges {
             let original = size(of: MediaBadgeChip(badge: badge)

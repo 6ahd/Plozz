@@ -34,6 +34,7 @@ public struct SettingsView: View {
     @State private var showDeveloperUnlockedAlert = false
     @Environment(\.themePalette) private var palette
     @Environment(AppLanguageSettingsModel.self) private var appLanguage
+    @Environment(CardStyleSettingsModel.self) private var cardStyle
     @Environment(LibraryPresentationSettingsModel.self) private var libraryPresentation
     @Environment(\.libraryPresentationLoader) private var libraryPresentationLoader
     /// App-wide media-share scan/enrich status. Optional so previews/tests that
@@ -965,7 +966,7 @@ public struct SettingsView: View {
         case .customizeLibraries:
             if let libraryPresentationLoader {
                 LibraryPresentationSettingsView(
-                    model: libraryPresentation, visibility: homeVisibility, accounts: homeRowAccounts,
+                    model: libraryPresentation, cards: cardStyle, visibility: homeVisibility, accounts: homeRowAccounts,
                     loader: libraryPresentationLoader
                 )
                 .id(ObjectIdentifier(libraryPresentation))
@@ -987,6 +988,7 @@ public struct SettingsView: View {
             NightShiftDetailView(model: nightShift)
         case .detailPage:
             DetailPageDetailView(
+                cards: cardStyle,
                 themeMusic: themeMusic,
                 heroBackground: heroBackground
             )

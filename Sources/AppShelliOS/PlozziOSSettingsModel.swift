@@ -5,6 +5,7 @@ import Foundation
 @MainActor
 final class PlozziOSSettingsModel {
     let theme: ThemeSettingsModel
+    let contentRatings: ContentRatingSettingsModel
     let transparency: TransparencyPreferenceModel
     let cardStyle: CardStyleSettingsModel
     let density: UIDensitySettingsModel
@@ -32,6 +33,9 @@ final class PlozziOSSettingsModel {
     ) {
         theme = ThemeSettingsModel(
             store: ThemeSettingsStore(namespace: namespace)
+        )
+        contentRatings = ContentRatingSettingsModel(
+            store: ContentRatingSettingsStore(namespace: namespace)
         )
         transparency = TransparencyPreferenceModel(
             store: TransparencyPreferenceStore(namespace: namespace)

@@ -14,6 +14,7 @@ public extension EnvironmentValues {
         scenePhase = source.scenePhase
         themePalette = source.themePalette
         gradientBackgroundsEnabled = source.gradientBackgroundsEnabled
+        plozzShowsContentRatings = source.plozzShowsContentRatings
         artworkGradientTintSaturation = source.artworkGradientTintSaturation
         plozzMetrics = source.plozzMetrics
         plozzCardStyle = source.plozzCardStyle

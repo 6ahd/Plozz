@@ -22,6 +22,14 @@ The Detail hero reserves the separate credits column before proposing this width
 Changes to badges, text size, or the focused episode remeasure in the same pass,
 without geometry state or an extra hidden copy of the badge views.
 
+`ActionProgressIcon` overlays native progress inside the original symbol's
+layout footprint. `PlayResumeButtonLabel.isLoading` uses it without changing the
+button's dimensions or the existing resume/placeholder layout.
+
+The tvOS detail entrance checks cancellation after every timed reveal. A sleep
+that expired before cancellation can still be waiting for the main actor; it
+must not overwrite a finished entrance and hide already-visible controls.
+
 `SettingsCheckableRow` is shared by Settings and channel-library selection.
 Its prominence controls the common row metrics; `.contained` keeps focus inside
 a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu
@@ -751,6 +759,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   capability from one source instead of combining incompatible files' facts.
   Missing facts remain missing; filenames do not invent HDR or audio badges.
   Compact metadata badges follow the surrounding text's Dynamic Type scale.
+  Classification badges use `ContentRatingPresentation`'s regional display aliases,
+  preserving warnings and the full provider text for accessibility. Unknown
+  descriptions are width-bounded, not converted to a guessed age rating.
+  `plozzShowsContentRatings` hides certificates without affecting technical badges,
+  review scores, or parental restrictions; copy it across native hosting boundaries.
+  Featured cards use compact visual metadata and full accessible classifications.
+  Title-information facts retain the full original classification when visible.
 - **Detail information focus** — the tvOS About/Ratings/Information band uses
   native focus with at most 2% growth and 6pt of expansion per edge, leaving
   clearance in its 18pt gutters. Focused read-only cards and card buttons draw

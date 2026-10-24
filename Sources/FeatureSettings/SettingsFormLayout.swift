@@ -32,6 +32,7 @@ struct SettingsFormLayout: View {
 
     private func rowSpacing(at index: Int) -> CGFloat {
         guard index > 0 else { return 0 }
+        if rows[index].sectionStart != nil { return SettingsFormMetrics.sectionSpacing }
         return rows[(index - 1)...index].allSatisfy { $0.route != nil || $0.presentation == .page }
             ? SettingsFormMetrics.navigationRowSpacing : SettingsFormMetrics.sectionSpacing
     }
@@ -66,8 +67,21 @@ private struct SettingsFormRow: View {
     let isEntry: Bool
 
     var body: some View {
-        content
-            .settingsWorkspaceEntry(isEntry)
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+            switch row.sectionStart {
+            case .heading(let title):
+                title
+                    .font(.headline)
+                    .padding(.horizontal, SettingsFormMetrics.headingInset)
+                    .accessibilityAddTraits(.isHeader)
+            case .divider:
+                Divider()
+            case nil:
+                EmptyView()
+            }
+            content
+        }
+        .settingsWorkspaceEntry(isEntry)
     }
 
     @ViewBuilder private var content: some View {

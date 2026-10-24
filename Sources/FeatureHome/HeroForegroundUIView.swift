@@ -172,6 +172,7 @@ final class HeroForegroundUIView: UIView {
         titleLabel.numberOfLines = 2
 
         ratingLabel.textAlignment = .center
+        ratingLabel.lineBreakMode = .byTruncatingTail
         ratingLabel.isHidden = true
 
         metadataLabel.numberOfLines = 1
@@ -311,7 +312,8 @@ final class HeroForegroundUIView: UIView {
         }
 
         if let rating = model.ratingBadgeText, !rating.isEmpty {
-            ratingLabel.text = rating.uppercased()
+            ratingLabel.text = ContentRatingPresentation(rating).text
+            ratingLabel.accessibilityLabel = rating
             ratingLabel.isHidden = false
         } else {
             ratingLabel.isHidden = true
@@ -671,7 +673,8 @@ final class HeroForegroundUIView: UIView {
             let h: CGFloat = 36 * textScale
             var x = leading
             if !ratingLabel.isHidden {
-                let rSize = ratingLabel.intrinsicContentSize
+                var rSize = ratingLabel.intrinsicContentSize
+                rSize.width = min(rSize.width, min(240, maxWidth * 0.5))
                 ratingLabel.frame = CGRect(x: x, y: y - h + (h - rSize.height) / 2, width: rSize.width, height: rSize.height)
                 x += rSize.width + 16 * textScale
             }

@@ -647,9 +647,15 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         )
         model.settings.logoSize = HeroLogoSize(rawValue: -10)
         let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let cards = CardStyleSettingsModel(
+            store: CardStyleSettingsStore(defaults: defaults),
+            focusStore: CardFocusStyleSettingsStore(defaults: defaults),
+            captionStore: CardCaptionSettingsStore(defaults: defaults),
+            artworkStore: ArtworkSettingsStore(defaults: defaults)
+        )
         let host = LayoutFocusHost(rootView:
             NavigationRailFocusHost { _ in
-                LibrarySettingsEnvironmentFixture(visibility: visibility)
+                LibrarySettingsEnvironmentFixture(cards: cards, visibility: visibility)
             }
             .environment(model)
             .environment(\.libraryPresentationLoader, EmptyLibrarySettingsLoader())
@@ -698,13 +704,16 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
     }
 
     private struct LibrarySettingsEnvironmentFixture: View {
+        let cards: CardStyleSettingsModel
         let visibility: HomeLibraryVisibilityModel
         @Environment(LibraryPresentationSettingsModel.self) private var model
         @Environment(\.libraryPresentationLoader) private var loader
 
         var body: some View {
             if let loader {
-                LibraryPresentationSettingsView(model: model, visibility: visibility, accounts: [], loader: loader)
+                LibraryPresentationSettingsView(
+                    model: model, cards: cards, visibility: visibility, accounts: [], loader: loader
+                )
             } else {
                 Text("Missing library settings environment")
             }

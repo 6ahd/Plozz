@@ -360,9 +360,9 @@ struct PlozziOSHeroRequestButton: View {
                             ?? Text("Request")
                     )
                 }
-            case .requested:
+            case .requested, .awaitingRelease:
                 statusPill {
-                    Label("Requested", systemImage: "clock")
+                    Label(request.cta.requestStatusTitle, systemImage: request.cta.requestStatusSystemImage)
                 }
             case let .downloading(progress):
                 statusPill {
@@ -2578,6 +2578,7 @@ private struct PlozziOSHeroMetadata: View {
     @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 34
     @ScaledMetric(relativeTo: .subheadline) private var metadataFontSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var overviewFontSize: CGFloat = 17
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     @State private var availableWidth: CGFloat = 0
     let presentation: HeroPresentation
     let style: HeroArtworkStyle
@@ -2827,7 +2828,8 @@ private struct PlozziOSHeroMetadata: View {
     }
 
     private var effectiveRatingBadge: MediaBadge? {
-        switch mode {
+        guard showsContentRatings else { return nil }
+        return switch mode {
         case .home:
             rootPresentation.ratingBadge
         case .detail:

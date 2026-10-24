@@ -35,6 +35,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
     @State private var resolvedArtwork: ArtworkReference?
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.plozzNativeFocusSurface) private var nativeFocusSurface
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     #if os(tvOS)
     private struct NativeControl {
         let focus: PlozzCardFocus.Binding
@@ -67,7 +68,15 @@ public struct FeaturedCardArtwork<Video: View>: View {
     }
 
     private var metadata: String {
-        [item.genres.first, item.productionYear.map(String.init), item.officialRating]
+        metadata(rating: item.ratingBadge.map { ContentRatingPresentation($0.label).text })
+    }
+
+    private var accessibilityMetadata: String {
+        metadata(rating: item.officialRating)
+    }
+
+    private func metadata(rating: String?) -> String {
+        [item.genres.first, item.productionYear.map(String.init), showsContentRatings ? rating : nil]
             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
@@ -93,7 +102,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
-        .accessibilityValue(Text(verbatim: metadata))
+        .accessibilityValue(Text(verbatim: accessibilityMetadata))
     }
 
     private var artwork: FallbackAsyncImage<ArtworkFillImage, MediaArtworkPlaceholder> {
@@ -129,7 +138,7 @@ public struct FeaturedCardArtwork<Video: View>: View {
                 fallbackWidth: size.width,
                 title: spoilerSettings.shouldHideText(for: item)
                     ? .localized(spoilerSettings.maskedTitle(for: item)) : .content(item.title),
-                subtitle: metadata,
+                subtitle: accessibilityMetadata,
                 overlay: layers(scrimOutset: 40) {
                     if let image {
                         Image(uiImage: image).resizable().scaledToFill()

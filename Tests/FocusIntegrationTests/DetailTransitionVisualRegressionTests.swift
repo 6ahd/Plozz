@@ -660,7 +660,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         let artwork = try await seedArtwork()
         let provider = TransitionShowProvider(artwork: artwork, episodeCount: 12)
         let model = TransitionShowModel(provider: provider)
-        let host = UIHostingController(rootView: TransitionShowRoot(
+        let host = TransitionShowController(rootView: TransitionShowRoot(
             model: model, directEntry: episodeContext, zoomEnabled: zoomEnabled
         ))
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -675,7 +675,21 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        try await Task.sleep(for: .milliseconds(300))
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        func sourceButton() -> (any UIFocusItem)? {
+            focusTargets(in: host.view).first {
+                guard let frame = focusFrame($0, in: window) else { return false }
+                return frame.midY > window.bounds.midY / 2 && frame.height < 100
+            }
+        }
+        // A newly mounted TabView focuses its tab, not the action being opened.
+        try await waitUntil { sourceButton() != nil }
+        let source = try XCTUnwrap(sourceButton())
+        host.target = source
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { system.focusedItem === source }
+        host.target = nil
         DetailTransitionNavigation.prepare(
             for: episodeContext ? provider.episode : provider.show, in: window, source: nil
         )
@@ -696,7 +710,6 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         try await Task.sleep(for: .seconds(2))
         XCTAssertEqual(scroll.contentOffset.y + scroll.adjustedContentInset.top, 0, accuracy: 2,
                        "Show and episode-context opens must stay on the hero when controls finish appearing.")
-        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
         let focused = try XCTUnwrap(system.focusedItem)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate

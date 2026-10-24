@@ -116,6 +116,7 @@ struct HomeHeroView: View {
     /// only when the item's provider supports it and its mutation fans out
     /// exactly like everywhere else.
     @Environment(\.mediaItemActionHandler) private var actionHandler
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
     /// How far the navigation chrome has inset this page's content, so the hero's
     /// full-bleed artwork can cancel it. `0` under the native tab styles.
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
@@ -374,7 +375,9 @@ struct HomeHeroView: View {
             availability: requestOverrides[item.id] ?? item.availability,
             downloadProgress: item.downloadProgress,
             hasValidatedPlayableSource: item.hasPlayableLibraryTarget(),
-            seerConnected: seerConnected && canRequestDiscoveryItem(item)
+            seerConnected: seerConnected && canRequestDiscoveryItem(item),
+            releaseDate: item.releaseDate,
+            hasDownloadActivity: item.hasRequestDownloadActivity == true
         )
     }
 
@@ -388,7 +391,7 @@ struct HomeHeroView: View {
         switch heroCTA(for: item) {
         case .play: return .play
         case .request: return .request
-        case .downloading, .requested: return .downloadStatus
+        case .downloading, .requested, .awaitingRelease: return .downloadStatus
         case .unavailable: return nil
         }
     }
@@ -1250,6 +1253,7 @@ struct HomeHeroView: View {
             item: item,
             overviewVisible: !hideText,
             ratingsVisible: settings.shouldShowRatings(for: item, spoilerSettings: spoilerSettings),
+            showsContentRatings: showsContentRatings,
             ratingPreferences: settings.ratingPreferences,
             maskedTitle: masked,
             pillInputs: foregroundPillInputs(for: item),
@@ -1298,7 +1302,9 @@ struct HomeHeroView: View {
                 }
                 return .init(
                     kind: .downloadStatus,
-                    prominent: isProminentPrimary(.downloadStatus, for: item)
+                    prominent: isProminentPrimary(.downloadStatus, for: item),
+                    requestTitle: heroCTA(for: item).requestStatusTitle,
+                    requestSystemImage: heroCTA(for: item).requestStatusSystemImage
                 )
             case .moreInfo:
                 return .init(
@@ -1966,7 +1972,7 @@ struct HomeHeroView: View {
     private func downloadStatusText(for item: MediaItem) -> LocalizedStringResource {
         switch heroCTA(for: item) {
         case let .downloading(progress): return "Downloading \(Int((progress * 100).rounded()))%"
-        default: return "Requested"
+        default: return heroCTA(for: item).requestStatusTitle
         }
     }
 
@@ -1986,7 +1992,10 @@ struct HomeHeroView: View {
             }
             .font(.system(size: 28, weight: .semibold))
         default:
-            Label("Requested", systemImage: "clock")
+            Label(
+                heroCTA(for: item).requestStatusTitle,
+                systemImage: heroCTA(for: item).requestStatusSystemImage
+            )
                 .font(.system(size: 28, weight: .semibold))
         }
     }
@@ -2510,12 +2519,11 @@ struct HomeHeroView: View {
 struct HeroMetadataLine: View {
     let item: MediaItem
     @Environment(\.metadataTextScale) private var textScale
+    @Environment(\.plozzShowsContentRatings) private var showsContentRatings
 
     var body: some View {
         let metadata = GenreDisplayFormatter.displayNames(for: item.genres)
-        let badge = HeroForegroundModelBuilder.ratingBadgeText(for: item).map {
-            MediaBadge($0, style: .rating)
-        }
+        let badge = showsContentRatings ? item.ratingBadge : nil
         if badge != nil || !metadata.isEmpty {
             HStack(alignment: .center, spacing: 16 * textScale) {
                 if let badge {

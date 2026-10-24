@@ -295,8 +295,8 @@ final class SettingsInteractionTests: XCTestCase {
         for title in ["Appearance", "Screens & Navigation"] {
             openSettingsPage(title)
             let children = title == "Appearance"
-                ? ["Theme", "Cards", "Artwork", "Spoiler Protection", "Circadian Mode"]
-                : ["Customize Home", "Navigation", "Detail Page"]
+                ? ["Theme", "Cards", "Artwork", "Circadian Mode"]
+                : ["Spoiler Protection", "Customize Home", "Customize Libraries", "Navigation", "Detail Page"]
             for child in children {
                 let row = button(child)
                 reveal(row)
@@ -308,6 +308,88 @@ final class SettingsInteractionTests: XCTestCase {
             }
             app.terminate()
         }
+    }
+
+    func testAllScreensToggleKeepsItsNativeActionBesideNavigation() {
+        openSettingsPage("Screens & Navigation")
+        let ratings = app.switches["show-content-ratings"]
+        XCTAssertTrue(ratings.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["ALL SCREENS"].exists)
+        let value = ratings.value as? String
+        tapNativeSwitch(ratings)
+        XCTAssertNotEqual(ratings.value as? String, value)
+        XCTAssertTrue(app.navigationBars["Screens & Navigation"].exists)
+        XCTAssertTrue(button("Spoiler Protection").exists)
+        capture("all-screens-ratings-off")
+        tapNativeSwitch(ratings)
+        XCTAssertEqual(ratings.value as? String, value)
+        button("Spoiler Protection").tap()
+        XCTAssertTrue(app.navigationBars["Spoiler Protection"].waitForExistence(timeout: 3))
+        app.navigationBars.buttons["BackButton"].tap()
+        XCTAssertTrue(ratings.waitForExistence(timeout: 3))
+        XCTAssertEqual(ratings.value as? String, value)
+    }
+
+    func testScreenCardLabelControlsShareCentralOverrides() {
+        openSettingsPage("Screens & Navigation")
+        let screens: [(String, [String])] = [
+            ("Customize Home", ["home", "continueWatchingPortrait"]),
+            ("Customize Libraries", ["recommended", "browse", "collections", "playlists", "continueWatchingPortrait"]),
+            ("Detail Page", ["episodes", "related", "extras"])
+        ]
+        for (title, views) in screens {
+            let link = button(title)
+            reveal(link)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3), app.debugDescription)
+            for view in views {
+                let row = app.buttons["card-label-view-\(view)"]
+                reveal(row)
+                if title == "Customize Libraries", view == "continueWatchingPortrait" {
+                    XCTAssertEqual(row.value as? String, "Off", "Home and Libraries must share this override.")
+                } else {
+                    selectCustomization(row, expecting: "Off")
+                }
+            }
+            XCTAssertFalse(app.buttons["card-label-view-filmography"].exists)
+            XCTAssertFalse(app.buttons["card-label-view-search"].exists)
+            capture("screen-card-labels-\(title)")
+            app.navigationBars[title].buttons["BackButton"].tap()
+        }
+        app.navigationBars["Screens & Navigation"].buttons["BackButton"].tap()
+        let appearance = categoryButton("Appearance")
+        reveal(appearance, settingsMenu: true)
+        appearance.tap()
+        app.buttons["appearance-cards"].tap()
+        let customize = app.buttons["card-label-customization"]
+        reveal(customize)
+        customize.tap()
+        for view in [
+            "home", "continueWatchingPortrait", "recommended", "browse", "collections", "playlists",
+            "related", "episodes", "extras"
+        ] {
+            let row = app.buttons["card-label-view-\(view)"]
+            reveal(row)
+            XCTAssertEqual(row.value as? String, "Off", "The central editor must show the contextual edit for \(view).")
+        }
+        let filmography = app.buttons["card-label-view-filmography"]
+        reveal(filmography)
+        XCTAssertEqual(filmography.value as? String, "On", "Unrelated views must be preserved.")
+        let episodes = app.buttons["card-label-view-episodes"]
+        reveal(episodes, towardTop: true)
+        selectCustomization(episodes, expecting: "On")
+        for title in ["Labels by view", "Cards", "Appearance"] {
+            app.navigationBars[title].buttons["BackButton"].tap()
+        }
+        let screenSettings = categoryButton("Screens & Navigation")
+        reveal(screenSettings, settingsMenu: true)
+        screenSettings.tap()
+        button("Detail Page").tap()
+        XCTAssertTrue(episodes.waitForExistence(timeout: 3))
+        XCTAssertEqual(episodes.value as? String, "On", "Central edits must flow back into the screen's controls.")
+        XCTAssertEqual(app.buttons["card-label-view-related"].value as? String, "Off")
+        XCTAssertEqual(app.buttons["card-label-view-extras"].value as? String, "Off")
+        capture("detail-labels-round-trip")
     }
 
     func testKidsLibrariesRemainGatedWithTheAlignedCategories() {
@@ -1582,8 +1664,9 @@ final class SettingsInteractionTests: XCTestCase {
     ) {
         launch(settingsRoot: true, arguments: arguments)
         let parent: String? = switch title {
-        case "Customize Home", "Navigation", "Detail Page": "Screens & Navigation"
-        case "Theme", "Spoiler Protection", "Circadian Mode": "Appearance"
+        case "Customize Home", "Customize Libraries", "Navigation", "Detail Page", "Spoiler Protection":
+            "Screens & Navigation"
+        case "Theme", "Circadian Mode": "Appearance"
         default: nil
         }
         if let parent {

@@ -1285,7 +1285,7 @@ public struct HomeView: View {
     /// hero item **in place**, so the featured CTA tracks the server
     /// (Request → "Downloading n%" → Play) as downloads start and finish.
     ///
-    /// Deliberately surgical: it mutates only those two fields on items whose id
+    /// Deliberately surgical: it mutates only request status fields on items whose id
     /// still matches a fresh featured result, never changing the array's contents
     /// order or any item's id. That's what guarantees the hero carousel doesn't
     /// re-seat, re-wipe its backdrop, restart its dwell, or move focus — only the

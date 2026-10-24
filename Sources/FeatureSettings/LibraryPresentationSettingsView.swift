@@ -5,6 +5,7 @@ import SwiftUI
 
 public struct LibraryPresentationSettingsView: View {
     @Bindable private var model: LibraryPresentationSettingsModel
+    private let cards: CardStyleSettingsModel
     private let visibility: HomeLibraryVisibilityModel
     private let accounts: [ResolvedAccount]
     private let loader: any LibraryPresentationLoading
@@ -18,10 +19,11 @@ public struct LibraryPresentationSettingsView: View {
     }
 
     public init(
-        model: LibraryPresentationSettingsModel, visibility: HomeLibraryVisibilityModel,
+        model: LibraryPresentationSettingsModel, cards: CardStyleSettingsModel, visibility: HomeLibraryVisibilityModel,
         accounts: [ResolvedAccount], loader: any LibraryPresentationLoading
     ) {
         self.model = model
+        self.cards = cards
         self.visibility = visibility
         self.accounts = accounts
         self.loader = loader
@@ -43,6 +45,11 @@ public struct LibraryPresentationSettingsView: View {
                 )
             }
             .accessibilityIdentifier("library-navigation-settings")
+            SettingsSectionGroup("Card labels") {
+                CardCaptionSettingsControls(cards: cards, scope: .libraries)
+            } footer: {
+                Text("Choices apply across all libraries. Continue Watching shares its label setting with Home.")
+            }
             #if os(tvOS)
             SettingsSectionGroup("Recommended Page") {
                 HeroLogoSizeControl(

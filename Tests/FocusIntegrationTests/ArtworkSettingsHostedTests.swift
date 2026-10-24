@@ -10,6 +10,120 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testContentRatingExamplesRemainVisibleAcrossNativeFocusAndAppearance() async throws {
+        let suite = "ContentRatingFocusHosted.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = ContentRatingSettingsModel(store: ContentRatingSettingsStore(defaults: defaults))
+        for colorScheme in [ColorScheme.dark, .light] {
+            try await withScreen(
+                content: VStack(spacing: 30) {
+                    SettingsControlGroup { ContentRatingToggle(model: model) }
+                    Button("Another setting") {}
+                        .buttonStyle(SettingsFormButtonStyle())
+                }
+                .frame(width: SettingsFormMetrics.pageWidth)
+                .environment(\.plozzShowsContentRatings, false),
+                colorScheme: colorScheme
+            ) { window in
+                let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+                let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+                let items = self.focusItems(in: window).sorted {
+                    ((try? self.nativeFrame($0, in: window).minY) ?? 0)
+                        < ((try? self.nativeFrame($1, in: window).minY) ?? 0)
+                }
+                XCTAssertEqual(items.count, 2, "The illustrative badges must never become focus targets.")
+                for showsRatings in [true, false] {
+                    model.showsRatings = showsRatings
+                    for index in 0..<2 {
+                        let target = try XCTUnwrap(items.indices.contains(index) ? items[index] : nil)
+                        host.artworkFocusTarget = target
+                        system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+                        system.updateFocusIfNeeded()
+                        host.artworkFocusTarget = nil
+                        let text = try await self.capture(
+                            window, name: "rating-examples-\(colorScheme)-\(showsRatings)-focus-\(index)",
+                            includeMaster: true
+                        )
+                        XCTAssertTrue(system.focusedItem === target)
+                        XCTAssertTrue(text.contains("Show content ratings"), text)
+                        try self.assertRatingExampleInk(in: window)
+                    }
+                }
+            }
+        }
+    }
+
+    private func assertRatingExampleInk(in window: UIWindow) throws {
+        let title = try XCTUnwrap(collectionLabelFrames(
+            in: window, matchingText: "Show content ratings"
+        ).first).frame
+        let frame = CGRect(x: title.maxX + 5, y: title.midY - 15, width: 140, height: 30).integral
+        let crop = try XCTUnwrap(renderWindow(window).cgImage?.cropping(to: frame))
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height)
+        try pixels.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width,
+                space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        let background = Int(try XCTUnwrap(pixels.first))
+        func hasContrast(x: Int, y: Int) -> Bool {
+            abs(Int(pixels[y * crop.width + x]) - background) > 80
+        }
+        // Outlines have taller vertical strokes than the small glyphs. Single-letter
+        // OCR confuses the outlined R with B, so measure each badge's actual ink.
+        let columns = (0..<crop.width).filter { x in
+            (0..<crop.height).filter { hasContrast(x: x, y: $0) }.count >= 14
+        }
+        var edges: [ClosedRange<Int>] = []
+        for column in columns {
+            if let last = edges.last, last.upperBound + 1 == column {
+                edges[edges.count - 1] = last.lowerBound...column
+            } else {
+                edges.append(column...column)
+            }
+        }
+        XCTAssertEqual(edges.count, 4, "Both example badges must have two contrasting vertical outline edges.")
+        guard edges.count == 4 else { return }
+        for index in [0, 2] {
+            let left = edges[index].upperBound + 3
+            let right = edges[index + 1].lowerBound - 2
+            XCTAssertGreaterThan(right, left)
+            guard right > left else { return }
+            let ink = (left..<right).reduce(0) { count, x in
+                count + ((crop.height / 2 - 6)..<(crop.height / 2 + 6)).filter {
+                    hasContrast(x: x, y: $0)
+                }.count
+            }
+            XCTAssertGreaterThan(ink, 8, "Each outlined example must contain a visible rating glyph.")
+        }
+    }
+
+    func testContextualCardLabelControlsShowOnlyTheirScreenViews() async throws {
+        let suite = "ContextualCardLabelsHosted.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let cards = makeCards(defaults: defaults)
+        for scope in CardCaptionSettingsScope.allCases {
+            try await withScreen(content:
+                SettingsControlGroup { CardCaptionSettingsControls(cards: cards, scope: scope) }
+                    .frame(width: SettingsFormMetrics.pageWidth)
+            ) { window in
+                let text = try await self.capture(window, name: "card-labels-\(scope)", includeMaster: true)
+                XCTAssertEqual(self.focusItems(in: window).count, scope.views.count)
+                for view in scope.views {
+                    XCTAssertTrue(text.contains(String(localized: view.displayName)), text)
+                }
+                for view in CardCaptionView.allCases where !scope.views.contains(view) {
+                    XCTAssertFalse(text.contains(String(localized: view.displayName)), text)
+                }
+            }
+        }
+    }
+
     func testSharedPageBackButtonsShowOnlyChevronAndKeepNativeFocus() async throws {
         for usesGlass in [false, true] {
             try await withScreen(content:
@@ -1486,6 +1600,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             .environment(models.navigationStyleModel)
             .environment(models.transparencyModel)
             .environment(models.appLanguageModel)
+            .environment(models.contentRatingModel)
             try await withScreen(content: content) { window in
                 let text = try await self.capture(window, name: "artwork-appearance-providers-\(canManage)")
                 XCTAssertTrue(text.contains("Choose the posters, backgrounds, and logos you see"), text)
@@ -1742,6 +1857,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         content: some View,
         topSafeArea: CGFloat = 0,
         bottomSafeArea: CGFloat = 0,
+        colorScheme: ColorScheme = .dark,
         inspect: (UIWindow) async throws -> Void
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
@@ -1754,12 +1870,13 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
-        window.overrideUserInterfaceStyle = .dark
+        window.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
+        let palette = colorScheme == .dark ? ThemePalette.dark : .light
         let host = ArtworkFocusHost(rootView:
             content
-                .background(ThemePalette.dark.settingsBackground)
-                .environment(\.themePalette, .dark)
-                .environment(\.colorScheme, .dark)
+                .background(palette.settingsBackground)
+                .environment(\.themePalette, palette)
+                .environment(\.colorScheme, colorScheme)
                 .environment(\.locale, Locale(identifier: "en_US"))
         )
         host.additionalSafeAreaInsets.top = topSafeArea
