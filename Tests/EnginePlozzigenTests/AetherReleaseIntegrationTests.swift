@@ -5,11 +5,11 @@ import XCTest
 @testable import EnginePlozzigen
 
 final class AetherReleaseIntegrationTests: XCTestCase {
-    func testResolvedEngineAndSourceCreditIdentifyPinnedMainIntegration() throws {
-        XCTAssertEqual(AetherEngine.version, "7.45.0")
+    func testResolvedEngineAndSourceCreditIdentifyPinnedReleaseIntegration() throws {
+        XCTAssertEqual(AetherEngine.version, "7.47.0")
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "AetherEngine" })
         XCTAssertTrue(credit.detail.contains(
-            "https://github.com/brandomoore/AetherEngine/tree/32f5c5b24c6c1e63c8f036020af8a49dc9d76570"
+            "https://github.com/brandomoore/AetherEngine/tree/5fe2d42d68524dcfbcfacf07cbefe5b28b618155"
         ))
     }
 
@@ -41,6 +41,7 @@ final class AetherReleaseIntegrationTests: XCTestCase {
 
     func testUpstreamDefaultsRemainOptIn() {
         let options = LoadOptions()
+        XCTAssertEqual(options.stereoPresentation, .automatic)
         XCTAssertEqual(options.objectAudioRendering, .off)
         XCTAssertFalse(options.progressiveSegmentDelivery)
         XCTAssertFalse(options.preferDualLayerDolbyVision)

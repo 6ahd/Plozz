@@ -18,6 +18,18 @@ must not overwrite a finished entrance and hide already-visible controls.
 Its prominence controls the common row metrics; `.contained` keeps focus inside
 a grouped surface. `SettingsFormButtonStyle` supplies the matching action/menu
 height, while `SettingsMenuLabel` and `SettingsDisclosureLabel` remain padding-free.
+`SettingsPageSurface` applies the palette's neutral control tint to mobile settings
+pages, including standalone destinations. Native switches retain their green on
+state. Custom-icon `SettingsRowLabel` callers can supply content insets when their
+group already owns the outer spacing.
+Default `SettingsRowLabel` labels reuse `settingsFormRowLayout()` on TV, so
+single-line navigation, menus, and form controls share their minimum height and
+interior padding. Explicit content insets retain compact source-row sizing.
+Padding-free disclosure labels and bare form actions use `SettingsFormButtonStyle`,
+which puts the shared minimum height and padding inside the TV focus fill.
+`SettingsFocusButtonStyle` is only for labels that already supply their own
+control geometry. Standalone and inline actions use `plozzActionButton`; do not
+use a text-height focus strip as a smaller action-button variant.
 
 `ChannelLogoArtwork` renders generated Plozz channels with the shared Byline
 layout: a name-first title and inset pixel-mascot signature. Its optional

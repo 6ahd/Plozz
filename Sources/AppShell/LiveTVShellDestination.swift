@@ -217,6 +217,7 @@ struct LiveTVShellSourcesDestination: View {
     let didConfigurePlaylist: () -> Void
     var isPresented = true
     var isProfileAuthorized: @MainActor () -> Bool = { true }
+    var settingsPreferences: AnyView? = nil
     @Environment(ProfilesModel.self) private var profiles
 
     var body: some View {
@@ -229,7 +230,8 @@ struct LiveTVShellSourcesDestination: View {
                 ) { runtime in
                     LiveTVShellSourcesContent(
                         runtime: runtime, library: library, accounts: accountsProviders,
-                        connectServer: connectServer, didConfigurePlaylist: didConfigurePlaylist
+                        connectServer: connectServer, didConfigurePlaylist: didConfigurePlaylist,
+                        settingsPreferences: settingsPreferences
                     )
                 }
             }
@@ -245,6 +247,7 @@ struct LiveTVShellSourcesContent: View {
     let accounts: AccountsProvidersModel
     let connectServer: (() -> Void)?
     let didConfigurePlaylist: () -> Void
+    var settingsPreferences: AnyView? = nil
     @State private var managesChannels = false
     @State private var scansChannels = false
     @State private var scanOfferSourceID: String?
@@ -259,7 +262,10 @@ struct LiveTVShellSourcesContent: View {
                 createChannel: { managesChannels = true },
                 scanChannels: { scansChannels = true },
                 scanCoordinator: runtime.scanBinding.coordinator,
-                didImportPlaylist: { scanOfferSourceID = $0 }
+                didImportPlaylist: { scanOfferSourceID = $0 },
+                settingsPreferences: settingsPreferences,
+                automaticChannels: library.automaticChannelsPresentation,
+                customChannelCount: library.service.visibleDefinitions.filter { !$0.isAutomatic }.count
             )
             if let scanOfferSourceID, runtime.isPresentationCurrent {
                 LiveTVScanImportOffer(

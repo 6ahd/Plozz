@@ -1,6 +1,6 @@
 # FeaturePlayback
 
-`AVPlayer` view-model/view, engine-agnostic playback surface, resume
+Aether-primary playback coordination, engine-agnostic playback surface, resume
 reporting back to the server, caption style rules, trickplay scrubbing,
 and the diagnostics overlay.
 
@@ -26,6 +26,11 @@ bounded language-match/accessibility flags without track titles or URLs.
     AetherEngine) is injected here as a closure, so `FeaturePlayback`
     never imports `EnginePlozzigen` directly. This keeps the dependency on
     the FFmpeg xcframeworks out of the rest of the app.
+  - `EngineSelection` chooses Aether without codec/container/subtitle gates.
+    Native owns OS-managed download packages, separate trailer audio, and the
+    constrained HEVC-HLS initialization repair; bounded recovery is retained.
+    The adapter loads the server-selected source, never a preview-only original.
+    See [playback engines](../../docs/playback-engines.md#routing-logic).
 - **View model / view** —
   - `PlayerViewModel` orchestrates engine lifecycle, audio/subtitle
     selection, scrub state, resume, and progress reporting.
@@ -35,7 +40,7 @@ bounded language-match/accessibility flags without track titles or URLs.
   sidecars, Plozzigen decoders, and `NativeSubtitleCueOutput` for native legible
   tracks. `SubtitleStyleRules` remains the reduced AVPlayer styling adapter
   for system-owned external presentation.
-- **Native video assets** — tvOS feeds the resolved original URL directly to
+- **Native-only video assets** — when that engine is selected, tvOS feeds the resolved URL directly to
   AVPlayer even when sidecars are available. Track menus still use provider
   tracks; the owned overlay authorizes and fetches selected SRT/WebVTT sidecars.
   Embedded captions retain native cue extraction. iOS keeps the existing
@@ -59,6 +64,9 @@ bounded language-match/accessibility flags without track titles or URLs.
   dropped frames, etc. The Aether adapter supplies `AetherEngine v<version>`
   from the linked engine's public version API for both VOD and Live TV.
   Delivery stays a separate Direct Play/Remux/Transcode fact.
+  `PlaybackDiagnosticJournal` separately retains bounded lifecycle and typed
+  failure evidence for Settings' consent-gated Send diagnostics action. Recording
+  is event-driven, disk work is off-main, and no HUD polling is enabled by it.
 - **Display matching** — `DolbyVisionDisplayCriteria` /
   `IdleSleepGuard`: AVKit display-criteria match + platform-specific keep-awake.
   Mobile playback owns a foreground presentation lease through startup and
@@ -66,6 +74,11 @@ bounded language-match/accessibility flags without track titles or URLs.
   tvOS continues to follow actual engine playback.
 
 ## Live channel recovery
+
+Live video dimensions are sampled by the existing player monitor and passed as
+an explicit input to the retained video surface. A late aspect ratio or a format
+change updates Normal/Crop/Stretch geometry without a zoom gesture, retuning, or
+resizing the subtitle overlay; no additional polling loop is created.
 
 On tvOS, temporary scene inactivity from Control Center or Siri does not issue
 a player pause, cancel a live seek, or reload the stream. Playback and explicit
@@ -1490,9 +1503,29 @@ performance fill remains 22% white.
 The TV and touch seek bars share `PlayerSkipMarkerTrack`: solid, rounded
 sections separated at the start and end of each available skippable range.
 There are no internal cutouts, patterns, or user-selectable marker styles.
-The 4pt gaps are centered on the original time boundaries. Each half-gap is
+The base 4pt gaps are centered on the original time boundaries. Each half-gap is
 capped at a quarter of either neighboring section's width so a tiny range is
 not consumed or enlarged. Outer timeline ends remain unchanged.
+Both sides of each gap use the narrower rendered section to size their corners,
+with a small amount of extra rounding capped at half the bar height. Slivers use
+slightly taller elliptical corners without exceeding their available width;
+wider neighbors can use the corresponding circular corner. Base facing corners meet
+the gap at the same height. Roomy joins retain full rounding, and rounding never
+removes a divider. Live programme tracks use the same geometry.
+On TV, constrained corners grow vertically from the 12pt resting geometry as
+focus expands the bar to 20pt. Their horizontal width stays constrained while
+the curves retain their resting proportions instead of becoming squarer.
+The wider side of a tight join gains up to 1.5pt of additional rounding during
+focus, without changing the smaller piece or exceeding a fully rounded end.
+Tight TV joins also gain up to 1pt of optical spacing at rest, increasing to
+2pt at full focus, taken only from the wider neighbor. The smaller piece stays
+in place, and the original time boundary remains inside the gap. Spacing tapers
+away at fully rounded joins and is bounded so a section contributing to both
+neighboring gaps retains at least half its width. Neither seek positions nor
+marker times change.
+Full-radius roomy joins are unchanged.
+Touch timelines retain their existing minimum-width suppression, so expanding
+the bar does not introduce tiny sections or change its established rounded caps.
 The mask applies to the base, buffered, and played fills and glass backing
 together, never the white playhead. Each section retains the bar's exact
 material and opacity; only its rounded ends and full-height gaps reveal the

@@ -3,6 +3,7 @@ import CoreUI
 import SwiftUI
 
 /// A settings choice is one focusable row; the system still owns its menu.
+/// Inline picker options override grouped containers that otherwise add a submenu.
 struct SettingsMenuRow<Options: View>: View {
     let title: LocalizedStringResource
     let value: Text
@@ -12,7 +13,9 @@ struct SettingsMenuRow<Options: View>: View {
 
     var body: some View {
         #if os(tvOS)
-        Menu(content: options) {
+        Menu {
+            options().pickerStyle(.inline)
+        } label: {
             SettingsSectionLabel(
                 title: Text(title), icon: icon, assetIcon: nil,
                 value: value, subtitle: subtitle.map(Text.init),
@@ -25,7 +28,9 @@ struct SettingsMenuRow<Options: View>: View {
         .accessibilityValue(value)
         #else
         LabeledSettingRow(title, subtitle: subtitle, labelWidth: 0, trailingAlignment: .trailing) {
-            Menu(content: options) {
+            Menu {
+                options().pickerStyle(.inline)
+            } label: {
                 HStack {
                     if let icon { Image(systemName: icon) }
                     value

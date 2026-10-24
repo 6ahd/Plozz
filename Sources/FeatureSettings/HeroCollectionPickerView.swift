@@ -48,6 +48,7 @@ public struct HeroCollectionPickerView: View {
                         )
                     }
                     Button("Clear selection") { selections = [] }
+                        .plozzActionButton(role: .secondary)
                         .modifier(ViewCustomizationRowFocus(id: "hero-collection-clear"))
                 }
             }
@@ -76,6 +77,7 @@ public struct HeroCollectionPickerView: View {
                         dismiss()
                     }
                 }
+                .plozzActionButton(role: .secondary)
                 .modifier(ViewCustomizationRowFocus(id: "hero-collection-done"))
             }
         }
@@ -146,9 +148,11 @@ private struct HeroCollectionListView: View {
             } else if let error = model.error {
                 Text(error.userMessage)
                 Button("Retry") { request += 1 }
+                    .plozzActionButton(role: .secondary)
                     .modifier(ViewCustomizationRowFocus(id: "hero-collection-retry"))
             } else if model.hasMore {
                 Button("Load more") { request += 1 }
+                    .plozzActionButton(role: .secondary)
                     .modifier(ViewCustomizationRowFocus(id: "hero-collection-more"))
             } else if model.items.isEmpty {
                 Text("No collections in this source.")

@@ -362,7 +362,7 @@ private struct PlozziOSProfileSettingsPage: View {
             LiveTVSettingsView(
                 store: LiveTVViewSettingsStore(namespace: appModel.profiles.activeNamespace),
                 preferencesStore: LiveTVPreferencesStore(namespace: appModel.profiles.activeNamespace),
-                sourceManagement: {
+                sourceManagement: { preferences in
                     AnyView(PlozziOSLiveTVSourcesDestination(
                         profileID: appModel.profiles.activeProfile.id,
                         preferencesNamespace: appModel.profiles.activeNamespace,
@@ -370,7 +370,8 @@ private struct PlozziOSProfileSettingsPage: View {
                         connectServer: onAddServer,
                         didConfigurePlaylist: { _ = appModel.recordSuccessfulIPTVSetup() },
                         isPresented: isPresented,
-                        isProfileAuthorized: { [appModel] in appModel.isLiveTVProfileAuthorized }
+                        isProfileAuthorized: { [appModel] in appModel.isLiveTVProfileAuthorized },
+                        settingsPreferences: preferences
                     ))
                 }
             )

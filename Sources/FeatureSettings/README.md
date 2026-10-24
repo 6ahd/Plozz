@@ -27,6 +27,14 @@ Detail Page exposes episodes, related titles, and extras. Central presets still
 replace all overrides; contextual edits preserve other views. Screen-specific
 sizing stays with its screen, while overall display size stays in Appearance.
 
+Live TV settings exposes TV sources and the automatic Plozz channels switch on
+the root page. Sources have a regular Add source header action and reuse the
+shared fading scroll container above four entries. Guide/browsing preferences
+remain owned here; the shell composes them with the retained source/library
+runtime through `LiveTVSettingsSources`, without a FeatureSettings/FeatureLiveTV
+dependency cycle. Source authorization does not gate ordinary view preferences.
+See [Live TV settings](../../docs/live-tv-prototype.md) for navigation and overflow behavior.
+
 Server sign-ins offer **Sign In Again** without removing the saved account.
 Plex, Jellyfin, Emby, and Silo share the same guarded recovery contract; IPTV
 uses **Edit connection**. Failed library authentication routes to that exact

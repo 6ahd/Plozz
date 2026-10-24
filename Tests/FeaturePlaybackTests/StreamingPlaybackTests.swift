@@ -1,5 +1,5 @@
 #if canImport(AVFoundation)
-import CoreModels
+@testable import CoreModels
 import Foundation
 import TraktService
 import XCTest
@@ -10,6 +10,85 @@ import UIKit
 
 @MainActor
 final class StreamingPlaybackTests: XCTestCase {
+    func testJournalKeepsAbandonedResolutionSeparateFromTheNewPlaybackAttempt() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let journal = PlaybackDiagnosticJournal(url: root.appendingPathComponent("playback.json"))
+        let gate = QualityDecisionGate()
+        let provider = QualityPlaybackProvider(gate: gate)
+        let engine = QualityEngine()
+        let model = PlayerViewModel(
+            provider: provider, itemID: "movie", streamingOptions: .init(quality: .hd720),
+            engineFactory: .init(makeNative: { _ in engine }), diagnosticJournal: journal
+        )
+        let abandoned = Task { await model.load() }
+        await gate.waitUntilEntered()
+        await model.load()
+        await model.stop()
+        await gate.release()
+        await abandoned.value
+        await journal.flush()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let report = await journal.report()
+        let json = try XCTUnwrap(report.split(separator: "\n", maxSplits: 2).last)
+        let entries = try JSONDecoder().decode(PlaybackDiagnosticJournal.Journal.self, from: Data(json.utf8)).entries
+        let requests = entries.filter { $0.event == .requested }
+        XCTAssertEqual(requests.count, 2)
+        let abandonedRequest = try XCTUnwrap(requests.first)
+        let activeRequest = try XCTUnwrap(requests.last)
+        XCTAssertNotEqual(abandonedRequest.attempt, activeRequest.attempt)
+        XCTAssertEqual(
+            entries.first { $0.event == .releaseStarted && $0.stopReason == .superseded }?.attempt,
+            abandonedRequest.attempt
+        )
+        XCTAssertEqual(
+            entries.first { $0.event == .releaseStarted && $0.stopReason == .requested }?.attempt,
+            activeRequest.attempt
+        )
+    }
+
+    func testJournalPreservesFailureRetryOutputAndReleaseReasonsWithoutStaleCallbacks() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let journal = PlaybackDiagnosticJournal(url: root.appendingPathComponent("playback.json"))
+        let provider = QualityPlaybackProvider()
+        let engine = QualityEngine()
+        let model = PlayerViewModel(
+            provider: provider, itemID: "movie", streamingOptions: .init(quality: .sd480, codec: .preferHEVC),
+            engineFactory: .init(makeNative: { _ in engine }), diagnosticJournal: journal
+        )
+        await model.load()
+        let oldPhase = engine.onDiagnosticPhaseChanged
+        engine.streamingFailure = .init(kind: .unsupportedFormat, domain: .avFoundation, code: -11829)
+        engine.onFailure?(.unknown("https://private.test?token=secret"))
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        oldPhase?(.stalled)
+        engine.onDiagnosticPhaseChanged?(.playing)
+        engine.onDiagnosticPhaseChanged?(.playing)
+        engine.streamingOutputVideoCodec = .h264
+        model.upNextDidPresentFirstFrame()
+        model.upNextDidPresentFirstFrame()
+        await model.stop()
+        oldPhase?(.stalled)
+        await journal.flush()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let report = await journal.report()
+        let json = try XCTUnwrap(report.split(separator: "\n", maxSplits: 2).last)
+        let entries = try JSONDecoder().decode(PlaybackDiagnosticJournal.Journal.self, from: Data(json.utf8)).entries
+        let failure = try XCTUnwrap(entries.first { $0.event == .failed })
+        let loaded = entries.filter { $0.event == .loaded }
+        XCTAssertEqual(loaded.count, 2)
+        XCTAssertEqual(failure.failure?.nativeCode, -11829)
+        XCTAssertEqual(failure.attempt, loaded.first?.attempt)
+        XCTAssertNotEqual(failure.attempt, loaded.last?.attempt)
+        XCTAssertTrue(entries.contains { $0.event == .codecRetry })
+        XCTAssertEqual(entries.filter { $0.event == .phaseChanged }.map(\.phase), [.playing])
+        XCTAssertEqual(entries.filter { $0.event == .firstFrame }.count, 1)
+        XCTAssertEqual(entries.first { $0.event == .firstFrame }?.facts.outputCodec, .h264)
+        XCTAssertEqual(entries.filter { $0.event == .releaseStarted }.map(\.stopReason), [.replacement, .requested])
+        XCTAssertFalse(report.contains("private"))
+        XCTAssertFalse(report.contains("secret"))
+        XCTAssertFalse(report.contains("quality-"))
+    }
+
     func testEmbeddedChaptersAppearAfterLoadWithoutServerMetadata() async {
         let (model, engine, _) = make()
         engine.loadChapters = [.init(start: 180, title: "From file"), .init(start: 0)]
@@ -1056,6 +1135,66 @@ final class StreamingPlaybackTests: XCTestCase {
         await model.stop()
     }
 
+    func testManagedAudioChangesRenegotiateInsteadOfSelectingRenditionLocalIndices() async throws {
+        for manual in [true, false] {
+            let (model, engine, provider) = make(options: .init(quality: .hd720))
+            await model.load()
+            engine.currentTime = 80
+            model.setPaused(true)
+            let track = try XCTUnwrap(engine.audioTracks.first { $0.id == 4 })
+            if manual {
+                model.selectAudioOption(id: track.id)
+            } else {
+                model.trackSelectAudioTrack(track)
+            }
+            await wait { engine.positions.count == 2 && model.phase == .ready }
+            let calls = await provider.calls
+            XCTAssertEqual(calls.last?.options.audioTrack?.id, 4)
+            XCTAssertEqual(engine.positions.last, 80)
+            XCTAssertEqual(engine.currentAudioTrackID, 4)
+            XCTAssertTrue(engine.isPaused)
+            XCTAssertTrue(engine.localAudioSelections.isEmpty)
+            await model.stop()
+        }
+    }
+
+    func testManagedAudioRestorationDoesNotRenegotiateWhenEngineHasNoActiveID() async {
+        let (model, engine, provider) = make(options: .init(quality: .hd720))
+        engine.suppressActiveAudioID = true
+        await model.load()
+        model.selectAudioOption(id: 4)
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        let calls = await provider.calls
+        XCTAssertEqual(calls.count, 2)
+        XCTAssertEqual(calls.last?.options.audioTrack?.id, 4)
+        XCTAssertTrue(engine.localAudioSelections.isEmpty)
+        XCTAssertNil(engine.currentAudioTrackID)
+        await model.stop()
+    }
+
+    func testImportedAudioWaitsForBringUpAndPreservesResumeBeforeClockReadiness() async {
+        let provider = QualityPlaybackProvider()
+        let engine = QualityEngine()
+        let model = PlayerViewModel(
+            provider: provider, itemID: "movie", streamingOptions: .init(quality: .hd720),
+            startPosition: 125, engineFactory: .init(makeNative: { _ in engine })
+        )
+        let controller = SubtitleTrackController(host: model)
+        engine.didLoad = { [weak engine, weak controller] in
+            engine?.currentTime = 0
+            controller?.queueImportedAudio(language: "jpn")
+        }
+        await model.load()
+        XCTAssertEqual(engine.positions, [120], "Import must preserve the configured five-second resume rewind.")
+        controller.applyImportedAudioIfPossible()
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        let calls = await provider.calls
+        XCTAssertEqual(calls.last?.options.audioTrack?.id, 4)
+        XCTAssertEqual(engine.positions, [120, 120])
+        XCTAssertTrue(engine.localAudioSelections.isEmpty)
+        await model.stop()
+    }
+
     func testPlexEmbeddedSubtitleSelectionPreparesRenditionWithoutLosingContinuation() async {
         let provider = QualityPlaybackProvider()
         await provider.setPlexSubtitleRenditions()
@@ -1334,6 +1473,8 @@ private final class QualityScrubStillExtractor: ScrubStillExtracting {
 
 @MainActor
 private final class QualityEngine: VideoEngine {
+    var didLoad: (() -> Void)?
+    var suppressActiveAudioID = false
     var loadGate: QualityDecisionGate?
     var drainGate: QualityDecisionGate?
     var streamingFailure: StreamingPlaybackFailure?
@@ -1351,6 +1492,7 @@ private final class QualityEngine: VideoEngine {
     var chapters: [MediaChapter] = []
     var loadChapters: [MediaChapter] = []
     var currentAudioTrackID: Int?
+    var localAudioSelections: [Int?] = []
     var selectedSubtitleID: Int?
     var onPause: (@MainActor () -> Void)?
     var isPlaybackPositionReady: Bool { status == .ready }
@@ -1358,6 +1500,7 @@ private final class QualityEngine: VideoEngine {
     var loadedQualities: [StreamingQuality] = []
     var onProgress: (@MainActor () -> Void)?
     var onFailure: (@MainActor (AppError) -> Void)?
+    var onDiagnosticPhaseChanged: (@MainActor (PlaybackDiagnosticJournal.Phase) -> Void)?
     var onEnded: (@MainActor () -> Void)?
     var onTracksChanged: (@MainActor () -> Void)?
     var onChaptersChanged: (@MainActor () -> Void)?
@@ -1374,8 +1517,9 @@ private final class QualityEngine: VideoEngine {
         audioTracks = request.audioTracks
         subtitleTracks = request.subtitleTracks
         chapters = loadChapters
-        currentAudioTrackID = request.streamingOptions?.audioTrack?.id ?? 3
+        currentAudioTrackID = suppressActiveAudioID ? nil : (request.streamingOptions?.audioTrack?.id ?? 3)
         selectedSubtitleID = nil
+        didLoad?()
         status = .ready
     }
     func play() { isPaused = false }
@@ -1385,7 +1529,10 @@ private final class QualityEngine: VideoEngine {
     func drainTransport() async {
         if let gate = drainGate { drainGate = nil; await gate.suspend() }
     }
-    func selectAudioTrack(_ track: MediaTrack?) { currentAudioTrackID = track?.id }
+    func selectAudioTrack(_ track: MediaTrack?) {
+        localAudioSelections.append(track?.id)
+        currentAudioTrackID = track?.id
+    }
     func selectSubtitleTrack(_ track: MediaTrack?) { selectedSubtitleID = track?.id }
     #if canImport(UIKit)
     func makeVideoOutputView() -> UIView { UIView() }

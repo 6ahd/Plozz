@@ -283,6 +283,7 @@ public struct LiveChannelPlayerView: View {
                 )
                 VideoSurfaceContainer(
                     engine: model.engine, zoom: model.videoZoom.settings,
+                    aspectRatio: model.videoAspectRatio,
                     fitsInsideSafeArea: liveSubtitleViewport != nil && !model.continuesExternally,
                     subtitleViewport: liveSubtitleViewport
                 )
@@ -558,7 +559,7 @@ public struct LiveChannelPlayerView: View {
             .onDisappear { touchGestures.cancel() }
             .onChange(of: reportingID) { _, _ in
                 updateSource()
-                onVideoAspectRatioChange(model?.engine.videoAspectRatio)
+                onVideoAspectRatioChange(model?.videoAspectRatio)
             }
             .onChange(of: isAudible) { _, audible in model?.setAudible(audible) }
             .onChange(of: allowsDisplayMatching) { _, allowed in model?.setDisplayMatchingAllowed(allowed) }
@@ -609,7 +610,7 @@ public struct LiveChannelPlayerView: View {
         .onChange(of: model?.phase) { _, phase in
             playbackPhaseChanged(phase)
         }
-        .onChange(of: model?.engine.videoAspectRatio, initial: true) { _, ratio in
+        .onChange(of: model?.videoAspectRatio, initial: true) { _, ratio in
             onVideoAspectRatioChange(ratio)
         }
         .onChange(of: tracksArePresented) { _, _ in autoHideRevision &+= 1 }
@@ -1364,6 +1365,7 @@ private struct LiveChannelInterruptionView: View {
 private final class LiveChannelPlayerPlaybackState {
     var phase: LiveChannelPlaybackPhase = .loading
     var hasPresentedFrame = false
+    var videoAspectRatio: Double?
     var seekableWindow: LiveSeekableWindow?
     var isAtLiveEdge = true
     var behindLiveSeconds: TimeInterval = 0
@@ -1523,6 +1525,10 @@ final class LiveChannelPlayerModel {
         get { playbackState.hasPresentedFrame }
         set { playbackState.hasPresentedFrame = newValue }
     }
+    private(set) var videoAspectRatio: Double? {
+        get { playbackState.videoAspectRatio }
+        set { playbackState.videoAspectRatio = newValue }
+    }
     private(set) var seekableWindow: LiveSeekableWindow? {
         get { playbackState.seekableWindow }
         set {
@@ -1624,6 +1630,10 @@ final class LiveChannelPlayerModel {
     @ObservationIgnored private var sessionReporting: LiveChannelSessionReporting?
     @ObservationIgnored private var reportedSessionStart = false
     @ObservationIgnored private var reportedSessionFailure = false
+    @ObservationIgnored private let playbackJournal: PlaybackDiagnosticJournal
+    @ObservationIgnored private let diagnosticSession = UUID()
+    @ObservationIgnored private var diagnosticAttempt = UUID()
+    @ObservationIgnored private var recordedAttemptFailure = false
     @ObservationIgnored private var lastSessionReport: TimeInterval?
     @ObservationIgnored private var lastSessionState: LiveTVPlaybackUpdate.State?
 
@@ -1643,9 +1653,11 @@ final class LiveChannelPlayerModel {
         outputID: UUID = UUID(),
         isAudible: Bool = true,
         allowsDisplayMatching: Bool = true,
-        trackPreferences: LiveChannelTrackPreferences? = nil
+        trackPreferences: LiveChannelTrackPreferences? = nil,
+        playbackJournal: PlaybackDiagnosticJournal = .shared
     ) {
         self.engine = engine
+        self.playbackJournal = playbackJournal
         self.outputGroup = outputGroup
         self.outputID = outputID
         outputPolicy = LiveChannelOutputPolicy(
@@ -2160,6 +2172,7 @@ final class LiveChannelPlayerModel {
 
     func stop() {
         guard !stopped else { return }
+        recordPlaybackDiagnostic(.stopped)
         stopped = true
         isRecoveringProgramme = false
         onPresentationInvalidated?()
@@ -2213,6 +2226,9 @@ final class LiveChannelPlayerModel {
         timeShifted = false
         cancelPendingSeek()
         attemptStartedAt = uptime()
+        diagnosticAttempt = UUID()
+        recordedAttemptFailure = false
+        recordPlaybackDiagnostic(.loading)
         firstFrameTimingStartedAt = attemptStartedAt
         tuneToFirstFrameSeconds = nil
         bufferingStartedAt = nil
@@ -2235,6 +2251,7 @@ final class LiveChannelPlayerModel {
             return
         }
         guard generation == attemptGeneration, !stopped, !phase.isInterrupted else { return }
+        recordPlaybackDiagnostic(.loaded)
         isLoading = false
         if isSuspended || userPaused {
             engine.pause()
@@ -2316,6 +2333,10 @@ final class LiveChannelPlayerModel {
         }
 
         let snapshot = engine.liveSnapshot
+        // Engine/AVPlayer dimensions can arrive without an Observation notification.
+        // Publish them through the existing monitor so the retained surface relayouts.
+        let aspectRatio = engine.videoAspectRatio
+        if videoAspectRatio != aspectRatio { videoAspectRatio = aspectRatio }
         subtitles.tick(engine.subtitlePresentationTime)
         diagnostics.sample(snapshot, uptime: uptime(), attempt: attemptCount)
         if isLoading {
@@ -2372,6 +2393,7 @@ final class LiveChannelPlayerModel {
         let hadPresentedFrame = hasPresentedFrame
         hasPresentedFrame = hasPresentedFrame || snapshot.firstFrameReady
         if !hadPresentedFrame, hasPresentedFrame {
+            recordPlaybackDiagnostic(.firstFrame)
             tuneToFirstFrameSeconds = max(0, uptime() - firstFrameTimingStartedAt)
             // The first moment a subtitle selection is sure to be honoured.
             refreshTracks()
@@ -2458,9 +2480,30 @@ final class LiveChannelPlayerModel {
     }
 
     private func reportSessionFailure(_ report: LiveChannelFailureReport) {
+        if !recordedAttemptFailure {
+            recordedAttemptFailure = true
+            recordPlaybackDiagnostic(.failed, failure: report.diagnostic)
+        }
         guard let sessionReporting, !reportedSessionFailure else { return }
         reportedSessionFailure = true
         sessionReporting.failed(report)
+    }
+
+    private func recordPlaybackDiagnostic(
+        _ event: PlaybackDiagnosticJournal.Event, failure: PlaybackFailureDiagnostic? = nil
+    ) {
+        guard attemptCount > 0 else { return }
+        let shape: PlaybackDiagnosticJournal.Source
+        switch source.input {
+        case .libraryChannel: shape = .libraryChannel
+        case .stream(let url, _):
+            shape = url.pathExtension.lowercased() == "m3u8" ? .serverHLS : .serverFile
+        }
+        playbackJournal.record(
+            event, session: diagnosticSession, attempt: diagnosticAttempt,
+            facts: .init(provider: nil, engine: .plozzigen, content: .live, source: shape),
+            elapsed: max(0, uptime() - attemptStartedAt), liveFailure: failure
+        )
     }
 
     private func resumeActivePlayback() {
