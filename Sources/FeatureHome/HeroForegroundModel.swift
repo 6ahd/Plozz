@@ -135,6 +135,7 @@ enum HeroForegroundModelBuilder {
         var downloadProgress: Double? = nil
         /// Makes a fallback action read as the primary CTA even while unfocused.
         var prominent: Bool = false
+        /// Shared localized label and symbol for request actions or waiting statuses.
         var requestTitle: LocalizedStringResource? = nil
         var requestSystemImage: String? = nil
     }
@@ -243,8 +244,11 @@ enum HeroForegroundModelBuilder {
                 )
             }
             return HeroForegroundModel.Pill(
-                kind: .downloadStatus, text: "Requested", systemImage: "clock",
-                progress: nil, prominent: input.prominent
+                kind: .downloadStatus,
+                text: input.requestTitle == nil ? "Requested" : nil,
+                systemImage: input.requestSystemImage ?? "clock",
+                progress: nil, prominent: input.prominent,
+                localizedTitle: input.requestTitle
             )
         case .moreInfo:
             return HeroForegroundModel.Pill(

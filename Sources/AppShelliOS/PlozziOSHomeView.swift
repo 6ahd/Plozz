@@ -675,7 +675,7 @@ struct PlozziOSHomeView: View {
     /// title's `availability` + `downloadProgress` back onto the matching hero
     /// item **in place**, so the request CTA tracks the server live
     /// (Request → "NN%" → Play) as a download progresses — mirroring tvOS. Only
-    /// the two status fields change; item ids and carousel order are untouched,
+    /// the request status fields change; item ids and carousel order are untouched,
     /// so the current slide, backdrop, and paging never reset. Polls fast while a
     /// request is still spinning up, then backs off.
     private func refreshFeaturedStatusLoop() async {
@@ -717,7 +717,7 @@ struct PlozziOSHomeView: View {
         let updates = await appModel.seerService.availabilityUpdates(for: heroItems)
         guard !Task.isCancelled, key == featuredStatusKey, !updates.isEmpty else { return }
         let statusByID = Dictionary(
-            updates.map { ($0.id, ($0.availability, $0.downloadProgress)) },
+            updates.map { ($0.id, $0) },
             uniquingKeysWith: { _, last in last }
         )
         foldFeaturedStatus(statusByID, into: &heroItems)
@@ -725,7 +725,7 @@ struct PlozziOSHomeView: View {
     }
 
     private func foldFeaturedStatus(
-        _ statusByID: [String: (MediaAvailabilityStatus?, Double?)],
+        _ statusByID: [String: MediaItem],
         into items: inout [MediaItem]
     ) {
         for index in items.indices {
@@ -738,14 +738,15 @@ struct PlozziOSHomeView: View {
             // time-boxed — once the grace window lapses, the authoritative lookup
             // wins, so a request that genuinely failed can't stay stuck on
             // "Requested" forever.
-            if heroRequestStatuses[id] != nil, !Self.isTracked(status.0) {
+            if heroRequestStatuses[id] != nil, !Self.isTracked(status.availability) {
                 let setAt = heroRequestStatusSetAt[id] ?? .distantPast
                 if Date().timeIntervalSince(setAt) < Self.heroRequestOverrideGrace {
                     continue
                 }
             }
-            guard items[index].availability != status.0
-                || items[index].downloadProgress != status.1 else {
+            guard items[index].availability != status.availability
+                || items[index].downloadProgress != status.downloadProgress
+                || items[index].hasRequestDownloadActivity != status.hasRequestDownloadActivity else {
                 // Even when nothing changed, an authoritative tracked/untracked
                 // lookup means the override has served its purpose — drop it so it
                 // can't linger and shield a later real change.
@@ -753,8 +754,9 @@ struct PlozziOSHomeView: View {
                 heroRequestStatusSetAt[id] = nil
                 continue
             }
-            items[index].availability = status.0
-            items[index].downloadProgress = status.1
+            items[index].availability = status.availability
+            items[index].downloadProgress = status.downloadProgress
+            items[index].hasRequestDownloadActivity = status.hasRequestDownloadActivity
             heroRequestStatuses[id] = nil
             heroRequestStatusSetAt[id] = nil
         }
@@ -1785,7 +1787,9 @@ struct PlozziOSHomeHeroCarousel: View {
                 hasValidatedPlayableSource:
                     item.hasPlayableLibraryTarget(additionalSources: indexed),
                 seerConnected: appModel.seerService.isConfigured
-                    && appModel.seerService.hasRequestIdentity(for: item)
+                    && appModel.seerService.hasRequestIdentity(for: item),
+                releaseDate: item.releaseDate,
+                hasDownloadActivity: item.hasRequestDownloadActivity == true
             ),
             isRequesting: isRequesting,
             actingName: appModel.activeSeerrRequestActingName,

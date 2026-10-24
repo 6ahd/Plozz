@@ -32,6 +32,25 @@ final class HeroForegroundModelTests: XCTestCase {
         XCTAssertEqual(item.officialRating, "FR/Tous publics avec avertissement")
     }
 
+    func testUnreleasedMovieStatusUsesSharedLocalizedCopyAndCalendar() throws {
+        let cta = HeroCTA.awaitingRelease
+        let input = PillInput(
+            kind: .downloadStatus, prominent: true,
+            requestTitle: cta.requestStatusTitle, requestSystemImage: cta.requestStatusSystemImage
+        )
+        let pill = Builder.pill(for: input)
+        var title = try XCTUnwrap(pill.localizedTitle)
+        title.locale = Locale(identifier: "en")
+        XCTAssertEqual(String(localized: title), "Requested · Unreleased")
+        XCTAssertEqual(pill.systemImage, "calendar")
+        XCTAssertNil(pill.text)
+        XCTAssertNil(pill.progress)
+        var downloading = input
+        downloading.downloadProgress = 0.42
+        XCTAssertEqual(Builder.pill(for: downloading).text, "42%")
+        XCTAssertEqual(Builder.pill(for: downloading).systemImage, "arrow.down.circle")
+    }
+
     func testHeroShowsAgeAndTwoReviewsByDefaultAndHonorsHiding() {
         var item = movie()
         item.familyGuidance = .init(recommendedAge: 14, qualityRating: 5)

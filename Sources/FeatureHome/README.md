@@ -18,6 +18,16 @@ retains the existing error/retry presentation. Late episode resolution must not 
 secondary action the user selected. Request/status actions retain the same
 leading-entry preference, and returning from a child preserves source focus.
 
+## Request status
+
+Movie request statuses in Home and detail heroes use the same
+`Requested · Unreleased` wording as season requests. This is an approved request
+with a known future release day, not a prediction that downloading will start on
+that day. Pending approval stays Requested; library availability and reported
+queue activity take precedence, including queue items with no measurable progress.
+Release days use the viewer's local calendar day, and missing dates are not guessed.
+The UIKit and SwiftUI hero renderers share the localized status and calendar symbol.
+
 ## Responsibility
 
 Home Continue Watching failures use the existing Details / Try Again actions on

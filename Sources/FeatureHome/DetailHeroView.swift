@@ -640,7 +640,7 @@ struct DetailHeroView: View, Equatable {
     private var showsRequestPill: Bool {
         guard isDiscoveryItem else { return false }
         switch requestCTA {
-        case .request, .requested, .downloading: return true
+        case .request, .requested, .awaitingRelease, .downloading: return true
         case .play, .unavailable: return false
         }
     }
@@ -1554,14 +1554,14 @@ struct DetailHeroView: View, Equatable {
             .prefersDefaultFocus(true, in: heroActionsScope)
             .focused($heroActionRowFocus, equals: .request)
             .accessibilityLabel("Downloading \(percent) percent")
-        case .requested:
+        case .requested, .awaitingRelease:
             Button {} label: {
-                Label("Requested", systemImage: "clock")
+                Label(requestCTA.requestStatusTitle, systemImage: requestCTA.requestStatusSystemImage)
             }
             .modifier(HeroActionButtonStyle(prominent: false))
             .prefersDefaultFocus(true, in: heroActionsScope)
             .focused($heroActionRowFocus, equals: .request)
-            .accessibilityLabel("Requested")
+            .accessibilityLabel(Text(requestCTA.requestStatusTitle))
         case .play, .unavailable:
             EmptyView()
         }

@@ -627,7 +627,9 @@ public struct ItemDetailView: View {
             availability: effectiveAvailability,
             downloadProgress: detail.item.downloadProgress,
             hasValidatedPlayableSource: hasValidatedPlayableSource,
-            seerConnected: seerConnected
+            seerConnected: seerConnected,
+            releaseDate: detail.item.releaseDate,
+            hasDownloadActivity: detail.item.hasRequestDownloadActivity == true
         )
         let discoveryStatusLine: LocalizedStringResource? = {
             guard usesExternalDetail else { return nil }
