@@ -19,6 +19,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import NuvioService
 
 /// Real-time scrobble fan-out injected into the player. Conforms to
 /// `TraktScrobbling` (the type the player expects) but forwards every
@@ -30,11 +31,14 @@ struct RealtimePlaybackScrobbler: TraktScrobbling {
     let trakt: any TraktScrobbling
     let simkl: any SimklScrobbling
     let wetrakr: WetrakrScrobbler
+    /// Nuvio has no "now watching"; it takes the resume point on pause/stop.
+    let nuvio: any NuvioScrobbling
 
     func scrobble(item: MediaItem, progress: Double, event: PlaybackEvent) async {
         await trakt.scrobble(item: item, progress: progress, event: event)
         await simkl.scrobble(item: item, progress: progress, event: event)
         await wetrakr.scrobble(item: item, progress: progress, event: event)
+        await nuvio.scrobble(item: item, progress: progress, event: event)
     }
 }
 #endif

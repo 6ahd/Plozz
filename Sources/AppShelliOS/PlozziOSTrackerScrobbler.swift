@@ -2,6 +2,7 @@
 import AniListService
 import CoreModels
 import MALService
+import NuvioService
 import SimklService
 import WetrakrService
 import TraktService
@@ -12,6 +13,7 @@ struct PlozziOSTrackerScrobbler: TraktScrobbling {
     let wetrakr: WetrakrScrobbler
     let anilist: any AniListScrobbling
     let mal: any MALScrobbling
+    let nuvio: any NuvioScrobbling
 
     func scrobble(
         item: MediaItem,
@@ -39,7 +41,8 @@ struct PlozziOSTrackerScrobbler: TraktScrobbling {
             event: event
         )
         async let wetrakrResult: Void = wetrakr.scrobble(item: item, progress: progress, event: event)
-        _ = await (traktResult, simklResult, anilistResult, malResult, wetrakrResult)
+        async let nuvioResult: Void = nuvio.scrobble(item: item, progress: progress, event: event)
+        _ = await (traktResult, simklResult, anilistResult, malResult, wetrakrResult, nuvioResult)
     }
 }
 #endif

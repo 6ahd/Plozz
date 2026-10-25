@@ -8,6 +8,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import NuvioService
 
 /// Bundle of the user-scoped sync + external-ratings services threaded down the
 /// tab hierarchy. A read-only value grouping the seven service references that
@@ -23,5 +24,6 @@ struct SyncServices {
     let anilist: AniListService
     let mal: MALService
     let lastfm: LastFmService
+    let nuvio: NuvioService
 }
 #endif

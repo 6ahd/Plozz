@@ -674,7 +674,8 @@ public struct RootView: View {
                             seer: appState.seerService,
                             anilist: appState.anilistService,
                             mal: appState.malService,
-                            lastfm: appState.lastfmService
+                            lastfm: appState.lastfmService,
+                            nuvio: appState.nuvioService
                         ),
                         seriesTrackStore: SeriesTrackPreferenceStore(namespace: appState.profilesModel.activeNamespace),
                         crashReportingModel: appState.crashReportingModel,

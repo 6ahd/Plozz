@@ -10,6 +10,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import NuvioService
 
 /// Sync-repair actions for the iCloud Sync page, bundled so the (already
 /// arg-limit-bound) `SettingsView` initializer carries them in a single parameter.
@@ -77,6 +78,7 @@ public struct SettingsView: View {
     private let anilist: AniListService
     private let mal: MALService
     private let lastfm: LastFmService
+    private let nuvio: NuvioService
     private let librariesStore: DiscoveredLibrariesStore
     private let reloadLibraries: () async -> Void
     private let accounts: [Account]
@@ -187,6 +189,7 @@ public struct SettingsView: View {
         anilist: AniListService,
         mal: MALService,
         lastfm: LastFmService,
+        nuvio: NuvioService,
         librariesStore: DiscoveredLibrariesStore,
         reloadLibraries: @escaping () async -> Void,
         accounts: [Account],
@@ -257,6 +260,7 @@ public struct SettingsView: View {
         self.anilist = anilist
         self.mal = mal
         self.lastfm = lastfm
+        self.nuvio = nuvio
         self.librariesStore = librariesStore
         self.reloadLibraries = reloadLibraries
         self.accounts = accounts
@@ -1021,7 +1025,7 @@ public struct SettingsView: View {
         case .spoilers:
             SpoilersDetailView(spoilers: spoilers)
         case .integrations:
-            IntegrationsDetailView(trakt: trakt, simkl: simkl, wetrakr: wetrakr, anilist: anilist, mal: mal, lastfm: lastfm, playback: playback, serverCount: activeProfileServerCount)
+            IntegrationsDetailView(trakt: trakt, simkl: simkl, wetrakr: wetrakr, anilist: anilist, mal: mal, lastfm: lastfm, nuvio: nuvio, playback: playback, serverCount: activeProfileServerCount)
         case .metadata:
             if let metadataSettings {
                 MetadataSettingsDetailView(deps: metadataSettings, onOpenArtwork: navigation.openArtwork)

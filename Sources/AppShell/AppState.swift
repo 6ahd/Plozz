@@ -31,6 +31,7 @@ import SeerService
 import SimklService
 import WetrakrService
 import LastFmService
+import NuvioService
 import AniListService
 import MALService
 import TopShelfKit
@@ -258,6 +259,10 @@ public final class AppState {
     /// User-scoped (not tied to a media provider); its scrobbler is fanned into
     /// the audio controller so listening in Plozz shows up on the user's Last.fm.
     public let lastfmService: LastFmService
+
+    /// Nuvio sync: TV-login QR + watch-progress push, so Nuvio's Continue
+    /// Watching picks up what was watched in Plozz. User-scoped like the trackers.
+    public let nuvioService: NuvioService
 
     /// The handler behind every card's press-and-hold context menu. Lazily
     /// created so it can capture `self`; resolves the owning provider per item
@@ -1030,6 +1035,7 @@ public final class AppState {
         anilistService: AniListService? = nil,
         malService: MALService? = nil,
         lastfmService: LastFmService? = nil,
+        nuvioService: NuvioService? = nil,
         runtimeFeatureFlags: RuntimeFeatureFlags = .buildDefault,
         appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore()
     ) {
@@ -1235,6 +1241,7 @@ public final class AppState {
         // Last.fm is user-scoped like the trackers; seed it with the active
         // profile's namespace so each profile links its own Last.fm account.
         self.lastfmService = lastfmService ?? LastFmServiceFactory.make(namespace: ns)
+        self.nuvioService = nuvioService ?? NuvioServiceFactory.make(namespace: ns)
 
         // Fan the Last.fm scrobbler into the audio controller's reporting seam.
         // The scrobbler is a stable handle (never rebuilt on profile switch — only
@@ -2721,6 +2728,8 @@ public final class AppState {
         await malService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }
         await lastfmService.setActiveProfile(namespace: ns)
+        guard generation == trackerProfileGeneration else { return }
+        await nuvioService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }
         trackerScopedNamespace = .some(ns)
         trackerScopedIdentityGeneration = identityGeneration

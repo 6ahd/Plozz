@@ -188,8 +188,9 @@ public enum PlozzAttributions {
             title: "Watch Tracking",
             detail:
                 "Watch-history sync integrations — Trakt (trakt.tv), Simkl (simkl.com), "
-                + "AniList (anilist.co), and MyAnimeList (myanimelist.net) — use their "
-                + "respective public APIs. None endorses or is affiliated with Plozz.",
+                + "AniList (anilist.co), MyAnimeList (myanimelist.net), and Nuvio "
+                + "(nuvio.tv) — use their respective public APIs. None endorses or is "
+                + "affiliated with Plozz.",
             licenses: [.init("API", family: .api)]
         ),
         PlozzAttribution(
@@ -206,6 +207,8 @@ public enum PlozzAttributions {
                 + "a distance. UI accent type uses Bungee by David Jonathan Ross. "
                 + "Media badges use Outfit by The Outfit Project Authors "
                 + "(https://github.com/Outfitio/Outfit-Fonts). "
+                + "Arabic subtitles can use IBM Plex Sans Arabic, © 2017 IBM Corp., "
+                + "and Tajawal, © 2018 Boutros International. "
                 + "These fonts are used under the SIL Open Font License 1.1.",
             licenses: [.init("OFL-1.1", family: .ofl)]
         ),

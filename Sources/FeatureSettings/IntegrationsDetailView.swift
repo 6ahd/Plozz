@@ -8,6 +8,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import NuvioService
 
 struct IntegrationsDetailView: View {
     let trakt: TraktService
@@ -16,6 +17,7 @@ struct IntegrationsDetailView: View {
     let anilist: AniListService
     let mal: MALService
     let lastfm: LastFmService
+    let nuvio: NuvioService
     @Bindable var playback: PlaybackSettingsModel
     let serverCount: Int
     @State private var confirmingTraktReconnect = false
@@ -51,7 +53,8 @@ struct IntegrationsDetailView: View {
                 async let a: Void = anilist.refreshStatus()
                 async let m: Void = mal.refreshStatus()
                 async let l: Void = lastfm.refreshStatus()
-                _ = await (t, s, w, a, m, l)
+                async let n: Void = nuvio.refreshStatus()
+                _ = await (t, s, w, a, m, l, n)
             }
     }
 
@@ -194,6 +197,29 @@ struct IntegrationsDetailView: View {
                         onDisconnect: { Task { await lastfm.disconnect() } }
                     )
                 }
+            },
+            SettingsSplitRow(
+                id: "nuvio",
+                verbatimTitle: "Nuvio",
+                description: "Send your watch progress to Nuvio, so its Continue Watching picks up where Plozz left off.",
+            ) {
+                if case let .connecting(loginURL, code) = nuvio.phase {
+                    NuvioConnectingView(
+                        loginURL: loginURL,
+                        code: code,
+                        onCancel: { nuvio.cancelConnect() }
+                    )
+                } else {
+                    trackerActionBar(
+                        phase: nuvioRowPhase,
+                        onConnect: { nuvio.connect() },
+                        onCancel: { nuvio.cancelConnect() },
+                        onDisconnect: { Task { await nuvio.disconnect() } }
+                    )
+                    if case .connected = nuvio.phase, nuvio.profiles.count > 1 {
+                        NuvioProfilePicker(nuvio: nuvio)
+                    }
+                }
             }
         ]
 
@@ -214,13 +240,15 @@ struct IntegrationsDetailView: View {
 
         #if os(tvOS)
         if inWorkspace {
-            let phases = [traktRowPhase, simklRowPhase, wetrakrRowPhase, anilistRowPhase, malRowPhase, lastfmRowPhase]
+            let phases = [traktRowPhase, simklRowPhase, wetrakrRowPhase, anilistRowPhase, malRowPhase, lastfmRowPhase, nuvioRowPhase]
             trackers = zip(trackers, phases).map { row, phase in
                 row.page(summary: statusLabel(phase))
             }
         }
         #endif
-        return trackers.filter { $0.id != "wetrakr" || wetrakr.isConfigured } + watchStatus
+        return trackers.filter {
+            ($0.id != "wetrakr" || wetrakr.isConfigured) && ($0.id != "nuvio" || nuvio.isConfigured)
+        } + watchStatus
     }
 
     private func statusLabel(_ phase: TrackerRowPhase) -> Text {
@@ -367,6 +395,17 @@ struct IntegrationsDetailView: View {
         case .error(let message): .error(message)
         }
     }
+
+    private var nuvioRowPhase: TrackerRowPhase {
+        switch nuvio.phase {
+        case .unknown: .loading
+        case .unavailable: .unavailable
+        case .disconnected: .disconnected
+        case .connecting: .connecting
+        case let .connected(name): .connected(name)
+        case .error(let message): .error(message)
+        }
+    }
 }
 
 // MARK: - Tracker phase
@@ -500,6 +539,77 @@ struct LastFmConnectingView: View {
 
             Spacer(minLength: 0)
         }
+    }
+}
+
+/// Nuvio TV-login view. The QR opens nuvio.tv with the code filled in; the user
+/// approves there and this screen flips to Connected by itself.
+struct NuvioConnectingView: View {
+    let loginURL: String
+    let code: String
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 32) {
+            QRCodeView(loginURL)
+                .frame(width: 180, height: 180)
+                .padding(12)
+                .background(.white, in: RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control))
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Scan to connect Nuvio")
+                    .font(.title2.weight(.semibold))
+                Text("Scan the code with your phone and approve this device on nuvio.tv. Or go to nuvio.tv/tv-login and enter:")
+                    .font(.callout)
+                    .plozzForeground(.secondary)
+                    .frame(maxWidth: 460, alignment: .leading)
+                Text(verbatim: code)
+                    .font(.plozzCode(size: 44))
+                    .tracking(6)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control))
+                HStack(spacing: 14) {
+                    ProgressView().controlSize(.small)
+                    Text("Waiting for approval…")
+                        .font(.callout)
+                        .plozzForeground(.secondary)
+                }
+                .padding(.top, 4)
+                Button(role: .cancel, action: onCancel) {
+                    Text("Cancel")
+                }
+                .padding(.top, 16)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// Which Nuvio profile receives Plozz's watch progress (Nuvio keeps progress
+/// per profile). Shown only when the account has more than one.
+struct NuvioProfilePicker: View {
+    let nuvio: NuvioService
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Nuvio profile")
+                .font(.headline)
+            ForEach(nuvio.profiles) { profile in
+                Button {
+                    nuvio.selectProfile(profile)
+                } label: {
+                    Label {
+                        Text(verbatim: profile.name)
+                    } icon: {
+                        Image(systemName: profile.index == nuvio.selectedProfileIndex
+                            ? "checkmark.circle.fill" : "circle")
+                    }
+                }
+            }
+        }
+        .padding(.top, 18)
     }
 }
 

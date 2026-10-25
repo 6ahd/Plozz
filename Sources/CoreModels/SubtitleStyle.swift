@@ -19,6 +19,10 @@ public enum SubtitleFontFamily: String, Codable, Sendable, Equatable, CaseIterab
     case sfRounded
     case fredoka
     case openDyslexic
+    // Arabic-script faces. The Latin-first families above fall back to the
+    // system Arabic font; these draw Arabic subtitles with a chosen face.
+    case ibmPlexSansArabic
+    case tajawal
 
     public var displayName: String {  // l10n:content — bundled font family names (proper nouns), never translated
         switch self {
@@ -30,6 +34,8 @@ public enum SubtitleFontFamily: String, Codable, Sendable, Equatable, CaseIterab
         case .fredoka: return "Fredoka"
         case .openDyslexic: return "OpenDyslexic"
         case .avenirNext: return "Avenir Next"
+        case .ibmPlexSansArabic: return "IBM Plex Sans Arabic"
+        case .tajawal: return "Tajawal"
         }
     }
 
@@ -44,6 +50,8 @@ public enum SubtitleFontFamily: String, Codable, Sendable, Equatable, CaseIterab
         case .fredoka: return "Fredoka"
         case .openDyslexic: return "OpenDyslexic"
         case .avenirNext: return "AvenirNext"
+        case .ibmPlexSansArabic: return "IBMPlexSansArabic"
+        case .tajawal: return "Tajawal"
         }
     }
 
@@ -58,12 +66,16 @@ public enum SubtitleFontFamily: String, Codable, Sendable, Equatable, CaseIterab
     /// families expose the full range; the static bundled faces (Atkinson,
     /// OpenDyslexic) only Regular/Bold; the variable-derived faces (Lexend,
     /// Roboto, Fredoka) ship Regular/Medium/SemiBold/Bold. Avenir Next maps those
-    /// choices to its built-in Regular/Medium/DemiBold/Bold faces.
+    /// choices to its built-in Regular/Medium/DemiBold/Bold faces. The Arabic
+    /// faces are static: IBM Plex Sans Arabic ships all four upright weights,
+    /// Tajawal Regular/Medium/Bold; neither has italics.
     public var availableWeights: [SubtitleFontWeight] {
         switch self {
         case .atkinson, .openDyslexic:
             return [.regular, .bold]
-        case .system, .sfRounded, .roboto, .lexend, .fredoka, .avenirNext:
+        case .tajawal:
+            return [.regular, .medium, .bold]
+        case .system, .sfRounded, .roboto, .lexend, .fredoka, .avenirNext, .ibmPlexSansArabic:
             return [.regular, .medium, .semibold, .bold]
         }
     }

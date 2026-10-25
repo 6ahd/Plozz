@@ -92,6 +92,8 @@
 	<string>$(PLOZZ_RELEASE_VERSION)</string>
 	<key>PlozzSentryDSN</key>
 	<string>$(PLOZZ_SENTRY_DSN)</string>
+	<key>NuvioAnonKey</key>
+	<string>$(NUVIO_ANON_KEY)</string>
 	<key>SimklClientID</key>
 	<string>$(SIMKL_CLIENT_ID)</string>
 	<key>TMDBBearerToken</key>
@@ -127,6 +129,13 @@
 		<string>OpenDyslexic-Italic.otf</string>
 		<string>OpenDyslexic-Bold.otf</string>
 		<string>OpenDyslexic-BoldItalic.otf</string>
+		<string>IBMPlexSansArabic-Regular.ttf</string>
+		<string>IBMPlexSansArabic-Medium.ttf</string>
+		<string>IBMPlexSansArabic-SemiBold.ttf</string>
+		<string>IBMPlexSansArabic-Bold.ttf</string>
+		<string>Tajawal-Regular.ttf</string>
+		<string>Tajawal-Medium.ttf</string>
+		<string>Tajawal-Bold.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

@@ -2,6 +2,7 @@
 import AniListService
 import CoreUI
 import MALService
+import NuvioService
 import SimklService
 import SwiftUI
 import TraktService
@@ -44,6 +45,12 @@ struct PlozziOSTrackerSettingsView: View {
             SettingsSectionGroup(verbatim: "MyAnimeList") {
                 MALSettingsContent(service: appModel.malService)
             }
+
+            if appModel.nuvioService.isConfigured {
+                SettingsSectionGroup(verbatim: "Nuvio") {
+                    NuvioSettingsContent(service: appModel.nuvioService)
+                }
+            }
         }
         .settingsPageSurface()
         .navigationTitle("Trackers")
@@ -53,7 +60,8 @@ struct PlozziOSTrackerSettingsView: View {
             async let wetrakr: Void = appModel.wetrakrService.refreshStatus()
             async let anilist: Void = appModel.anilistService.refreshStatus()
             async let mal: Void = appModel.malService.refreshStatus()
-            _ = await (trakt, simkl, wetrakr, anilist, mal)
+            async let nuvio: Void = appModel.nuvioService.refreshStatus()
+            _ = await (trakt, simkl, wetrakr, anilist, mal, nuvio)
         }
     }
 }
@@ -357,6 +365,64 @@ private struct MALSettingsContent: View {
     private var connectButton: some View {
         Button("Connect MyAnimeList") {
             code = ""
+            service.connect()
+        }
+    }
+}
+
+private struct NuvioSettingsContent: View {
+    let service: NuvioService
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        switch service.phase {
+        case .unknown:
+            loadingStatus
+        case .unavailable:
+            unavailableStatus
+        case .disconnected:
+            connectButton
+        case let .connecting(loginURL, code):
+            Text("Approve this device on nuvio.tv with the code:")
+                .plozzForeground(.secondary)
+            Text(verbatim: code)
+                .font(.title2.monospaced().weight(.semibold))
+                .textSelection(.enabled)
+            if let url = URL(string: loginURL) {
+                Button("Open Nuvio") {
+                    openURL(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                service.cancelConnect()
+            }
+        case let .connected(displayName):
+            connectedStatus(username: displayName)
+            if service.profiles.count > 1 {
+                Picker("Nuvio profile", selection: Binding(
+                    get: { service.selectedProfileIndex ?? service.profiles[0].index },
+                    set: { index in
+                        if let profile = service.profiles.first(where: { $0.index == index }) {
+                            service.selectProfile(profile)
+                        }
+                    }
+                )) {
+                    ForEach(service.profiles) { profile in
+                        Text(verbatim: profile.name).tag(profile.index)
+                    }
+                }
+            }
+            Button("Disconnect", role: .destructive) {
+                Task { await service.disconnect() }
+            }
+        case let .error(message):
+            errorStatus(message)
+            connectButton
+        }
+    }
+
+    private var connectButton: some View {
+        Button("Connect Nuvio") {
             service.connect()
         }
     }

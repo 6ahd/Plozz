@@ -17,6 +17,7 @@ import MALService
 import MediaDownloads
 import MediaTransportCore
 import MetadataKit
+import NuvioService
 import Observation
 import ProviderPlex
 import ProviderSilo
@@ -361,6 +362,7 @@ final class PlozziOSAppModel {
     let wetrakrService: WetrakrService
     let anilistService: AniListService
     let malService: MALService
+    let nuvioService: NuvioService
     let crashReporting: CrashReportingSettingsModel
     let crashReportingController: CrashReportingController
     private(set) var requiresLaunchProfileSelection: Bool
@@ -634,6 +636,7 @@ final class PlozziOSAppModel {
         let wetrakrService = WetrakrServiceFactory.make(namespace: trackerNamespace)
         let anilistService = AniListServiceFactory.make(namespace: trackerNamespace)
         let malService = MALServiceFactory.make(namespace: trackerNamespace)
+        let nuvioService = NuvioServiceFactory.make(namespace: trackerNamespace)
         self.accountStore = accountStore
         self.profiles = profiles
         self.accountsProviders = accountsProviders
@@ -673,6 +676,7 @@ final class PlozziOSAppModel {
         self.wetrakrService = wetrakrService
         self.anilistService = anilistService
         self.malService = malService
+        self.nuvioService = nuvioService
         self.crashReporting = CrashReportingSettingsModel()
         self.crashReportingController = CrashReportingController()
         self.requiresLaunchProfileSelection = requiresLaunchProfileSelection
@@ -1751,6 +1755,8 @@ final class PlozziOSAppModel {
         guard generation == trackerProfileGeneration else { return }
         await malService.setActiveProfile(namespace: namespace)
         guard generation == trackerProfileGeneration else { return }
+        await nuvioService.setActiveProfile(namespace: namespace)
+        guard generation == trackerProfileGeneration else { return }
         trackerScopedNamespace = .some(namespace)
     }
 
@@ -1806,7 +1812,8 @@ final class PlozziOSAppModel {
                 simkl: SimklServiceFactory.make(namespace: namespace).scrobbler,
                 wetrakr: wetrakrService.playbackScrobbler(),
                 anilist: AniListServiceFactory.make(namespace: namespace).scrobbler,
-                mal: MALServiceFactory.make(namespace: namespace).scrobbler
+                mal: MALServiceFactory.make(namespace: namespace).scrobbler,
+                nuvio: NuvioServiceFactory.make(namespace: namespace).scrobbler
             )
         )
     }

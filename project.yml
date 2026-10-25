@@ -171,6 +171,16 @@ targets:
           - "OpenDyslexic-Italic.otf"
           - "OpenDyslexic-Bold.otf"
           - "OpenDyslexic-BoldItalic.otf"
+          # Arabic subtitle faces (OFL), static weights, no italics.
+          # IBM Plex Sans Arabic: License App/Resources/Fonts/OFL-IBMPlexSansArabic.txt.
+          # Tajawal: License App/Resources/Fonts/OFL-Tajawal.txt.
+          - "IBMPlexSansArabic-Regular.ttf"
+          - "IBMPlexSansArabic-Medium.ttf"
+          - "IBMPlexSansArabic-SemiBold.ttf"
+          - "IBMPlexSansArabic-Bold.ttf"
+          - "Tajawal-Regular.ttf"
+          - "Tajawal-Medium.ttf"
+          - "Tajawal-Bold.ttf"
         # OMDb API key for external ratings enrichment (IMDb/RT/Metacritic).
         # Substituted from the OMDB_API_KEY build setting (see Config/Secrets.xcconfig
         # → optional, gitignored Config/Secrets.local.xcconfig). Empty by default,
@@ -211,6 +221,10 @@ targets:
         # No client secret: Simkl's rules forbid embedding one in code that ships
         # to a device, and the PIN flow Plozz uses never needs it.
         SimklClientID: "$(SIMKL_CLIENT_ID)"
+        # Nuvio watch-progress sync: the public anon key of Nuvio's backend,
+        # substituted from NUVIO_ANON_KEY (gitignored Config/Secrets.local.xcconfig).
+        # Empty by default, which hides the Nuvio row.
+        NuvioAnonKey: "$(NUVIO_ANON_KEY)"
         # AniList client ID/secret for anime tracking (authorization code grant).
         AniListClientID: "$(ANILIST_CLIENT_ID)"
         AniListClientSecret: "$(ANILIST_CLIENT_SECRET)"
@@ -403,6 +417,13 @@ targets:
           - "OpenDyslexic-Italic.otf"
           - "OpenDyslexic-Bold.otf"
           - "OpenDyslexic-BoldItalic.otf"
+          - "IBMPlexSansArabic-Regular.ttf"
+          - "IBMPlexSansArabic-Medium.ttf"
+          - "IBMPlexSansArabic-SemiBold.ttf"
+          - "IBMPlexSansArabic-Bold.ttf"
+          - "Tajawal-Regular.ttf"
+          - "Tajawal-Medium.ttf"
+          - "Tajawal-Bold.ttf"
         NSLocalNetworkUsageDescription: "Plozz uses your local network to discover media servers and network shares."
         NSBonjourServices:
           - _jellyfin._tcp
@@ -435,6 +456,7 @@ targets:
         TraktClientID: "$(TRAKT_CLIENT_ID)"
         WetrakrClientID: "$(WETRAKR_CLIENT_ID)"
         SimklClientID: "$(SIMKL_CLIENT_ID)"
+        NuvioAnonKey: "$(NUVIO_ANON_KEY)"
         AniListClientID: "$(ANILIST_CLIENT_ID)"
         AniListClientSecret: "$(ANILIST_CLIENT_SECRET)"
         MALClientID: "$(MAL_CLIENT_ID)"

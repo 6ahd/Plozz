@@ -8,7 +8,8 @@ import CoreModels
 final class PlayerControlsFormattingTests: XCTestCase {
     func testSubtitleFontPickerGroupsSimilarFacesAfterTheDefault() {
         XCTAssertEqual(SubtitleFontFamily.allCases, [
-            .atkinson, .system, .roboto, .avenirNext, .lexend, .sfRounded, .fredoka, .openDyslexic
+            .atkinson, .system, .roboto, .avenirNext, .lexend, .sfRounded, .fredoka, .openDyslexic,
+            .ibmPlexSansArabic, .tajawal
         ])
     }
 

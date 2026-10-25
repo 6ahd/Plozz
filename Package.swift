@@ -46,6 +46,7 @@ let package = Package(
         .library(name: "SimklService", targets: ["SimklService"]),        .library(name: "AniListService", targets: ["AniListService"]),
         .library(name: "MALService", targets: ["MALService"]),
         .library(name: "LastFmService", targets: ["LastFmService"]),
+        .library(name: "NuvioService", targets: ["NuvioService"]),
         .library(name: "CoreSecureStore", targets: ["CoreSecureStore"]),
         .library(name: "FeatureAuthCore", targets: ["FeatureAuthCore"]),
         .library(name: "FeatureAuth", targets: ["FeatureAuth"]),
@@ -428,6 +429,10 @@ let package = Package(
             name: "LastFmService",
             dependencies: ["CoreModels", "CoreNetworking", "CoreSecureStore"]
         ),
+        .target(
+            name: "NuvioService",
+            dependencies: ["CoreModels", "CoreNetworking", "CoreSecureStore"]
+        ),
 
         // MARK: Features
         .target(
@@ -504,7 +509,7 @@ let package = Package(
         ),
         .target(
             name: "FeatureSettings",
-            dependencies: ["CoreModels", "CoreUI", "CoreNetworking", "CrashReporting", "FeatureProfiles", "TraktService", "WetrakrService", "SeerService", "SimklService", "AniListService", "MALService", "LastFmService"]
+            dependencies: ["CoreModels", "CoreUI", "CoreNetworking", "CrashReporting", "FeatureProfiles", "TraktService", "WetrakrService", "SeerService", "SimklService", "AniListService", "MALService", "LastFmService", "NuvioService"]
         ),
         .target(
             name: "FeatureProfiles",
@@ -876,6 +881,7 @@ let package = Package(
                 "AniListService",
                 "MALService",
                 "LastFmService",
+                "NuvioService",
                 "FeatureHome",
                 "FeatureLiveTV",
                 "FeaturePlayback",
@@ -930,6 +936,7 @@ let package = Package(
                 "WetrakrService",
                 "AniListService",
                 "MALService",
+                "NuvioService",
                 "FeatureSyncSetup",
                 "FeatureSyncCloud",
             ]
@@ -1044,6 +1051,10 @@ let package = Package(
         .testTarget(
             name: "SimklServiceTests",
             dependencies: ["SimklService", "CoreModels", "CoreNetworking", "TestSupportNetworking"]
+        ),
+        .testTarget(
+            name: "NuvioServiceTests",
+            dependencies: ["NuvioService", "CoreModels", "CoreNetworking"]
         ),
         .testTarget(
             name: "AniListServiceTests",

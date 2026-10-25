@@ -23,6 +23,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import NuvioService
 import TopShelfKit
 
 /// Keep the typed environment dependency stable across Settings redraws.
@@ -414,6 +415,7 @@ struct MainTabView: View {
     private var anilist: AniListService { syncServices.anilist }
     private var mal: MALService { syncServices.mal }
     private var lastfm: LastFmService { syncServices.lastfm }
+    private var nuvio: NuvioService { syncServices.nuvio }
     let mediaItemActionHandler: any MediaItemActionHandling
     let enqueueWatchMutation: (WatchMutation) -> Void
     let completeLibraryChannelPlayback: @MainActor @Sendable (MediaItem, UUID) throws -> Void
@@ -860,7 +862,8 @@ struct MainTabView: View {
         RealtimePlaybackScrobbler(
             trakt: trakt.playbackScrobbler(),
             simkl: SimklServiceFactory.make(namespace: liveTVPreferencesNamespace).scrobbler,
-            wetrakr: wetrakr.playbackScrobbler()
+            wetrakr: wetrakr.playbackScrobbler(),
+            nuvio: nuvio.scrobbler
         )
     }
 
@@ -1120,6 +1123,7 @@ struct MainTabView: View {
                 anilist: anilist,
                 mal: mal,
                 lastfm: lastfm,
+                nuvio: nuvio,
                 librariesStore: librariesStore,
                 reloadLibraries: {
                     await reloadLibrariesFromCurrentScope()
